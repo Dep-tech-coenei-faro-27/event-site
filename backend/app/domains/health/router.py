@@ -1,6 +1,7 @@
 from fastapi import APIRouter, status
 
 from app.domains.health.schemas import HealthCheckResponse
+from app.domains.health.service import get_health_status
 
 router = APIRouter(tags=["health"])
 
@@ -11,4 +12,4 @@ router = APIRouter(tags=["health"])
     status_code=status.HTTP_200_OK,
 )
 def health_check() -> HealthCheckResponse:
-    return HealthCheckResponse(status="OK")
+    return get_health_status()

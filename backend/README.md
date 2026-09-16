@@ -10,12 +10,12 @@ backend/
 │   ├── core/          # Configuração e settings
 │   ├── db/            # Sessão e base do SQLAlchemy
 │   └── domains/       # Separação por domínio
-│       └── health/    # router.py, schemas.py, models.py, services.py
+│       └── health/    # router.py, schemas.py, models.py, service.py
 ├── alembic/           # Migrations
 └── pyproject.toml
 ```
 
-Cada domínio tem os seus próprios ficheiros (`router.py`, `schemas.py`, `models.py`, `services.py`). Para criar um novo domínio, copie a estrutura de `app/domains/health/`.
+Cada domínio tem os seus próprios ficheiros (`router.py`, `schemas.py`, `models.py`, `service.py`). Para criar um novo domínio, copie a estrutura de `app/domains/health/`.
 
 ## Setup
 
