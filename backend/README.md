@@ -19,8 +19,8 @@ Cada domínio tem os seus próprios ficheiros (`router.py`, `schemas.py`, `model
 
 ## Testes
 
-Os testes de integração (_auth_) requerem uma instância de **PostgreSQL** acessível
-em `localhost:5432` com a base de dados `event_site_test`:
+Os testes correm, por omissão, contra uma **base de dados em memória (SQLite)**
+sem qualquer configuração extra:
 
 ```bash
 cp .env.example .env
@@ -28,9 +28,14 @@ uv sync --dev
 make test
 ```
 
-A base de teste é criada automaticamente pelo CI (ver `.github/workflows/ci.yml`).
-Para testes locais pode usar o Postgres do `docker compose` e criar a base de
-dados de teste com `CREATE DATABASE event_site_test`.
+Para testar contra um PostgreSQL real (como no CI), defina `TEST_DATABASE_URL`:
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/event_site_test make test
+```
+
+O CI executa a suite contra PostgreSQL (ver `.github/workflows/ci.yml`), o que
+garante compatibilidade com a base em produção.
 
 ## Setup
 

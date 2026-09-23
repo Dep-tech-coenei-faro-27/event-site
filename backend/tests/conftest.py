@@ -4,21 +4,23 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
-from app.core.config import settings
 from app.db import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
-TEST_DATABASE_NAME = os.environ.get("TEST_POSTGRES_DB", "event_site_test")
-TEST_POSTGRES_HOST = os.environ.get("TEST_POSTGRES_HOST", "localhost")
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 
 
-def test_database_url() -> str:
-    return (
-        f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-        f"@{TEST_POSTGRES_HOST}:{settings.POSTGRES_PORT}/{TEST_DATABASE_NAME}"
+def build_test_engine():
+    if TEST_DATABASE_URL:
+        return create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
+    return create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
 
 
@@ -30,7 +32,7 @@ def client():
 
 @pytest.fixture(scope="session")
 def test_engine():
-    engine = create_engine(test_database_url())
+    engine = build_test_engine()
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
@@ -40,7 +42,7 @@ def test_engine():
 @pytest.fixture
 def db_session(test_engine):
     with test_engine.begin() as conn:
-        conn.execute(text("TRUNCATE users RESTART IDENTITY"))
+        conn.execute(text("DELETE FROM users"))
     session = Session(bind=test_engine)
     yield session
     session.rollback()
