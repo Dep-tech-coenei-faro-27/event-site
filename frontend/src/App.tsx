@@ -1,31 +1,30 @@
-import Navbar from './components/Navbar.tsx'
-import Footer from './components/Footer.tsx'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar'; 
+import Footer from './components/Footer'; 
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Registo from './pages/Registo';
+
 function App() {
-
   return (
-    <>
-      <Navbar /> 
-        <div className="bg-background flex flex-col p-8 gap-4 items-start">
-            
-            <h1 className="text-h1">Test h1</h1>
-            <h2 className="text-h2">Test h2</h2>
-            <h3 className="text-h3">Test h3</h3>
-            <p className="text-body">Test body</p>
-            <p className="text-caption">Test caption</p>
+    <BrowserRouter>
+      <div className="flex flex-col min-h-screen bg-background">
+        
+        <Navbar />
 
-            <p className="text-primary">Test primary color</p>
-            <p className="text-body text-secondary">Test secundary color</p>
+ <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/registo" element={<Registo />} />
+          </Routes>
+        </main>
 
-            <button className="bg-primary text-background font-sans text-caption p-4 gap-4 rounded-md">
-                Botão de Teste
-            </button>
-
-        </div>
-        <div> 
-          <Footer/> 
-        </div>
-    </>
+        <Footer />
+        
+      </div>
+    </BrowserRouter>
   )
 }
 
-export default App
+export default App;
