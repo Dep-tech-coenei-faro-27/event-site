@@ -1,8 +1,9 @@
-
+import Navbar from './components/Navbar.tsx'
 function App() {
 
   return (
     <>
+      <Navbar /> 
         <div className="bg-background flex flex-col p-8 gap-4 items-start">
             
             <h1 className="text-h1">Test h1</h1>
