@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api"
     DEBUG: bool = False
 
-    CORS_ALLOW_ORIGINS: list[str] =[
+    CORS_ALLOW_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
