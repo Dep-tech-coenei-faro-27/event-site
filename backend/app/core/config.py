@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api"
     DEBUG: bool = False
 
+    JWT_SECRET_KEY: str = "change-this-in-the-env-file"
+    JWT_ALGORITHM: str = "HS256"
+
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
