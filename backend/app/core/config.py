@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api"
     DEBUG: bool = False
 
+    CORS_ALLOW_ORIGINS: list[str]
+
     JWT_SECRET_KEY: str = "change-this-in-the-env-file"
     JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

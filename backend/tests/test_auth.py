@@ -4,6 +4,7 @@ from app.core.security import verify_password
 from app.domains.users.models import Role, User
 
 REGISTER_URL = "/api/auth/register"
+LOGIN_URL = "/api/auth/login"
 
 
 def test_register_creates_user(auth_client):
@@ -116,3 +117,69 @@ def test_register_overlong_password_returns_422(auth_client):
     )
 
     assert response.status_code == 422
+
+
+def test_login_success(auth_client):
+    register_response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Joao",
+            "email": "joao123@example.com",
+            "password": "password456",
+        },
+    )
+
+    assert register_response.status_code == 201
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "joao123@example.com",
+            "password": "password456",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "Login successful"}
+
+    set_cookie = response.headers["set-cookie"]
+
+    assert "access_token=" in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "Secure" in set_cookie
+    assert "SameSite=lax" in set_cookie
+
+
+def test_login_wrong_password(auth_client):
+    auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "John Doe",
+            "email": "johnny@example.com",
+            "password": "correct-password",
+        },
+    )
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "johnny@example.com",
+            "password": "wrong-password",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_login_nonexistent_user(auth_client):
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "does-not-exist@example.com",
+            "password": "pass123",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
