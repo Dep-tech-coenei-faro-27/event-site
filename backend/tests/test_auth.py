@@ -4,7 +4,7 @@ from app.core.security import verify_password
 from app.domains.users.models import Role, User
 
 REGISTER_URL = "/api/auth/register"
-
+ME_URL = "/api/auth/me"
 
 def test_register_creates_user(auth_client):
     response = auth_client.post(
@@ -116,3 +116,15 @@ def test_register_overlong_password_returns_422(auth_client):
     )
 
     assert response.status_code == 422
+
+def test_private_route_missing_cookie_returns_401(auth_client):
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+
+def test_private_route_invalid_token_returns_401(auth_client):
+    auth_client.cookies.set("access_token", "invalid.jwt.token")
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
