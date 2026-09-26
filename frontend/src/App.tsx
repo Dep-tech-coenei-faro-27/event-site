@@ -1,3 +1,4 @@
+import FaqSection from "./components/FaqSection"
 
 function App() {
 
@@ -18,6 +19,9 @@ function App() {
                 Botão de Teste
             </button>
 
+
+            <h1 className="text-h1">Faq Section</h1>
+            <FaqSection />
         </div>
     </>
   )
