@@ -132,6 +132,8 @@ def test_private_route_invalid_token_returns_401(auth_client):
     response = auth_client.get(ME_URL)
 
     assert response.status_code == 401
+
+
 def test_login_success(auth_client):
     register_response = auth_client.post(
         REGISTER_URL,
