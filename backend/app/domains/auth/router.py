@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.db.session import get_db
+from app.domains.auth.dependencies import get_current_user
 from app.domains.auth.schemas import LoginRequest
 from app.domains.auth.service import authenticate_user
+from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
 from app.domains.users.service import create_user, get_user_by_email
 
@@ -32,6 +34,15 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> UserRead:
             detail="A user with this email already exists",
         ) from None
     return UserRead.model_validate(user)
+
+
+@router.get(
+    "/me",
+    response_model=UserRead,
+    status_code=status.HTTP_200_OK,
+)
+def get_current_user_info(current_user: User = Depends(get_current_user)) -> UserRead:
+    return UserRead.model_validate(current_user)
 
 
 @router.post("/login")
