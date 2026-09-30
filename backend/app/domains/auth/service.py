@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.core.security import verify_password, create_password_reset_token
+from app.core.security import create_password_reset_token, verify_password
 from app.domains.users.models import User
 from app.domains.users.service import get_user_by_email
 

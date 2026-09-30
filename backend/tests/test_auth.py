@@ -433,9 +433,11 @@ def test_login_remember_me_success(auth_client, email_sender):
 def test_forgot_password_sends_email_if_user_exists(auth_client, monkeypatch):
     auth_client.post(
         REGISTER_URL,
-        json={"name": "Mock User",
-              "email": "mock@example.com",
-              "password": "Mock-password1!"}
+        json={
+            "name": "Mock User",
+            "email": "mock@example.com",
+            "password": "Mock-password1!",
+        },
     )
 
     tokens_generated = []
@@ -445,12 +447,11 @@ def test_forgot_password_sends_email_if_user_exists(auth_client, monkeypatch):
         tokens_generated.append({"email": email, "token": token})
         return token
 
-    monkeypatch.setattr("app.domains.auth.service.create_password_reset_token", mock_create_token)
-
-    response = auth_client.post(
-        FORGOT_PASSWORD_URL,
-        json={"email": "mock@example.com"}
+    monkeypatch.setattr(
+        "app.domains.auth.service.create_password_reset_token", mock_create_token
     )
+
+    response = auth_client.post(FORGOT_PASSWORD_URL, json={"email": "mock@example.com"})
 
     assert response.status_code == 200
     assert len(tokens_generated) == 1
@@ -465,11 +466,12 @@ def test_forgot_password_ignores_non_existent_user_securely(auth_client, monkeyp
         tokens_generated.append(email)
         return "mock_token"
 
-    monkeypatch.setattr("app.domains.auth.service.create_password_reset_token", mock_create_token)
+    monkeypatch.setattr(
+        "app.domains.auth.service.create_password_reset_token", mock_create_token
+    )
 
     response = auth_client.post(
-        FORGOT_PASSWORD_URL,
-        json={"email": "does-not-exist@example.com"}
+        FORGOT_PASSWORD_URL, json={"email": "does-not-exist@example.com"}
     )
 
     assert response.status_code == 200

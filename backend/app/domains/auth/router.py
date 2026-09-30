@@ -204,5 +204,6 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     process_forgot_password(db, payload.email)
 
     return {
-        "message": "If the email exists in our system, you will receive a password recovery link shortly."
+        "message": "If the email exists in our system, you will receive a"
+        "password recovery link shortly."
     }
