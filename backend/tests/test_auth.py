@@ -4,7 +4,11 @@ import jwt
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.security import create_access_token, verify_password
+from app.core.security import (
+    create_access_token,
+    create_password_reset_token,
+    verify_password,
+)
 from app.domains.auth.dependencies import EMAIL_VERIFICATION_REQUIRED_MESSAGE
 from app.domains.users.models import Role, User
 from tests.helpers import (
@@ -16,6 +20,8 @@ from tests.helpers import (
     register_and_verify,
     register_user,
 )
+
+FORGOT_PASSWORD_URL = "/api/auth/forgot-password"
 
 
 def _access_token_for(email: str) -> str:
@@ -422,3 +428,49 @@ def test_login_remember_me_success(auth_client, email_sender):
     set_cookie = response.headers.get("Set-Cookie")
     assert "access_token" in set_cookie
     assert "Max-Age=604800" in set_cookie
+
+
+def test_forgot_password_sends_email_if_user_exists(auth_client, monkeypatch):
+    auth_client.post(
+        REGISTER_URL,
+        json={"name": "Mock User",
+              "email": "mock@example.com",
+              "password": "Mock-password1!"}
+    )
+
+    tokens_generated = []
+
+    def mock_create_token(email):
+        token = create_password_reset_token(email)
+        tokens_generated.append({"email": email, "token": token})
+        return token
+
+    monkeypatch.setattr("app.domains.auth.service.create_password_reset_token", mock_create_token)
+
+    response = auth_client.post(
+        FORGOT_PASSWORD_URL,
+        json={"email": "mock@example.com"}
+    )
+
+    assert response.status_code == 200
+    assert len(tokens_generated) == 1
+    assert tokens_generated[0]["email"] == "mock@example.com"
+    assert tokens_generated[0]["token"] is not None
+
+
+def test_forgot_password_ignores_non_existent_user_securely(auth_client, monkeypatch):
+    tokens_generated = []
+
+    def mock_create_token(email):
+        tokens_generated.append(email)
+        return "mock_token"
+
+    monkeypatch.setattr("app.domains.auth.service.create_password_reset_token", mock_create_token)
+
+    response = auth_client.post(
+        FORGOT_PASSWORD_URL,
+        json={"email": "does-not-exist@example.com"}
+    )
+
+    assert response.status_code == 200
+    assert len(tokens_generated) == 0
