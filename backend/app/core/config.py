@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-this-in-the-env-file"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+<<<<<<< HEAD
     JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 30
 
     SMTP_HOST: str = ""
@@ -44,6 +45,13 @@ class Settings(BaseSettings):
     def build_database_url(self) -> "Settings":
         self.DATABASE_URL = (
             f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+        return self
+
+
+settings = Settings()
+USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
         return self

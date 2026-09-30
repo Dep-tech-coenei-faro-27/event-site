@@ -13,3 +13,7 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendVerificationEmailRequest(BaseModel):
     email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
