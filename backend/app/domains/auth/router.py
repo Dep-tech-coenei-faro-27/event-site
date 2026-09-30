@@ -23,11 +23,12 @@ from app.domains.auth.dependencies import (
     get_current_verified_user,
 )
 from app.domains.auth.schemas import (
+    ForgotPasswordRequest,
     LoginRequest,
     ResendVerificationEmailRequest,
     VerifyEmailRequest,
 )
-from app.domains.auth.service import authenticate_user
+from app.domains.auth.service import authenticate_user, process_forgot_password
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
 from app.domains.users.service import (
@@ -193,3 +194,15 @@ def logout(response: Response) -> dict[str, str]:
     )
 
     return {"message": "Logout successful"}
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_200_OK,
+)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    process_forgot_password(db, payload.email)
+
+    return {
+        "message": "If the email exists in our system, you will receive a password recovery link shortly."
+    }
