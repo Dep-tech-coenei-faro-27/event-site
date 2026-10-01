@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 30
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+    FRONTEND_URL: str = "http://localhost:3000"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
