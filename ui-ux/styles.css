@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;600;700;800&display=swap");
-
 :root {
   --bg: #050d21;
   --bg-deep: #030710;
@@ -2774,6 +2772,20 @@ body[data-page="bilhetes"] .page-hero .container::before {
 body[data-page="bilhetes"] #tipos .grid--4 {
   align-items: stretch;
   grid-auto-rows: 1fr;
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
+}
+body[data-page="bilhetes"] #tipos > .container {
+  width: min(calc(100% - 40px), 1440px);
+}
+body[data-page="bilhetes"] #tipos .grid--4 > * {
+  min-width: 0;
+}
+body[data-page="bilhetes"] #tipos .ticket-card {
+  width: 100%;
+  min-width: 0;
+}
+body[data-page="bilhetes"] #tipos .ticket-card > * {
+  max-width: 100%;
 }
 body[data-page="bilhetes"] #tipos .ticket-card--featured {
   box-shadow: 0 22px 48px rgba(229, 191, 120, 0.1);
@@ -2781,11 +2793,32 @@ body[data-page="bilhetes"] #tipos .ticket-card--featured {
 body[data-page="bilhetes"] .price {
   color: var(--accent-strong);
   font-size: 34px;
+  line-height: 1.18;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
 }
 body[data-page="bilhetes"] #tipos .ticket-card .price {
   min-height: 3.05em;
   display: flex;
   align-items: flex-start;
+}
+body[data-page="bilhetes"] #tipos .ticket-card h3,
+body[data-page="bilhetes"] #tipos .feature-list li {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+@media (max-width: 1240px) {
+  body[data-page="bilhetes"] #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body[data-page="bilhetes"] #tipos .grid--4 {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
