@@ -1,3 +1,5 @@
+import re
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.domains.users.models import Role
@@ -10,9 +12,16 @@ class UserRegister(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_within_bcrypt_limit(cls, value: str) -> str:
+    def validate_password(cls, value: str) -> str:
         if len(value.encode("utf-8")) > 72:
-            raise ValueError("Password must be at most 72 bytes long")
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(char.isupper() for char in value):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(char.isdigit() for char in value):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[^a-zA-Z0-9]", value):
+            raise ValueError("Password must contain at least one symbol.")
+
         return value
 
 
