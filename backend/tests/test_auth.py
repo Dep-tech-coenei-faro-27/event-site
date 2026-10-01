@@ -203,7 +203,11 @@ def test_login_nonexistent_user(auth_client):
 def test_register_missing_uppercase_returns_422(auth_client):
     response = auth_client.post(
         REGISTER_URL,
-        json={"name": "Mock", "email": "mock_upper@example.com", "password": "password123!"},
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "password123!",
+        },
     )
     assert response.status_code == 422
     assert "uppercase" in response.json()["detail"][0]["msg"]
@@ -212,16 +216,24 @@ def test_register_missing_uppercase_returns_422(auth_client):
 def test_register_missing_number_returns_422(auth_client):
     response = auth_client.post(
         REGISTER_URL,
-        json={"name": "Mock", "email": "mock_upper@example.com", "password": "Password!!!"},
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "Password!!!",
+        },
     )
     assert response.status_code == 422
-    assert "number" in response.json()["detail"][0]["msg"]
+    assert "digit" in response.json()["detail"][0]["msg"]
 
 
 def test_register_missing_symbol_returns_422(auth_client):
     response = auth_client.post(
         REGISTER_URL,
-        json={"name": "Mock", "email": "mock_upper@example.com", "password": "Password123"},
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "Password123",
+        },
     )
     assert response.status_code == 422
     assert "symbol" in response.json()["detail"][0]["msg"]
