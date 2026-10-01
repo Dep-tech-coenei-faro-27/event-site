@@ -67,3 +67,15 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     )
 
     return {"message": "Login successful"}
+
+
+@router.post("/logout")
+def logout(response: Response) -> dict[str, str]:
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+
+    return {"message": "Logout successful"}
