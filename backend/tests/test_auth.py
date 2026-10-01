@@ -187,6 +187,32 @@ def test_login_wrong_password(auth_client):
     assert response.json()["detail"] == "Invalid email or password"
 
 
+def test_login_cookie_grants_access_to_protected_route(auth_client):
+    auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Protected",
+            "email": "protected@example.com",
+            "password": "password123",
+        },
+    )
+
+    login_response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "protected@example.com",
+            "password": "password123",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "protected@example.com"
+
+
 def test_login_nonexistent_user(auth_client):
     response = auth_client.post(
         LOGIN_URL,

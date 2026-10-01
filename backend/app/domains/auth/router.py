@@ -55,7 +55,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
             detail="Invalid email or password",
         )
 
-    token = create_access_token(subject=str(user.id), role=user.role.value)
+    token = create_access_token(subject=user.email, role=user.role.value)
 
     response.set_cookie(
         key="access_token",

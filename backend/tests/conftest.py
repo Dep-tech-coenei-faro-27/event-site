@@ -1,5 +1,10 @@
 import os
 
+os.environ.setdefault(
+    "JWT_SECRET_KEY",
+    "test-only-jwt-secret-that-is-at-least-32-bytes-long",
+)
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -55,6 +60,6 @@ def auth_client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
+    with TestClient(app, base_url="https://testserver") as test_client:
         yield test_client
     app.dependency_overrides.clear()
