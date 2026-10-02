@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-this-in-the-env-file"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = 10080  # 7 dias
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
