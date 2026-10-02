@@ -25,7 +25,9 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def create_access_token(subject: str, role: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str, role: str, expires_delta: timedelta | None = None
+) -> str:
     issued_at = datetime.now(UTC)
 
     if expires_delta:

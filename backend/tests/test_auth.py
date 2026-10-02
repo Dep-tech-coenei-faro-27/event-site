@@ -207,7 +207,7 @@ def test_login_remember_me_success(auth_client):
             "name": "Remember",
             "email": "remember@example.com",
             "password": "Password123!",
-        }
+        },
     )
 
     response = auth_client.post(
@@ -216,10 +216,10 @@ def test_login_remember_me_success(auth_client):
             "email": "remember@example.com",
             "password": "Password123!",
             "remember_me": True,
-        }
+        },
     )
 
     assert response.status_code == 200
     set_cookie = response.headers.get("Set-Cookie")
     assert "access_token" in set_cookie
-    assert "max_age=604800" in set_cookie
+    assert "Max_Age=604800" in set_cookie

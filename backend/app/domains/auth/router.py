@@ -64,9 +64,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
     token = create_access_token(
-        subject=str(user.id),
-        role=user.role.value,
-        expires_delta=expires_delta
+        subject=str(user.id), role=user.role.value, expires_delta=expires_delta
     )
 
     response.set_cookie(
