@@ -36,7 +36,7 @@ export default function AboutSectionCard() {
           <div className="w-28 shrink-0 pt-1">
             <span className="text-[#00AAFF] font-montserrat font-bold text-xs tracking-[0.16em] uppercase">
               {card.badge}
-            </span>bg
+            </span>
           </div>
 
           {/* Coluna 2: Título e Descrição */}
