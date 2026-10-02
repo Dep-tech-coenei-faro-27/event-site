@@ -25,13 +25,15 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def create_access_token(subject: str, role: str) -> str:
-
+def create_access_token(subject: str, role: str, expires_delta: timedelta | None = None) -> str:
     issued_at = datetime.now(UTC)
 
-    expire = datetime.now(UTC) + timedelta(
-        minutes=config.settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(
+            minutes=config.settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     payload = {
         "sub": subject,
