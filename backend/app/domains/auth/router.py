@@ -57,8 +57,8 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         )
 
     if payload.remember_me:
-        max_age = 60 * settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-        expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        max_age = 60 * settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES
+        expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES)
     else:
         max_age = 60 * settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -73,7 +73,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=60 * max_age,
+        max_age=max_age,
     )
 
     return {"message": "Login successful"}

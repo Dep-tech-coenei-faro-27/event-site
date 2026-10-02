@@ -222,4 +222,4 @@ def test_login_remember_me_success(auth_client):
     assert response.status_code == 200
     set_cookie = response.headers.get("Set-Cookie")
     assert "access_token" in set_cookie
-    assert "Max_Age=604800" in set_cookie
+    assert "Max-Age=604800" in set_cookie
