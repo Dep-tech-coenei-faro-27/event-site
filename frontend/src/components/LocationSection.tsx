@@ -1,10 +1,9 @@
-import React from 'react';
 import Eyebrow from './EyeBrow';
 import faroMarinaImg from '../assets/faro-baixa.webp'; // Ou a imagem correspondente da marina
 
 export default function LocationSection() {
   return (
-    <section className="relative w-full py-24 bg-[#030917] text-white">
+    <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
       <div className="w-full max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           

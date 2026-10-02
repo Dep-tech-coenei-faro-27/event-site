@@ -39,7 +39,7 @@ const paths: PathItem[] = [
 
 export default function ParticipationSection() {
   return (
-    <section className="relative w-full py-24 bg-[#030917] text-white">
+    <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
       <div className="w-full max-w-7xl mx-auto px-6">
         
         {/* Cabeçalho da Secção */}
@@ -59,7 +59,7 @@ export default function ParticipationSection() {
         </div>
 
         {/* Grelha de 3 Colunas com Linhas Divisórias */}
-        <div className="border-t border-[#00AAFF]/20 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#00AAFF]/20">
+        <div className="border-t-2 border-b-2  border-[#00AAFF]/20 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#00AAFF]/20">
           {paths.map((item, index) => (
             <div
               key={index}

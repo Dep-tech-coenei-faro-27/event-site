@@ -2,26 +2,8 @@ import AboutSectionCard from './AboutSectionCards';
 import Eyebrow from './EyeBrow';
 
 export default function AboutSection() {
-  const cards = [
-    {
-      badge: 'PROGRAMA',
-      title: 'Aprender e experimentar.',
-      text: 'Conteúdo técnico, desafios e cultura académica num só encontro.',
-    },
-    {
-      badge: 'REDE',
-      title: 'Criar ligações reais.',
-      text: 'Estudantes, comunidades e organizações lado a lado durante quatro dias.',
-    },
-    {
-      badge: 'EDIÇÃO',
-      title: 'Uma identidade algarvia.',
-      text: 'O ambiente de Faro dá ritmo e contexto à experiência de 2027.',
-    },
-  ];
-
   return (
-    <section className="relative w-full py-24 bg-[#030917] text-white">
+    <section className="relative w-full py-24 bg-[#050d21] text-white">
       <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         
         {/* Coluna Esquerda: Texto Principal */}

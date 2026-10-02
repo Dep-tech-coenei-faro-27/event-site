@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 import AboutSection from '../components/AboutSection';
 import Hero from '../components/Hero';
 import ParticipationSection from '../components/ParticipationSection';
@@ -8,17 +7,12 @@ import QuickInfo from '../components/QuickInfo';
 import LocationSection from '../components/LocationSection'
 import ExperienceSection from '../components/ExperienceSection';
 import CtaBanner from '../components/CtaBanner';
-=======
-import bgImage from '../assets/hero-faro.webp';
-import Hero from '../components/Hero';
->>>>>>> dev
 
 function Home() {
     
     return (
         <>
-<<<<<<< HEAD
-            <main className="min-h-screen bg-[#030917] overflow-x-hidden selection:bg-[#00AAFF]/30">
+            <main className="min-h-screen bg-[#050d21] overflow-x-hidden selection:bg-[#00AAFF]/30 pt-16">
                 <Hero />
 
                 <QuickInfo />
@@ -29,9 +23,6 @@ function Home() {
                 <ExperienceSection />
                 <CtaBanner />
             </main>
-=======
-            <Hero />
->>>>>>> dev
         </>
     )
 }

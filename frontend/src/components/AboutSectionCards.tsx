@@ -30,13 +30,13 @@ export default function AboutSectionCard() {
       {cards.map((card, index) => (
         <div
           key={index}
-          className="azulejo-bg relative p-6 sm:p-7 rounded-r-xl border-l-4 border-l-[#00AAFF] border-y border-r border-[#00AAFF]/20 bg-[#051126]/60 backdrop-blur-sm transition-all hover:bg-[#051126]/90 flex flex-col sm:flex-row items-start gap-4 sm:gap-8"
+          className="azulejo-bg relative p-6 sm:p-7 border-l-4 border-l-[#00AAFF] border-y border-r border-[#00AAFF]/20 bg-[#051126]/60 backdrop-blur-sm transition-all hover:bg-[#051126]/90 flex flex-col sm:flex-row items-start gap-4 sm:gap-8"
         >
           {/* Coluna 1: Badge Isolada */}
           <div className="w-28 shrink-0 pt-1">
             <span className="text-[#00AAFF] font-montserrat font-bold text-xs tracking-[0.16em] uppercase">
               {card.badge}
-            </span>
+            </span>bg
           </div>
 
           {/* Coluna 2: Título e Descrição */}

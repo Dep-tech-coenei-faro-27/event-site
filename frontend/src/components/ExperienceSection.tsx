@@ -27,11 +27,11 @@ const details: DetailCard[] = [
 
 export default function ExperienceSection() {
   return (
-    <section className="relative w-full py-24 bg-[#030917] text-white">
+    <section className="relative w-full py-24 bg-[#050d21] text-white">
       <div className="w-full max-w-7xl mx-auto px-6 flex flex-col gap-6">
         
         {/* Bloco Superior: Manifesto de Experiência */}
-        <div className="relative p-8 sm:p-12 lg:p-16 rounded-2xl border border-[#00AAFF]/20 border-l-4 border-l-[#00AAFF] bg-[#051126]/60 backdrop-blur-sm">
+        <div className="azulejo-bg relative p-8 sm:p-12 lg:p-16 border border-[#00AAFF]/20 border-l-4 border-l-[#00AAFF] bg-[#051126]/60 backdrop-blur-sm">
           <Eyebrow text="EXPERIÊNCIA" />
 
           <h2 className="font-poppins font-bold text-2xl sm:text-3xl lg:text-4xl text-white leading-snug lg:leading-[1.25] tracking-tight max-w-5xl mb-10">
@@ -48,7 +48,7 @@ export default function ExperienceSection() {
           {details.map((item, index) => (
             <div
               key={index}
-              className="p-6 sm:p-7 rounded-2xl border border-[#00AAFF]/20 border-t-2 border-t-[#00AAFF] bg-[#051126]/60 backdrop-blur-sm flex flex-col justify-start"
+              className="azulejo-bg p-6 sm:p-7 border border-[#00AAFF]/20 border-t-4 border-t-[#00AAFF] bg-[#051126]/60 backdrop-blur-sm flex flex-col justify-start"
             >
               <span className="text-[#00AAFF] font-montserrat font-bold text-xs tracking-[0.16em] uppercase mb-4">
                 {item.label}
