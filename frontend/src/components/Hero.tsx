@@ -1,5 +1,8 @@
 import React from 'react';
 import heroFaro from '../assets/hero-faro.webp'; // ou do teu caminho em assets
+import Eyebrow from './EyeBrow';
+import SecundaryButton from './SecundaryButton';
+import PrimaryButton from './PrimaryButton';
 
 export default function Hero() {
   return (
@@ -35,9 +38,8 @@ export default function Hero() {
       />
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-[90px] flex flex-col items-start gap-6">
-        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-full border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leaoding-[1.2]">
-            {/*TODO: criar uma Componente para esta Tag para futuramente conseguirmos reutilizar nas restantes páginas*/}
-            <span>&lt;LOCAL_HOST: FARO_2027 /&gt;</span>
+        <div className="inline-flex items-center ">
+            <Eyebrow text='LOCAL_HOST: FARO_2027'></Eyebrow>
         </div>
 
         <h1 className="max-w-[880px] font-poppins font-extrabold text-4xl sm:text-5xl lg:text-6xl tracking-tight bg-clip-text text-transparent"
@@ -55,13 +57,8 @@ export default function Hero() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4 pt-4">
-            <button type="button" className="px-6 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 text-[#FFFFFF] font-montserrat font-semibold text-sm sm:text-base transition-all duration-200 backdrop-blur-sm">
-                Saber Mais
-            </button>
-
-            <button type="button" className="px-6 py-3 rounded-xl bg-[#1AB2FF] hover:bg-[#23CAFF] text-[#02101C] font-montserrat font-bold text-sm sm:text-base transition-all duration-200 shadow-lg shadow-[#1AB2FF]/25 hover:shadow-[#23CAFF]/35 active:scale-95 cursor-pointer">
-                Comprar Bilhete
-            </button>
+            <SecundaryButton text='Saber mais'/>
+            <PrimaryButton text='Comprar Bilhete'/>
         </div>
       </div>
     </section>
