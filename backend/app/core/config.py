@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-this-in-the-env-file"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 30
+
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_SENDER: str = ""
+
+    FRONTEND_URL: str = "http://localhost:3000"
     JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = 10080  # 7 dias
 
     POSTGRES_USER: str
