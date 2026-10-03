@@ -17,7 +17,10 @@ from app.core.security import (
     decode_email_verification_token,
 )
 from app.db.session import get_db
-from app.domains.auth.dependencies import get_current_user
+from app.domains.auth.dependencies import (
+    EMAIL_VERIFICATION_REQUIRED_MESSAGE,
+    get_current_verified_user,
+)
 from app.domains.auth.schemas import (
     LoginRequest,
     ResendVerificationEmailRequest,
@@ -135,7 +138,9 @@ def resend_verification_email(
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
 )
-def get_current_user_info(current_user: User = Depends(get_current_user)) -> UserRead:
+def get_current_user_info(
+    current_user: User = Depends(get_current_verified_user),
+) -> UserRead:
     return UserRead.model_validate(current_user)
 
 
@@ -149,7 +154,13 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
             detail="Invalid email or password",
         )
 
-    token = create_access_token(subject=str(user.id), role=user.role.value)
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=EMAIL_VERIFICATION_REQUIRED_MESSAGE,
+        )
+
+    token = create_access_token(subject=user.email, role=user.role.value)
 
     response.set_cookie(
         key="access_token",

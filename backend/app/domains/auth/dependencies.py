@@ -7,6 +7,8 @@ from app.db.session import get_db
 from app.domains.users.models import User
 from app.domains.users.service import get_user_by_email
 
+EMAIL_VERIFICATION_REQUIRED_MESSAGE = "Please verify your email address to continue."
+
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     token = request.cookies.get("access_token")
@@ -40,6 +42,18 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+
+    return user
+
+
+def get_current_verified_user(request: Request, db: Session = Depends(get_db)) -> User:
+    user = get_current_user(request, db)
+
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=EMAIL_VERIFICATION_REQUIRED_MESSAGE,
         )
 
     return user

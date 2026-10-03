@@ -1,11 +1,34 @@
+from datetime import UTC, datetime, timedelta
+
+import jwt
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.security import verify_password
+from app.domains.auth.dependencies import EMAIL_VERIFICATION_REQUIRED_MESSAGE
 from app.domains.users.models import Role, User
+from tests.helpers import (
+    LOGIN_URL,
+    ME_URL,
+    REGISTER_URL,
+    VERIFY_URL,
+    extract_verification_token,
+    register_and_verify,
+    register_user,
+)
 
-REGISTER_URL = "/api/auth/register"
-ME_URL = "/api/auth/me"
-LOGIN_URL = "/api/auth/login"
+
+def _access_token_for(email: str) -> str:
+    return jwt.encode(
+        {
+            "sub": email,
+            "role": Role.USER.value,
+            "iat": datetime.now(UTC),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
 
 
 def test_register_creates_user(auth_client):
@@ -23,6 +46,7 @@ def test_register_creates_user(auth_client):
     assert body["name"] == "Ana Silva"
     assert body["email"] == "ana@example.com"
     assert body["role"] == Role.USER.value
+    assert body["is_verified"] is False
     assert "password" not in body
     assert "password_hash" not in body
 
@@ -134,17 +158,25 @@ def test_private_route_invalid_token_returns_401(auth_client):
     assert response.status_code == 401
 
 
-def test_login_success(auth_client):
-    register_response = auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "Joao",
-            "email": "joao123@example.com",
-            "password": "password456",
-        },
-    )
+def test_me_requires_verified_account(auth_client, email_sender, db_session):
+    register_user(auth_client, email_sender, email="pending@example.com")
+    auth_client.cookies.set("access_token", _access_token_for("pending@example.com"))
 
-    assert register_response.status_code == 201
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == EMAIL_VERIFICATION_REQUIRED_MESSAGE
+
+    user = db_session.scalar(select(User).where(User.email == "pending@example.com"))
+    assert user.is_verified is False
+
+
+def test_login_success_after_verification(auth_client, email_sender):
+    register_user(
+        auth_client, email_sender, email="joao123@example.com", password="password456"
+    )
+    token = extract_verification_token(email_sender)
+    auth_client.post(VERIFY_URL, json={"token": token})
 
     response = auth_client.post(
         LOGIN_URL,
@@ -165,15 +197,24 @@ def test_login_success(auth_client):
     assert "SameSite=lax" in set_cookie
 
 
-def test_login_wrong_password(auth_client):
-    auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "John Doe",
-            "email": "johnny@example.com",
-            "password": "correct-password",
-        },
+def test_login_unverified_user_blocked(auth_client, email_sender, db_session):
+    register_user(auth_client, email_sender, email="unverified@example.com")
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={"email": "unverified@example.com", "password": "password123"},
     )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == EMAIL_VERIFICATION_REQUIRED_MESSAGE
+    assert "set-cookie" not in response.headers
+
+    user = db_session.scalar(select(User).where(User.email == "unverified@example.com"))
+    assert user.is_verified is False
+
+
+def test_login_wrong_password_returns_401(auth_client, email_sender):
+    register_user(auth_client, email_sender, email="johnny@example.com")
 
     response = auth_client.post(
         LOGIN_URL,
@@ -198,3 +239,19 @@ def test_login_nonexistent_user(auth_client):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_me_allows_verified_user_after_login(auth_client, email_sender, db_session):
+    register_and_verify(auth_client, email_sender, email="authorized@example.com")
+    login = auth_client.post(
+        LOGIN_URL,
+        json={"email": "authorized@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["email"] == "authorized@example.com"
+    assert body["is_verified"] is True
