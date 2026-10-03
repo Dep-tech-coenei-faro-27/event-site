@@ -2,6 +2,8 @@
 
 Static HTML and CSS submission for the ENEI 2027 interface.
 
+Event dates: 1–4 April 2027, Faro, Algarve.
+
 ## Included
 
 - Responsive landing page, event-information pages, FAQ and footer
