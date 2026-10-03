@@ -6,7 +6,6 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
-    create_password_reset_token,
     verify_password,
 )
 from app.domains.auth.dependencies import EMAIL_VERIFICATION_REQUIRED_MESSAGE
@@ -430,49 +429,43 @@ def test_login_remember_me_success(auth_client, email_sender):
     assert "Max-Age=604800" in set_cookie
 
 
-def test_forgot_password_sends_email_if_user_exists(auth_client, monkeypatch):
-    auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "Mock User",
-            "email": "mock@example.com",
-            "password": "Mock-password1!",
-        },
+from app.core.email.templates import PASSWORD_RESET_SUBJECT
+
+
+def test_forgot_password_sends_email_if_user_exists(
+    auth_client, email_sender, db_session
+):
+    register_user(
+        auth_client,
+        email_sender,
+        email="mock@example.com",
+        password="Mock-password1!",
     )
-
-    tokens_generated = []
-
-    def mock_create_token(email):
-        token = create_password_reset_token(email)
-        tokens_generated.append({"email": email, "token": token})
-        return token
-
-    monkeypatch.setattr(
-        "app.domains.auth.service.create_password_reset_token", mock_create_token
-    )
+    email_sender.sent.clear()
 
     response = auth_client.post(FORGOT_PASSWORD_URL, json={"email": "mock@example.com"})
 
     assert response.status_code == 200
-    assert len(tokens_generated) == 1
-    assert tokens_generated[0]["email"] == "mock@example.com"
-    assert tokens_generated[0]["token"] is not None
-
-
-def test_forgot_password_ignores_non_existent_user_securely(auth_client, monkeypatch):
-    tokens_generated = []
-
-    def mock_create_token(email):
-        tokens_generated.append(email)
-        return "mock_token"
-
-    monkeypatch.setattr(
-        "app.domains.auth.service.create_password_reset_token", mock_create_token
+    assert (
+        response.json()["message"]
+        == "If the email exists in our system, you will receive a password recovery link shortly."
     )
+    assert len(email_sender.sent) == 1
+    assert email_sender.sent[0]["to_email"] == "mock@example.com"
+    assert email_sender.sent[0]["subject"] == PASSWORD_RESET_SUBJECT
+    assert "reset-password?token=" in email_sender.sent[0]["html_body"]
+
+
+def test_forgot_password_ignores_non_existent_user_securely(auth_client, email_sender):
+    email_sender.sent.clear()
 
     response = auth_client.post(
         FORGOT_PASSWORD_URL, json={"email": "does-not-exist@example.com"}
     )
 
     assert response.status_code == 200
-    assert len(tokens_generated) == 0
+    assert (
+        response.json()["message"]
+        == "If the email exists in our system, you will receive a password recovery link shortly."
+    )
+    assert len(email_sender.sent) == 0
