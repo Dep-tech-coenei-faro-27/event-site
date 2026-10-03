@@ -12,3 +12,4 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendVerificationEmailRequest(BaseModel):
     email: EmailStr
+    remember_me: bool = False

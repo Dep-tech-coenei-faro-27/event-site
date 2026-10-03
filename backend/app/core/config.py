@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     EMAIL_SENDER: str = ""
 
     FRONTEND_URL: str = "http://localhost:3000"
+    JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = 10080  # 7 dias
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

@@ -38,7 +38,7 @@ def test_register_creates_user(auth_client):
         json={
             "name": "Ana Silva",
             "email": "ana@example.com",
-            "password": "password123",
+            "password": "Password123!",
         },
     )
 
@@ -58,7 +58,7 @@ def test_register_stores_bcrypt_hash_in_db(auth_client, db_session):
         json={
             "name": "João Mendes",
             "email": "joao@example.com",
-            "password": "s3cret-pass!",
+            "password": "S3cret-pass!",
         },
     )
 
@@ -67,15 +67,15 @@ def test_register_stores_bcrypt_hash_in_db(auth_client, db_session):
     user = db_session.scalar(select(User).where(User.email == "joao@example.com"))
     assert user is not None
     assert user.password_hash.startswith("$2b$")
-    assert user.password_hash != "s3cret-pass!"
-    assert verify_password("s3cret-pass!", user.password_hash)
+    assert user.password_hash != "S3cret-pass!"
+    assert verify_password("S3cret-pass!", user.password_hash)
 
 
 def test_register_duplicate_email_returns_409(auth_client, db_session):
     payload = {
         "name": "Duplicado",
         "email": "dupe@example.com",
-        "password": "password123",
+        "password": "Password123!",
     }
     first = auth_client.post(REGISTER_URL, json=payload)
     assert first.status_code == 201
@@ -95,7 +95,7 @@ def test_register_normalizes_email(auth_client, db_session):
         json={
             "name": "Case",
             "email": "  MixedCASE@Example.COM ",
-            "password": "password123",
+            "password": "Password123!",
         },
     )
 
@@ -112,7 +112,7 @@ def test_register_invalid_email_returns_422(auth_client):
         json={
             "name": "Ana",
             "email": "not-an-email",
-            "password": "password123",
+            "password": "Password123!",
         },
     )
 
@@ -125,7 +125,7 @@ def test_register_short_password_returns_422(auth_client):
         json={
             "name": "Ana",
             "email": "ana2@example.com",
-            "password": "short",
+            "password": "@Short1",
         },
     )
 
@@ -164,6 +164,15 @@ def test_me_requires_verified_account(auth_client, email_sender, db_session):
     auth_client.cookies.set("access_token", _access_token_for("pending@example.com"))
 
     response = auth_client.get(ME_URL)
+def test_login_success(auth_client):
+    register_response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Joao",
+            "email": "joao123@example.com",
+            "password": "Password456!",
+        },
+    )
 
     assert response.status_code == 403
     assert response.json()["detail"] == EMAIL_VERIFICATION_REQUIRED_MESSAGE
@@ -183,7 +192,7 @@ def test_login_success_after_verification(auth_client, email_sender):
         LOGIN_URL,
         json={
             "email": "joao123@example.com",
-            "password": "password456",
+            "password": "Password456!",
         },
     )
 
@@ -204,6 +213,14 @@ def test_login_unverified_user_blocked(auth_client, email_sender, db_session):
     response = auth_client.post(
         LOGIN_URL,
         json={"email": "unverified@example.com", "password": "password123"},
+def test_login_wrong_password(auth_client):
+    auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "John Doe",
+            "email": "johnny@example.com",
+            "password": "Correct-password1!",
+        },
     )
 
     assert response.status_code == 403
@@ -221,7 +238,7 @@ def test_login_wrong_password_returns_401(auth_client, email_sender):
         LOGIN_URL,
         json={
             "email": "johnny@example.com",
-            "password": "wrong-password",
+            "password": "Wrong-password1!",
         },
     )
 
@@ -234,7 +251,7 @@ def test_login_nonexistent_user(auth_client):
         LOGIN_URL,
         json={
             "email": "does-not-exist@example.com",
-            "password": "pass123",
+            "password": "Pass123!",
         },
     )
 
@@ -319,3 +336,63 @@ def test_me_rejects_token_with_non_string_subject(auth_client):
     # PyJWT rejects non-string `sub` claims at decode time (InvalidSubjectError),
     # so this surfaces through the generic invalid-token path.
     assert response.json()["detail"] == "Invalid token."
+def test_register_missing_uppercase_returns_422(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "password123!",
+        },
+    )
+    assert response.status_code == 422
+    assert "uppercase" in response.json()["detail"][0]["msg"]
+
+
+def test_register_missing_number_returns_422(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "Password!!!",
+        },
+    )
+    assert response.status_code == 422
+    assert "digit" in response.json()["detail"][0]["msg"]
+
+
+def test_register_missing_symbol_returns_422(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Mock",
+            "email": "mock_upper@example.com",
+            "password": "Password123",
+        },
+    )
+    assert response.status_code == 422
+    assert "symbol" in response.json()["detail"][0]["msg"]
+def test_login_remember_me_success(auth_client):
+    auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Remember",
+            "email": "remember@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "remember@example.com",
+            "password": "Password123!",
+            "remember_me": True,
+        },
+    )
+
+    assert response.status_code == 200
+    set_cookie = response.headers.get("Set-Cookie")
+    assert "access_token" in set_cookie
+    assert "Max-Age=604800" in set_cookie
