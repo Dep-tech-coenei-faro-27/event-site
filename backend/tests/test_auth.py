@@ -444,9 +444,9 @@ def test_forgot_password_sends_email_if_user_exists(
     response = auth_client.post(FORGOT_PASSWORD_URL, json={"email": "mock@example.com"})
 
     assert response.status_code == 200
-    assert response.json()["message"] == (
-        "If the email exists in our system,"
-        " you will receive a password recovery link shortly."
+    assert (
+        response.json()["message"] == "If the email exists in our system, "
+        "you will receive a password recovery link shortly."
     )
     assert len(email_sender.sent) == 1
     assert email_sender.sent[0]["to_email"] == "mock@example.com"
@@ -462,8 +462,8 @@ def test_forgot_password_ignores_non_existent_user_securely(auth_client, email_s
     )
 
     assert response.status_code == 200
-    assert response.json()["message"] == (
-        "If the email exists in our system,"
-        " you will receive a password recovery link shortly."
+    assert (
+        response.json()["message"] == "If the email exists in our system, "
+        "you will receive a password recovery link shortly."
     )
     assert len(email_sender.sent) == 0
