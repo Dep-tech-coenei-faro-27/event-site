@@ -14,7 +14,7 @@ def register_user(
     *,
     name="Ana Silva",
     email="ana@example.com",
-    password="password123",
+    password="Password123!",
 ):
     response = auth_client.post(
         REGISTER_URL,
@@ -37,7 +37,7 @@ def register_and_verify(
     *,
     name="Ana Silva",
     email="ana@example.com",
-    password="password123",
+    password="Password123!",
 ):
     register_user(auth_client, email_sender, name=name, email=email, password=password)
     token = extract_verification_token(email_sender)

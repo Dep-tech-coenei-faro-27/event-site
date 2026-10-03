@@ -1,8 +1,7 @@
 import logging
-
-import jwt
 from datetime import timedelta
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -161,7 +160,6 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
             detail=EMAIL_VERIFICATION_REQUIRED_MESSAGE,
         )
 
-    token = create_access_token(subject=user.email, role=user.role.value)
     if payload.remember_me:
         max_age = 60 * settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES)
@@ -170,7 +168,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
     token = create_access_token(
-        subject=str(user.id), role=user.role.value, expires_delta=expires_delta
+        subject=user.email, role=user.role.value, expires_delta=expires_delta
     )
 
     response.set_cookie(
@@ -183,3 +181,15 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     )
 
     return {"message": "Login successful"}
+
+
+@router.post("/logout")
+def logout(response: Response) -> dict[str, str]:
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+
+    return {"message": "Logout successful"}
