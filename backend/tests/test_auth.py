@@ -4,7 +4,7 @@ import jwt
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.security import verify_password
+from app.core.security import create_access_token, verify_password
 from app.domains.auth.dependencies import EMAIL_VERIFICATION_REQUIRED_MESSAGE
 from app.domains.users.models import Role, User
 from tests.helpers import (
@@ -23,6 +23,7 @@ def _access_token_for(email: str) -> str:
         {
             "sub": email,
             "role": Role.USER.value,
+            "type": "access",
             "iat": datetime.now(UTC),
             "exp": datetime.now(UTC) + timedelta(minutes=30),
         },
@@ -255,3 +256,66 @@ def test_me_allows_verified_user_after_login(auth_client, email_sender, db_sessi
     body = response.json()
     assert body["email"] == "authorized@example.com"
     assert body["is_verified"] is True
+
+
+def test_access_token_carries_access_type_claim():
+    token = create_access_token(subject="carol@example.com", role=Role.USER.value)
+
+    payload = jwt.decode(
+        token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
+    assert payload["type"] == "access"
+
+
+def test_verification_token_cannot_be_used_as_access_token(auth_client, email_sender):
+    register_user(auth_client, email_sender, email="verify-only@example.com")
+
+    verification_token = extract_verification_token(email_sender)
+    auth_client.cookies.set("access_token", verification_token)
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid token."
+
+
+def test_me_rejects_token_without_type_claim(auth_client, email_sender):
+    register_user(auth_client, email_sender, email="no-type@example.com")
+
+    token = jwt.encode(
+        {
+            "sub": "no-type@example.com",
+            "role": Role.USER.value,
+            "iat": datetime.now(UTC),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    auth_client.cookies.set("access_token", token)
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid token."
+
+
+def test_me_rejects_token_with_non_string_subject(auth_client):
+    token = jwt.encode(
+        {
+            "sub": 12345,
+            "type": "access",
+            "iat": datetime.now(UTC),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    auth_client.cookies.set("access_token", token)
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+    # PyJWT rejects non-string `sub` claims at decode time (InvalidSubjectError),
+    # so this surfaces through the generic invalid-token path.
+    assert response.json()["detail"] == "Invalid token."

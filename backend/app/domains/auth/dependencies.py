@@ -23,6 +23,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         payload = jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token.",
+            )
         email: str = payload.get("sub")
         if email is None:
             raise HTTPException(

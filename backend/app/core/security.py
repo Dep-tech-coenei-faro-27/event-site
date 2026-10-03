@@ -8,6 +8,7 @@ import app.core.config as config
 BCRYPT_MAX_PASSWORD_BYTES = 72
 BCRYPT_ROUNDS = 12
 
+ACCESS_TOKEN_TYPE = "access"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
 
 
@@ -38,6 +39,7 @@ def create_access_token(subject: str, role: str) -> str:
     payload = {
         "sub": subject,
         "role": role,
+        "type": ACCESS_TOKEN_TYPE,
         "iat": issued_at,
         "exp": expire,
     }

@@ -168,6 +168,24 @@ def test_verify_email_rejects_access_token(auth_client, email_sender, db_session
     assert response.json()["detail"] == "Invalid verification token"
 
 
+def test_verify_email_rejects_token_with_non_string_subject(auth_client):
+    non_string = jwt.encode(
+        {
+            "sub": 123456,
+            "type": "email_verification",
+            "iat": datetime.now(UTC),
+            "exp": datetime.now(UTC) + timedelta(minutes=30),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+    response = auth_client.post(VERIFY_URL, json={"token": non_string})
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid verification token"
+
+
 def test_verify_email_rejects_token_for_unknown_user(
     auth_client, email_sender, db_session
 ):
