@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,5 +26,13 @@ def create_user(db: Session, payload: UserRegister) -> User:
     except IntegrityError:
         db.rollback()
         raise
+    db.refresh(user)
+    return user
+
+
+def mark_user_verified(db: Session, user: User) -> User:
+    user.is_verified = True
+    user.email_verified_at = datetime.now(UTC)
+    db.commit()
     db.refresh(user)
     return user

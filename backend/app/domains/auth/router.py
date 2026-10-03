@@ -1,18 +1,52 @@
+import logging
+
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import create_access_token
+from app.core.email import EmailDeliveryError, EmailSender, get_email_sender
+from app.core.email.templates import (
+    VERIFICATION_EMAIL_SUBJECT,
+    build_verification_email_html,
+)
+from app.core.security import (
+    create_access_token,
+    create_email_verification_token,
+    decode_email_verification_token,
+)
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_user
-from app.domains.auth.schemas import LoginRequest
+from app.domains.auth.schemas import LoginRequest, VerifyEmailRequest
 from app.domains.auth.service import authenticate_user
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
-from app.domains.users.service import create_user, get_user_by_email
+from app.domains.users.service import (
+    create_user,
+    get_user_by_email,
+    mark_user_verified,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+logger = logging.getLogger(__name__)
+
+
+def _send_verification_email(email_sender: EmailSender, user: User) -> None:
+    verification_token = create_email_verification_token(user.email)
+    verification_url = (
+        f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    )
+    html_body = build_verification_email_html(user.name, verification_url)
+    try:
+        email_sender.send_html(
+            to_email=user.email,
+            subject=VERIFICATION_EMAIL_SUBJECT,
+            html_body=html_body,
+        )
+    except EmailDeliveryError as exc:
+        logger.warning("Failed to send verification email to %s: %s", user.email, exc)
 
 
 @router.post(
@@ -20,7 +54,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
 )
-def register(payload: UserRegister, db: Session = Depends(get_db)) -> UserRead:
+def register(
+    payload: UserRegister,
+    db: Session = Depends(get_db),
+    email_sender: EmailSender = Depends(get_email_sender),
+) -> UserRead:
     if get_user_by_email(db, payload.email) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -33,7 +71,37 @@ def register(payload: UserRegister, db: Session = Depends(get_db)) -> UserRead:
             status_code=status.HTTP_409_CONFLICT,
             detail="A user with this email already exists",
         ) from None
+    _send_verification_email(email_sender, user)
     return UserRead.model_validate(user)
+
+
+@router.post("/verify-email")
+def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+    try:
+        email = decode_email_verification_token(payload.token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification token has expired",
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token",
+        )
+
+    user = get_user_by_email(db, email)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token",
+        )
+
+    if user.is_verified:
+        return {"message": "Email verified successfully"}
+
+    mark_user_verified(db, user)
+    return {"message": "Email verified successfully"}
 
 
 @router.get(
