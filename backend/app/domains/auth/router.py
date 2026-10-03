@@ -16,6 +16,8 @@ from app.core.security import (
     create_access_token,
     create_email_verification_token,
     decode_email_verification_token,
+    hash_password,
+    verify_password,
 )
 from app.db.session import get_db
 from app.domains.auth.dependencies import (
@@ -26,6 +28,7 @@ from app.domains.auth.schemas import (
     LoginRequest,
     ResendVerificationEmailRequest,
     VerifyEmailRequest,
+    ChangePasswordRequest,
 )
 from app.domains.auth.service import authenticate_user
 from app.domains.users.models import User
@@ -34,6 +37,7 @@ from app.domains.users.service import (
     create_user,
     get_user_by_email,
     mark_user_verified,
+    update_user_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -193,3 +197,23 @@ def logout(response: Response) -> dict[str, str]:
     )
 
     return {"message": "Logout successful"}
+
+
+@router.put("/password")
+def change_password(payload: ChangePasswordRequest, current_user: User = Depends(get_current_verified_user), db: Session = Depends(get_db)):
+    
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your new password must be different from your current password",
+        )
+
+    update_user_password(db, current_user, payload.new_password)
+
+    return {"message": "Password changed successfully"}
