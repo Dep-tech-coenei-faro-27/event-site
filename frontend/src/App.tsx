@@ -4,19 +4,21 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registo from './pages/Registo';
+import InformacaoAjuda from './pages/InformacaoAjuda';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex flex-col min-h-screen bg-background">
+      <div className="flex flex-col min-h-screen bg-[#050d21]">
         
         <Navbar />
 
- <main className="flex-grow">
+        <main className="flex-grow bg-[#050d21]">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registo" element={<Registo />} />
+            <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
           </Routes>
         </main>
 
