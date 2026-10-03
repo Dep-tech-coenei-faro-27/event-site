@@ -76,6 +76,23 @@ def create_email_verification_token(email: str) -> str:
     )
 
 
+def create_password_reset_token(email: str) -> str:
+    expire = datetime.now(UTC) + timedelta(
+        minutes=config.settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+    )
+    payload = {
+        "sub": email,
+        "type": "password_reset",
+        "iat": datetime.now(UTC),
+        "exp": expire,
+    }
+    return jwt.encode(
+        payload,
+        config.settings.JWT_SECRET_KEY,
+        algorithm=config.settings.JWT_ALGORITHM,
+    )
+
+
 def decode_email_verification_token(token: str) -> str:
     """Return the email bound to a valid verification token.
 
