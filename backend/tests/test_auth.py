@@ -164,16 +164,6 @@ def test_me_requires_verified_account(auth_client, email_sender, db_session):
     auth_client.cookies.set("access_token", _access_token_for("pending@example.com"))
 
     response = auth_client.get(ME_URL)
-def test_login_success(auth_client):
-    register_response = auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "Joao",
-            "email": "joao123@example.com",
-            "password": "Password456!",
-        },
-    )
-
     assert response.status_code == 403
     assert response.json()["detail"] == EMAIL_VERIFICATION_REQUIRED_MESSAGE
 
@@ -183,7 +173,7 @@ def test_login_success(auth_client):
 
 def test_login_success_after_verification(auth_client, email_sender):
     register_user(
-        auth_client, email_sender, email="joao123@example.com", password="password456"
+        auth_client, email_sender, email="joao123@example.com", password="Password456!"
     )
     token = extract_verification_token(email_sender)
     auth_client.post(VERIFY_URL, json={"token": token})
@@ -212,15 +202,7 @@ def test_login_unverified_user_blocked(auth_client, email_sender, db_session):
 
     response = auth_client.post(
         LOGIN_URL,
-        json={"email": "unverified@example.com", "password": "password123"},
-def test_login_wrong_password(auth_client):
-    auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "John Doe",
-            "email": "johnny@example.com",
-            "password": "Correct-password1!",
-        },
+        json={"email": "unverified@example.com", "password": "Password123!"},
     )
 
     assert response.status_code == 403
@@ -229,6 +211,27 @@ def test_login_wrong_password(auth_client):
 
     user = db_session.scalar(select(User).where(User.email == "unverified@example.com"))
     assert user.is_verified is False
+
+
+def test_login_wrong_password(auth_client, email_sender):
+    register_user(
+        auth_client,
+        email_sender,
+        email="johnny@example.com",
+        password="Correct-password1!",
+    )
+    token = extract_verification_token(email_sender)
+    auth_client.post(VERIFY_URL, json={"token": token})
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "johnny@example.com",
+            "password": "Wrong-password1!",
+        },
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
 
 
 def test_login_wrong_password_returns_401(auth_client, email_sender):
@@ -246,21 +249,14 @@ def test_login_wrong_password_returns_401(auth_client, email_sender):
     assert response.json()["detail"] == "Invalid email or password"
 
 
-def test_login_cookie_grants_access_to_protected_route(auth_client):
-    auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "Protected",
-            "email": "protected@example.com",
-            "password": "password123",
-        },
-    )
+def test_login_cookie_grants_access_to_protected_route(auth_client, email_sender):
+    register_and_verify(auth_client, email_sender, email="protected@example.com")
 
     login_response = auth_client.post(
         LOGIN_URL,
         json={
             "email": "protected@example.com",
-            "password": "password123",
+            "password": "Password123!",
         },
     )
 
@@ -289,7 +285,7 @@ def test_me_allows_verified_user_after_login(auth_client, email_sender, db_sessi
     register_and_verify(auth_client, email_sender, email="authorized@example.com")
     login = auth_client.post(
         LOGIN_URL,
-        json={"email": "authorized@example.com", "password": "password123"},
+        json={"email": "authorized@example.com", "password": "Password123!"},
     )
     assert login.status_code == 200
 
@@ -362,6 +358,8 @@ def test_me_rejects_token_with_non_string_subject(auth_client):
     # PyJWT rejects non-string `sub` claims at decode time (InvalidSubjectError),
     # so this surfaces through the generic invalid-token path.
     assert response.json()["detail"] == "Invalid token."
+
+
 def test_register_missing_uppercase_returns_422(auth_client):
     response = auth_client.post(
         REGISTER_URL,
@@ -399,15 +397,17 @@ def test_register_missing_symbol_returns_422(auth_client):
     )
     assert response.status_code == 422
     assert "symbol" in response.json()["detail"][0]["msg"]
-def test_login_remember_me_success(auth_client):
-    auth_client.post(
-        REGISTER_URL,
-        json={
-            "name": "Remember",
-            "email": "remember@example.com",
-            "password": "Password123!",
-        },
+
+
+def test_login_remember_me_success(auth_client, email_sender):
+    register_user(
+        auth_client,
+        email_sender,
+        email="remember@example.com",
+        password="Password123!",
     )
+    token = extract_verification_token(email_sender)
+    auth_client.post(VERIFY_URL, json={"token": token})
 
     response = auth_client.post(
         LOGIN_URL,
