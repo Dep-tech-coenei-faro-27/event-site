@@ -237,3 +237,26 @@ def test_register_missing_symbol_returns_422(auth_client):
     )
     assert response.status_code == 422
     assert "symbol" in response.json()["detail"][0]["msg"]
+def test_login_remember_me_success(auth_client):
+    auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Remember",
+            "email": "remember@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    response = auth_client.post(
+        LOGIN_URL,
+        json={
+            "email": "remember@example.com",
+            "password": "Password123!",
+            "remember_me": True,
+        },
+    )
+
+    assert response.status_code == 200
+    set_cookie = response.headers.get("Set-Cookie")
+    assert "access_token" in set_cookie
+    assert "Max-Age=604800" in set_cookie
