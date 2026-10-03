@@ -3375,3 +3375,42 @@ body[data-page="bilhetes"] #tipos .feature-list li {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Keep all ticket choices readable from wide desktop down to mobile. */
+body[data-page="bilhetes"] #tipos .grid--4 {
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
+}
+body[data-page="bilhetes"] #tipos > .container {
+  width: min(calc(100% - 40px), 1440px);
+}
+body[data-page="bilhetes"] #tipos .grid--4 > *,
+body[data-page="bilhetes"] #tipos .ticket-card {
+  min-width: 0;
+}
+body[data-page="bilhetes"] #tipos .ticket-card {
+  width: 100%;
+}
+body[data-page="bilhetes"] #tipos .ticket-card > * {
+  max-width: 100%;
+}
+body[data-page="bilhetes"] #tipos .ticket-card .price {
+  line-height: 1.18;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+body[data-page="bilhetes"] #tipos .ticket-card h3,
+body[data-page="bilhetes"] #tipos .feature-list li {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+@media (max-width: 1240px) {
+  body[data-page="bilhetes"] #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  body[data-page="bilhetes"] #tipos .grid--4 {
+    grid-template-columns: 1fr;
+  }
+}
