@@ -24,7 +24,7 @@ export default function Navbar() {
     { name: 'Agenda', path: '../pages/agenda' },
     { name: 'Equipa', path: '../pages/equipa' },
     { name: 'Parcerias', path: '/pages/parceriais' },
-    { name: 'Informação & Ajuda', path: '/pages/informacao-ajuda' },
+    { name: 'Informação & Ajuda', path: '/informacao-ajuda' },
     { name: 'Bilhetes', path: '/bilhetes' },
   ];
 
