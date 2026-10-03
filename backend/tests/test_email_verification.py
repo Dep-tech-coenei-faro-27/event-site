@@ -1,4 +1,3 @@
-import re
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -11,38 +10,18 @@ from app.domains.auth.router import (
     EMAIL_VERIFICATION_SENT_MESSAGE,
 )
 from app.domains.users.models import User
+from tests.helpers import (
+    REGISTER_URL,
+    VERIFY_URL,
+    extract_verification_token,
+    register_user,
+)
 
-REGISTER_URL = "/api/auth/register"
-VERIFY_URL = "/api/auth/verify-email"
 RESEND_URL = "/api/auth/resend-verification-email"
-
-_TOKEN_QUERY = re.compile(r"[?&]token=([A-Za-z0-9._\-]+)")
-
-
-def _register(
-    auth_client,
-    email_sender,
-    name="Ana Silva",
-    email="ana@example.com",
-    password="password123",
-):
-    response = auth_client.post(
-        REGISTER_URL,
-        json={"name": name, "email": email, "password": password},
-    )
-    assert response.status_code == 201
-    return response
-
-
-def _extract_token(email_sender) -> str:
-    assert email_sender.sent
-    link = _TOKEN_QUERY.search(email_sender.sent[-1]["html_body"])
-    assert link is not None
-    return link.group(1)
 
 
 def test_register_sends_verification_email(auth_client, email_sender):
-    _register(auth_client, email_sender, email="ana@example.com")
+    register_user(auth_client, email_sender, email="ana@example.com")
 
     assert len(email_sender.sent) == 1
     sent = email_sender.sent[0]
@@ -53,9 +32,9 @@ def test_register_sends_verification_email(auth_client, email_sender):
 
 
 def test_register_verification_token_contains_user_email(auth_client, email_sender):
-    _register(auth_client, email_sender, email="token-user@example.com")
+    register_user(auth_client, email_sender, email="token-user@example.com")
 
-    token = _extract_token(email_sender)
+    token = extract_verification_token(email_sender)
     payload = jwt.decode(
         token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
     )
@@ -65,7 +44,7 @@ def test_register_verification_token_contains_user_email(auth_client, email_send
 
 
 def test_register_creates_user_unverified(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="unverified@example.com")
+    register_user(auth_client, email_sender, email="unverified@example.com")
 
     user = db_session.query(User).filter(User.email == "unverified@example.com").one()
     assert user.is_verified is False
@@ -73,8 +52,8 @@ def test_register_creates_user_unverified(auth_client, email_sender, db_session)
 
 
 def test_verify_email_success(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="verify-me@example.com")
-    token = _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="verify-me@example.com")
+    token = extract_verification_token(email_sender)
 
     response = auth_client.post(VERIFY_URL, json={"token": token})
 
@@ -93,8 +72,8 @@ def test_verify_email_success(auth_client, email_sender, db_session):
 def test_verify_email_is_idempotent_when_already_verified(
     auth_client, email_sender, db_session
 ):
-    _register(auth_client, email_sender, email="twice@example.com")
-    token = _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="twice@example.com")
+    token = extract_verification_token(email_sender)
 
     first = auth_client.post(VERIFY_URL, json={"token": token})
     second = auth_client.post(VERIFY_URL, json={"token": token})
@@ -108,7 +87,7 @@ def test_verify_email_is_idempotent_when_already_verified(
 
 
 def test_verify_email_rejects_invalid_token(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="invalid-token@example.com")
+    register_user(auth_client, email_sender, email="invalid-token@example.com")
 
     response = auth_client.post(VERIFY_URL, json={"token": "not-a-real-token"})
 
@@ -122,7 +101,7 @@ def test_verify_email_rejects_invalid_token(auth_client, email_sender, db_sessio
 
 
 def test_verify_email_rejects_expired_token(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="expired@example.com")
+    register_user(auth_client, email_sender, email="expired@example.com")
 
     expired = jwt.encode(
         {
@@ -147,7 +126,7 @@ def test_verify_email_rejects_expired_token(auth_client, email_sender, db_sessio
 def test_verify_email_rejects_token_signed_with_other_secret(
     auth_client, email_sender, db_session
 ):
-    _register(auth_client, email_sender, email="tampered@example.com")
+    register_user(auth_client, email_sender, email="tampered@example.com")
 
     tampered = jwt.encode(
         {
@@ -170,7 +149,7 @@ def test_verify_email_rejects_token_signed_with_other_secret(
 
 
 def test_verify_email_rejects_access_token(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="wrong-type@example.com")
+    register_user(auth_client, email_sender, email="wrong-type@example.com")
 
     access_token = jwt.encode(
         {
@@ -192,8 +171,8 @@ def test_verify_email_rejects_access_token(auth_client, email_sender, db_session
 def test_verify_email_rejects_token_for_unknown_user(
     auth_client, email_sender, db_session
 ):
-    _register(auth_client, email_sender, email="someone-else@example.com")
-    _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="someone-else@example.com")
+    extract_verification_token(email_sender)
 
     unknown = jwt.encode(
         {
@@ -215,7 +194,7 @@ def test_verify_email_rejects_token_for_unknown_user(
 def test_verify_email_missing_token_is_rejected_by_validation(
     auth_client, email_sender, db_session
 ):
-    _register(auth_client, email_sender, email="missing-token@example.com")
+    register_user(auth_client, email_sender, email="missing-token@example.com")
 
     response = auth_client.post(VERIFY_URL, json={})
 
@@ -276,7 +255,7 @@ def test_register_still_succeeds_when_email_delivery_fails(db_session):
 
 
 def test_verification_email_escapes_html_in_registered_name(auth_client, email_sender):
-    _register(auth_client, email_sender, name="<script>alert(1)</script>")
+    register_user(auth_client, email_sender, name="<script>alert(1)</script>")
 
     html_body = email_sender.sent[0]["html_body"]
     assert "<script>" not in html_body
@@ -284,8 +263,8 @@ def test_verification_email_escapes_html_in_registered_name(auth_client, email_s
 
 
 def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
-    _register(auth_client, email_sender, email="resend-me@example.com")
-    first_token = _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="resend-me@example.com")
+    first_token = extract_verification_token(email_sender)
 
     response = auth_client.post(RESEND_URL, json={"email": "resend-me@example.com"})
 
@@ -298,7 +277,7 @@ def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
     assert sent["subject"] == VERIFICATION_EMAIL_SUBJECT
     assert "verify-email?token=" in sent["html_body"]
 
-    second_token = _extract_token(email_sender)
+    second_token = extract_verification_token(email_sender)
     first_payload = jwt.decode(
         first_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
     )
@@ -311,13 +290,13 @@ def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
 
 
 def test_resend_token_completes_verification(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="late-link@example.com")
-    _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="late-link@example.com")
+    extract_verification_token(email_sender)
 
     response = auth_client.post(RESEND_URL, json={"email": "late-link@example.com"})
     assert response.status_code == 200
 
-    fresh_token = _extract_token(email_sender)
+    fresh_token = extract_verification_token(email_sender)
     verify = auth_client.post(VERIFY_URL, json={"token": fresh_token})
 
     assert verify.status_code == 200
@@ -336,8 +315,8 @@ def test_resend_does_not_send_for_unknown_email(auth_client, email_sender):
 
 
 def test_resend_does_not_send_for_verified_user(auth_client, email_sender, db_session):
-    _register(auth_client, email_sender, email="already-verified@example.com")
-    token = _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="already-verified@example.com")
+    token = extract_verification_token(email_sender)
     auth_client.post(VERIFY_URL, json={"token": token})
     assert len(email_sender.sent) == 1
 
@@ -351,8 +330,8 @@ def test_resend_does_not_send_for_verified_user(auth_client, email_sender, db_se
 
 
 def test_resend_normalizes_email(auth_client, email_sender):
-    _register(auth_client, email_sender, email="mixed@example.com")
-    _extract_token(email_sender)
+    register_user(auth_client, email_sender, email="mixed@example.com")
+    extract_verification_token(email_sender)
 
     response = auth_client.post(RESEND_URL, json={"email": "  MIXED@EXAMPLE.COM "})
 
@@ -365,3 +344,46 @@ def test_resend_verification_email_missing_email_rejected(auth_client, email_sen
     response = auth_client.post(RESEND_URL, json={})
 
     assert response.status_code == 422
+
+
+def test_verification_token_ttl_matches_setting(auth_client, email_sender):
+    register_user(auth_client, email_sender, email="ttl-check@example.com")
+
+    token = extract_verification_token(email_sender)
+    payload = jwt.decode(
+        token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
+
+    lifetime = payload["exp"] - payload["iat"]
+    assert lifetime == settings.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES * 60
+
+
+def test_verify_expired_token_requires_resend(auth_client, email_sender, db_session):
+    register_user(auth_client, email_sender, email="needs-resend@example.com")
+
+    expired = jwt.encode(
+        {
+            "sub": "needs-resend@example.com",
+            "type": "email_verification",
+            "iat": datetime.now(UTC) - timedelta(minutes=31),
+            "exp": datetime.now(UTC) - timedelta(minutes=1),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+    rejected = auth_client.post(VERIFY_URL, json={"token": expired})
+    assert rejected.status_code == 400
+    assert rejected.json()["detail"] == "Verification token has expired"
+
+    resent = auth_client.post(RESEND_URL, json={"email": "needs-resend@example.com"})
+    assert resent.status_code == 200
+
+    fresh_token = extract_verification_token(email_sender)
+    accepted = auth_client.post(VERIFY_URL, json={"token": fresh_token})
+
+    assert accepted.status_code == 200
+    assert accepted.json() == {"message": "Email verified successfully"}
+
+    user = db_session.query(User).filter(User.email == "needs-resend@example.com").one()
+    assert user.is_verified is True

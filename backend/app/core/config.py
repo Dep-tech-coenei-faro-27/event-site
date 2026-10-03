@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "change-this-in-the-env-file"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 1440
+    JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = 30
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
