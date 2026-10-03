@@ -2,7 +2,8 @@ from tests.helpers import LOGIN_URL, register_and_verify
 
 CHANGE_PASSWORD_URL = "/api/auth/password"
 
-def test_change_password_success(auth_client,email_sender):
+
+def test_change_password_success(auth_client, email_sender):
     register_and_verify(
         auth_client,
         email_sender,
@@ -29,9 +30,7 @@ def test_change_password_success(auth_client,email_sender):
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "message": "Password changed successfully"
-    }
+    assert response.json() == {"message": "Password changed successfully"}
 
 
 def test_change_password_wrong_current_password(auth_client, email_sender):
@@ -64,8 +63,8 @@ def test_change_password_wrong_current_password(auth_client, email_sender):
     assert response.json()["detail"] == "Current password is incorrect"
 
 
-def test_change_password_to_same_password(auth_client,email_sender):
-    
+def test_change_password_to_same_password(auth_client, email_sender):
+
     register_and_verify(
         auth_client,
         email_sender,
@@ -96,7 +95,8 @@ def test_change_password_to_same_password(auth_client,email_sender):
         "Your new password must be different from your current password"
     )
 
-def test_change_password_invalid_new_password(auth_client,email_sender):
+
+def test_change_password_invalid_new_password(auth_client, email_sender):
     register_and_verify(
         auth_client,
         email_sender,
@@ -125,6 +125,7 @@ def test_change_password_invalid_new_password(auth_client,email_sender):
     assert response.status_code == 422
     assert "uppercase" in response.json()["detail"][0]["msg"]
 
+
 def test_change_password_unauthenticated(client):
     response = client.put(
         CHANGE_PASSWORD_URL,
@@ -135,4 +136,6 @@ def test_change_password_unauthenticated(client):
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Not authenticated. Missing access token cookie."
+    assert (
+        response.json()["detail"] == "Not authenticated. Missing access token cookie."
+    )

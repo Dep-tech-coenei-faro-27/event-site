@@ -1,8 +1,8 @@
+import re
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
-import re
 
 import app.core.config as config
 
@@ -11,6 +11,7 @@ BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
+
 
 def validate_password(value: str) -> str:
     if len(value.encode("utf-8")) > 72:
@@ -23,6 +24,7 @@ def validate_password(value: str) -> str:
         raise ValueError("Password must contain at least one symbol.")
 
     return value
+
 
 def hash_password(password: str) -> str:
     if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:

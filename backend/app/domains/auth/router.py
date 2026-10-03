@@ -16,7 +16,6 @@ from app.core.security import (
     create_access_token,
     create_email_verification_token,
     decode_email_verification_token,
-    hash_password,
     verify_password,
 )
 from app.db.session import get_db
@@ -25,10 +24,10 @@ from app.domains.auth.dependencies import (
     get_current_verified_user,
 )
 from app.domains.auth.schemas import (
+    ChangePasswordRequest,
     LoginRequest,
     ResendVerificationEmailRequest,
     VerifyEmailRequest,
-    ChangePasswordRequest,
 )
 from app.domains.auth.service import authenticate_user
 from app.domains.users.models import User
@@ -200,8 +199,12 @@ def logout(response: Response) -> dict[str, str]:
 
 
 @router.put("/password")
-def change_password(payload: ChangePasswordRequest, current_user: User = Depends(get_current_verified_user), db: Session = Depends(get_db)):
-    
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db),
+):
+
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
