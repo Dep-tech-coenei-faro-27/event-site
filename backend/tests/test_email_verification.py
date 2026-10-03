@@ -6,10 +6,15 @@ import jwt
 from app.core.config import settings
 from app.core.email.base import EmailDeliveryError
 from app.core.email.templates import VERIFICATION_EMAIL_SUBJECT
+from app.domains.auth.router import (
+    EMAIL_ALREADY_VERIFIED_MESSAGE,
+    EMAIL_VERIFICATION_SENT_MESSAGE,
+)
 from app.domains.users.models import User
 
 REGISTER_URL = "/api/auth/register"
 VERIFY_URL = "/api/auth/verify-email"
+RESEND_URL = "/api/auth/resend-verification-email"
 
 _TOKEN_QUERY = re.compile(r"[?&]token=([A-Za-z0-9._\-]+)")
 
@@ -30,8 +35,8 @@ def _register(
 
 
 def _extract_token(email_sender) -> str:
-    assert len(email_sender.sent) == 1
-    link = _TOKEN_QUERY.search(email_sender.sent[0]["html_body"])
+    assert email_sender.sent
+    link = _TOKEN_QUERY.search(email_sender.sent[-1]["html_body"])
     assert link is not None
     return link.group(1)
 
@@ -276,3 +281,87 @@ def test_verification_email_escapes_html_in_registered_name(auth_client, email_s
     html_body = email_sender.sent[0]["html_body"]
     assert "<script>" not in html_body
     assert "&lt;script&gt;" in html_body
+
+
+def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
+    _register(auth_client, email_sender, email="resend-me@example.com")
+    first_token = _extract_token(email_sender)
+
+    response = auth_client.post(RESEND_URL, json={"email": "resend-me@example.com"})
+
+    assert response.status_code == 200
+    assert response.json() == {"message": EMAIL_VERIFICATION_SENT_MESSAGE}
+
+    assert len(email_sender.sent) == 2
+    sent = email_sender.sent[1]
+    assert sent["to_email"] == "resend-me@example.com"
+    assert sent["subject"] == VERIFICATION_EMAIL_SUBJECT
+    assert "verify-email?token=" in sent["html_body"]
+
+    second_token = _extract_token(email_sender)
+    first_payload = jwt.decode(
+        first_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
+    second_payload = jwt.decode(
+        second_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
+    assert second_payload["sub"] == "resend-me@example.com"
+    assert second_payload["type"] == "email_verification"
+    assert second_payload["iat"] >= first_payload["iat"]
+
+
+def test_resend_token_completes_verification(auth_client, email_sender, db_session):
+    _register(auth_client, email_sender, email="late-link@example.com")
+    _extract_token(email_sender)
+
+    response = auth_client.post(RESEND_URL, json={"email": "late-link@example.com"})
+    assert response.status_code == 200
+
+    fresh_token = _extract_token(email_sender)
+    verify = auth_client.post(VERIFY_URL, json={"token": fresh_token})
+
+    assert verify.status_code == 200
+    assert verify.json() == {"message": "Email verified successfully"}
+
+    user = db_session.query(User).filter(User.email == "late-link@example.com").one()
+    assert user.is_verified is True
+
+
+def test_resend_does_not_send_for_unknown_email(auth_client, email_sender):
+    response = auth_client.post(RESEND_URL, json={"email": "ghost@example.com"})
+
+    assert response.status_code == 200
+    assert response.json() == {"message": EMAIL_VERIFICATION_SENT_MESSAGE}
+    assert email_sender.sent == []
+
+
+def test_resend_does_not_send_for_verified_user(auth_client, email_sender, db_session):
+    _register(auth_client, email_sender, email="already-verified@example.com")
+    token = _extract_token(email_sender)
+    auth_client.post(VERIFY_URL, json={"token": token})
+    assert len(email_sender.sent) == 1
+
+    response = auth_client.post(
+        RESEND_URL, json={"email": "already-verified@example.com"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"message": EMAIL_ALREADY_VERIFIED_MESSAGE}
+    assert len(email_sender.sent) == 1
+
+
+def test_resend_normalizes_email(auth_client, email_sender):
+    _register(auth_client, email_sender, email="mixed@example.com")
+    _extract_token(email_sender)
+
+    response = auth_client.post(RESEND_URL, json={"email": "  MIXED@EXAMPLE.COM "})
+
+    assert response.status_code == 200
+    assert len(email_sender.sent) == 2
+    assert email_sender.sent[1]["to_email"] == "mixed@example.com"
+
+
+def test_resend_verification_email_missing_email_rejected(auth_client, email_sender):
+    response = auth_client.post(RESEND_URL, json={})
+
+    assert response.status_code == 422

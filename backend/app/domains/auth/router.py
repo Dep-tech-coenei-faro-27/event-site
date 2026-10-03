@@ -18,7 +18,11 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_user
-from app.domains.auth.schemas import LoginRequest, VerifyEmailRequest
+from app.domains.auth.schemas import (
+    LoginRequest,
+    ResendVerificationEmailRequest,
+    VerifyEmailRequest,
+)
 from app.domains.auth.service import authenticate_user
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
@@ -31,6 +35,11 @@ from app.domains.users.service import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 logger = logging.getLogger(__name__)
+
+EMAIL_ALREADY_VERIFIED_MESSAGE = "Email already verified"
+EMAIL_VERIFICATION_SENT_MESSAGE = (
+    "If an account is awaiting verification, a verification email has been sent."
+)
 
 
 def _send_verification_email(email_sender: EmailSender, user: User) -> None:
@@ -102,6 +111,23 @@ def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
 
     mark_user_verified(db, user)
     return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification-email")
+def resend_verification_email(
+    payload: ResendVerificationEmailRequest,
+    db: Session = Depends(get_db),
+    email_sender: EmailSender = Depends(get_email_sender),
+):
+    user = get_user_by_email(db, payload.email)
+
+    if user is not None and user.is_verified:
+        return {"message": EMAIL_ALREADY_VERIFIED_MESSAGE}
+
+    if user is not None:
+        _send_verification_email(email_sender, user)
+
+    return {"message": EMAIL_VERIFICATION_SENT_MESSAGE}
 
 
 @router.get(
