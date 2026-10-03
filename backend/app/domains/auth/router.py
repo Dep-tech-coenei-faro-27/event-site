@@ -9,12 +9,15 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.email import EmailDeliveryError, EmailSender, get_email_sender
 from app.core.email.templates import (
+    PASSWORD_RESET_SUBJECT,
     VERIFICATION_EMAIL_SUBJECT,
+    build_password_reset_email_html,
     build_verification_email_html,
 )
 from app.core.security import (
     create_access_token,
     create_email_verification_token,
+    create_password_reset_token,
     decode_email_verification_token,
     verify_password,
 )
@@ -25,6 +28,7 @@ from app.domains.auth.dependencies import (
 )
 from app.domains.auth.schemas import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     ResendVerificationEmailRequest,
     VerifyEmailRequest,
@@ -220,3 +224,33 @@ def change_password(
     update_user_password(db, current_user, payload.new_password)
 
     return {"message": "Password changed successfully"}
+def _send_password_reset_email(email_sender: EmailSender, user: User) -> None:
+    reset_token = create_password_reset_token(user.email)
+    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    html_body = build_password_reset_email_html(user.name, reset_url)
+
+    try:
+        email_sender.send_html(
+            to_email=user.email,
+            subject=PASSWORD_RESET_SUBJECT,
+            html_body=html_body,
+        )
+    except EmailDeliveryError as exc:
+        logger.warning("Failed to send password reset email to %s: %s", user.email, exc)
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+    email_sender: EmailSender = Depends(get_email_sender),
+):
+    user = get_user_by_email(db, payload.email)
+
+    if user is not None:
+        _send_password_reset_email(email_sender, user)
+
+    return {
+        "message": "If the email exists in our system, "
+        "you will receive a password recovery link shortly."
+    }

@@ -2,6 +2,7 @@
 from html import escape
 
 VERIFICATION_EMAIL_SUBJECT = "Confirm your email"
+PASSWORD_RESET_SUBJECT = "Recuperação de Password"
 
 
 def build_verification_email_html(first_name: str, verify_url: str) -> str:
@@ -23,6 +24,34 @@ def build_verification_email_html(first_name: str, verify_url: str) -> str:
         </a>
         <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#71717a;">
           If the button does not work, open this link in your browser:<br />
+          <a href="{safe_url}" style="color:#71717a;word-break:break-all;">{safe_url}</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
+"""
+
+
+def build_password_reset_email_html(first_name: str, reset_url: str) -> str:
+    safe_name = escape(first_name)
+    safe_url = escape(reset_url, quote=True)
+    return f"""\
+<html>
+  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
+        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
+        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3f3f46;">
+          Recebemos um pedido para repor a tua password. Clica no botão abaixo para escolher uma nova.
+        </p>
+        <a href="{safe_url}" style="display:inline-block;padding:12px 24px;border-radius:8px;
+           background-color:#18181b;color:#ffffff;text-decoration:none;font-size:16px;">
+          Repor Password
+        </a>
+        <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#71717a;">
+          Se não fizeste este pedido, podes ignorar este email com segurança.<br /><br />
+          Ou copia este link para o browser:<br />
           <a href="{safe_url}" style="color:#71717a;word-break:break-all;">{safe_url}</a>
         </p>
       </div>
