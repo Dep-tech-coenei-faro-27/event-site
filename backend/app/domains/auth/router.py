@@ -224,6 +224,8 @@ def change_password(
     update_user_password(db, current_user, payload.new_password)
 
     return {"message": "Password changed successfully"}
+
+
 def _send_password_reset_email(email_sender: EmailSender, user: User) -> None:
     reset_token = create_password_reset_token(user.email)
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"

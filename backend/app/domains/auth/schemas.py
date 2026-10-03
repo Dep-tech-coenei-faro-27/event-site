@@ -25,6 +25,7 @@ class ChangePasswordRequest(BaseModel):
     @classmethod
     def validate_new_password(cls, value: str) -> str:
         return validate_password(value)
-    
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
