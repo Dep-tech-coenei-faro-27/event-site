@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -10,6 +11,19 @@ BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
+
+
+def validate_password(value: str) -> str:
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 bytes long")
+    if not any(char.isupper() for char in value):
+        raise ValueError("Password must contain at least one uppercase letter")
+    if not any(char.isdigit() for char in value):
+        raise ValueError("Password must contain at least one digit")
+    if not re.search(r"[^a-zA-Z0-9]", value):
+        raise ValueError("Password must contain at least one symbol.")
+
+    return value
 
 
 def hash_password(password: str) -> str:
