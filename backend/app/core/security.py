@@ -1,6 +1,6 @@
 import re
-from datetime import UTC, datetime, timedelta
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
@@ -137,6 +137,7 @@ def decode_email_verification_token(token: str) -> str:
         raise jwt.InvalidTokenError("Verification token missing subject")
 
     return email
+
 
 def decode_password_reset_token(token: str) -> dict:
 

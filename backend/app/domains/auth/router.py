@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 
-from app.domains.auth.models import ResetPasswordToken
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
@@ -36,7 +35,11 @@ from app.domains.auth.schemas import (
     ResetPasswordRequest,
     VerifyEmailRequest,
 )
-from app.domains.auth.service import authenticate_user, get_password_reset_token, register_reset_token
+from app.domains.auth.service import (
+    authenticate_user,
+    get_password_reset_token,
+    register_reset_token,
+)
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
 from app.domains.users.service import (
@@ -230,7 +233,9 @@ def change_password(
     return {"message": "Password changed successfully"}
 
 
-def _send_password_reset_email(db: Session, email_sender: EmailSender, user: User) -> None:
+def _send_password_reset_email(
+    db: Session, email_sender: EmailSender, user: User
+) -> None:
     reset_token, jti, expire = create_password_reset_token(user.email)
 
     register_reset_token(db, jti, expire)
@@ -264,11 +269,12 @@ def forgot_password(
         "you will receive a password recovery link shortly."
     }
 
+
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
 
-    try: 
-        payload = decode_password_reset_token(payload.token)
+    try:
+        token_payload = decode_password_reset_token(payload.token)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -280,8 +286,8 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
             detail="Invalid password reset token",
         )
 
-    email = payload.get("sub")
-    jti = payload.get("jti")
+    email = token_payload.get("sub")
+    jti = token_payload.get("jti")
 
     reset_token = get_password_reset_token(db, jti)
 
@@ -310,7 +316,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Your new password must be different from your current password",
         )
-    
+
     reset_user_password(db, user, payload.new_password, reset_token)
 
     return {"message": "Password reset successfully"}
