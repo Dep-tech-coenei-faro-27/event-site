@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -11,6 +12,7 @@ BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
+PASSWORD_RESET_TOKEN_TYPE = "password_reset"
 
 
 def validate_password(value: str) -> str:
@@ -94,17 +96,24 @@ def create_password_reset_token(email: str) -> str:
     expire = datetime.now(UTC) + timedelta(
         minutes=config.settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
     )
+
+    jti = str(uuid.uuid4())
+
     payload = {
         "sub": email,
-        "type": "password_reset",
+        "type": PASSWORD_RESET_TOKEN_TYPE,
+        "jti": jti,
         "iat": datetime.now(UTC),
         "exp": expire,
     }
-    return jwt.encode(
+
+    token = jwt.encode(
         payload,
         config.settings.JWT_SECRET_KEY,
         algorithm=config.settings.JWT_ALGORITHM,
     )
+
+    return token, jti, expire
 
 
 def decode_email_verification_token(token: str) -> str:
@@ -128,3 +137,26 @@ def decode_email_verification_token(token: str) -> str:
         raise jwt.InvalidTokenError("Verification token missing subject")
 
     return email
+
+
+def decode_password_reset_token(token: str) -> dict:
+
+    payload = jwt.decode(
+        token,
+        config.settings.JWT_SECRET_KEY,
+        algorithms=[config.settings.JWT_ALGORITHM],
+    )
+
+    if payload.get("type") != PASSWORD_RESET_TOKEN_TYPE:
+        raise jwt.InvalidTokenError("Not a password reset token")
+
+    email = payload.get("sub")
+    jti = payload.get("jti")
+
+    if not email:
+        raise jwt.InvalidTokenError("Password reset token missing subject")
+
+    if not jti:
+        raise jwt.InvalidTokenError("Password reset token missing jti")
+
+    return payload
