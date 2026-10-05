@@ -55,7 +55,7 @@ jobs:
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
             CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
-            CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+            TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
             EOF
       
       - name: "Build and Run with Docker Compose"
