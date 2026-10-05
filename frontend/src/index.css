@@ -17,7 +17,7 @@
   pointer-events: none;
   background: url('./assets/azulejo-pattern-transparent.webp') repeat;
   background-size: 144px 144px;
-  opacity: 0.04;
+  opacity: var(--azulejo-opacity, 0.04);
 }
 
 

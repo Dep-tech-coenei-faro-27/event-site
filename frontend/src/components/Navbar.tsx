@@ -22,7 +22,7 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Sobre', path: '../pages/sobre' },
     { name: 'Agenda', path: '../pages/agenda' },
-    { name: 'Equipa', path: '../pages/equipa' },
+    { name: 'Equipa', path: '../equipa' },
     { name: 'Parcerias', path: '/pages/parceriais' },
     { name: 'Informação & Ajuda', path: '/pages/informacao-ajuda' },
     { name: 'Bilhetes', path: '/bilhetes' },
