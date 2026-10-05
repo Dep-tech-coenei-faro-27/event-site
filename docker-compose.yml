@@ -22,6 +22,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    env_file: ./backend/.env
+    depends_on:
+      - backend
 
 volumes:
   pgdata:
