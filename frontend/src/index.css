@@ -20,25 +20,12 @@
   opacity: var(--azulejo-opacity, 0.04);
 }
 
-
-/*
-.azulejo-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: #00aaff;
-  -webkit-mask-image: url('/azulejo-pattern-transparent.webp');
-  mask-image: url('/azulejo-pattern-transparent.webp');
-  -webkit-mask-size: 88px 88px;
-  mask-size: 88px 88px;
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
-  opacity: 0.14; /* Aumentado para 14% para ser nítido e visível 
-}
-*/
 .azulejo-bg > * {
   position: relative;
   z-index: 1;
+}
+
+html, body {
+  background-color: #050d21;
+  min-height: 100vh;
 }
