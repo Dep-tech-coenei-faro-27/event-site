@@ -36,7 +36,9 @@ export const departments: Department[] = [
     eyebrow: "02 · Marketing",
     title: "Marca e comunicação",
     description: "Conteúdos, identidade e comunicação do encontro.",
-    members: [{ name: "Jorge", role: "Diretor" }, { name: "Inês" }],
+    members: [
+        { name: "Jorge", role: "Diretor" }, 
+        { name: "Inês" }],
   },
   {
     id: "atividades",
@@ -68,6 +70,9 @@ export const departments: Department[] = [
       dir("Diogo Carvalho", "diogo-carvalho"),
       dir("Diogo Almeida", "diogo-almeida2"),
       { name: "Gabriel Vaz" },
+      { name: "Guilherme Guerreiro"},
+      { name: "Alexandre Guerreiro"},
+      { name: "Leo Souza"},
     ],
   },
   {
@@ -95,7 +100,7 @@ export const departments: Department[] = [
     members: [
       dir("Bárbara Pereira", "barbara-pereira", "Diretora"),
       dir("Beatriz Mateia", "beatriz-mateia"),
-      dir("Guilherme Bacoco", "guilherme-bacoco"),
+      dir("Guilherme Bacôco", "guilherme-bacoco"),
       dir("Francisco Afonso", "francisco-afonso"),
       dir("João Baptista", "joao-baptista"),
       dir("Lara", "lara"),
