@@ -1,3 +1,4 @@
+/* auth module */
 .auth-page {
   min-height: calc(100vh - var(--nav));
   position: relative;
@@ -127,7 +128,7 @@
   gap: 8px;
 }
 .auth-field > span {
-  color: #d7e3f4;
+  color: theme("colors.enei.line");
   font:
     600 12px Montserrat,
     sans-serif;
@@ -194,7 +195,7 @@
   cursor: pointer;
 }
 .auth-legal-link:hover {
-  color: #fff;
+  color: theme("colors.enei.white");
 }
 .auth-form .btn {
   width: 100%;
@@ -233,7 +234,7 @@
   font-size: 12px;
 }
 .auth-status {
-  color: #d7e3f4;
+  color: theme("colors.enei.line");
 }
 .auth-status[hidden] {
   display: none;
@@ -302,7 +303,7 @@
   display: grid;
   place-items: center;
   background: var(--accent);
-  color: #02101c;
+  color: theme("colors.enei.ink-950");
   font-weight: 800;
 }
 .account-nav a {

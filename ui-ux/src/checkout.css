@@ -1,3 +1,4 @@
+/* checkout module */
 /* Ticket checkout and MB Way payment states. */
 body[data-page="checkout"] {
   background: var(--bg-deep);
@@ -217,8 +218,8 @@ body[data-page="checkout"] {
 }
 
 .checkout-ticket-option--featured:has(input:checked) {
-  border-color: #e5bf78;
-  box-shadow: inset 4px 0 0 #e5bf78;
+  border-color: theme("colors.enei.gold");
+  box-shadow: inset 4px 0 0 theme("colors.enei.gold");
   background:
     linear-gradient(90deg, rgba(229, 191, 120, 0.08), transparent 55%),
     var(--bg);
@@ -362,13 +363,6 @@ body[data-page="checkout"] {
   border-radius: 2px;
 }
 
-.checkout-demo-note {
-  margin: 12px 0 0;
-  color: var(--subtle);
-  font-size: 10px;
-  text-align: center;
-}
-
 .checkout-summary {
   position: sticky;
   top: calc(var(--nav) + 24px);
@@ -510,7 +504,7 @@ body[data-page="checkout"] {
 }
 
 .payment-status--waiting {
-  --status-color: #e5bf78;
+  --status-color: theme("colors.enei.gold");
 }
 
 .payment-status--success {
@@ -518,7 +512,7 @@ body[data-page="checkout"] {
 }
 
 .payment-status--error {
-  --status-color: #ff8f84;
+  --status-color: theme("colors.enei.error");
 }
 
 .payment-status__icon {
