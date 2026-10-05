@@ -19,6 +19,8 @@ from app.core.security import (
     create_email_verification_token,
     create_password_reset_token,
     decode_email_verification_token,
+    decode_password_reset_token,
+    verify_password,
 )
 from app.db.session import get_db
 from app.domains.auth.dependencies import (
@@ -26,18 +28,26 @@ from app.domains.auth.dependencies import (
     get_current_verified_user,
 )
 from app.domains.auth.schemas import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     ResendVerificationEmailRequest,
+    ResetPasswordRequest,
     VerifyEmailRequest,
 )
-from app.domains.auth.service import authenticate_user
+from app.domains.auth.service import (
+    authenticate_user,
+    get_password_reset_token,
+    register_reset_token,
+)
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
 from app.domains.users.service import (
     create_user,
     get_user_by_email,
     mark_user_verified,
+    reset_user_password,
+    update_user_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -199,8 +209,37 @@ def logout(response: Response) -> dict[str, str]:
     return {"message": "Logout successful"}
 
 
-def _send_password_reset_email(email_sender: EmailSender, user: User) -> None:
-    reset_token = create_password_reset_token(user.email)
+@router.put("/password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db),
+):
+
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your new password must be different from your current password",
+        )
+
+    update_user_password(db, current_user, payload.new_password)
+
+    return {"message": "Password changed successfully"}
+
+
+def _send_password_reset_email(
+    db: Session, email_sender: EmailSender, user: User
+) -> None:
+    reset_token, jti, expire = create_password_reset_token(user.email)
+
+    register_reset_token(db, jti, expire)
+
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
     html_body = build_password_reset_email_html(user.name, reset_url)
 
@@ -223,9 +262,61 @@ def forgot_password(
     user = get_user_by_email(db, payload.email)
 
     if user is not None:
-        _send_password_reset_email(email_sender, user)
+        _send_password_reset_email(db, email_sender, user)
 
     return {
         "message": "If the email exists in our system, "
         "you will receive a password recovery link shortly."
     }
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+
+    try:
+        token_payload = decode_password_reset_token(payload.token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token has expired",
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password reset token",
+        )
+
+    email = token_payload.get("sub")
+    jti = token_payload.get("jti")
+
+    reset_token = get_password_reset_token(db, jti)
+
+    if reset_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password reset token",
+        )
+
+    if reset_token.used_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset token has already been used",
+        )
+
+    user = get_user_by_email(db, email)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password reset token",
+        )
+
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your new password must be different from your current password",
+        )
+
+    reset_user_password(db, user, payload.new_password, reset_token)
+
+    return {"message": "Password reset successfully"}

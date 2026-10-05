@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRegister
 
@@ -33,6 +34,23 @@ def create_user(db: Session, payload: UserRegister) -> User:
 def mark_user_verified(db: Session, user: User) -> User:
     user.is_verified = True
     user.email_verified_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_password(db: Session, user: User, new_password: str) -> User:
+    user.password_hash = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def reset_user_password(
+    db: Session, user: User, new_password: str, token: ResetPasswordToken
+) -> User:
+    user.password_hash = hash_password(new_password)
+    token.used_at = datetime.now(UTC)
     db.commit()
     db.refresh(user)
     return user

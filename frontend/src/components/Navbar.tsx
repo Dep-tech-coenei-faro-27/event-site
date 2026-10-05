@@ -20,10 +20,10 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   const navLinks = [
-    { name: 'Sobre', path: '../pages/sobre' },
-    { name: 'Agenda', path: '../pages/agenda' },
-    { name: 'Equipa', path: '../pages/equipa' },
-    { name: 'Parcerias', path: '/pages/parceriais' },
+    { name: 'Sobre', path: '/sobre' },
+    { name: 'Agenda', path: '/agenda' },
+    { name: 'Equipa', path: '/equipa' },
+    { name: 'Parcerias', path: '/parcerias' },
     { name: 'Informação & Ajuda', path: '/informacao-ajuda' },
     { name: 'Bilhetes', path: '/bilhetes' },
   ];
