@@ -1,0 +1,72 @@
+name: "CD"
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  build_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Download code"
+        uses: actions/checkout@v4
+
+      - name: "Copy files via SSH"
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: "."
+          target: "/enei/event-site"
+
+      - name: "Create .env file for backend on VPS"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /enei/event-site/backend
+            cat << 'EOF' > .env
+            PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+            DEBUG=${{ secrets.DEBUG }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}
+            JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
+            JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES=${{ secrets.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES }}
+            PASSWORD_RESET_TOKEN_EXPIRE_MINUTES=${{ secrets.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            EMAIL_SENDER=${{ secrets.EMAIL_SENDER }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
+            CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
+            CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
+            EOF
+      
+      - name: "Build and Run with Docker Compose"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /enei/event-site
+            docker compose down
+            docker compose up -d --build
+
+      
