@@ -4,3 +4,7 @@
 
 # Segredos de deploy escritos pelo workflow no servidor. Nunca fazer commit.
 tunnel.env
+
+# Python (os testes importam scripts/)
+__pycache__/
+*.py[cod]
