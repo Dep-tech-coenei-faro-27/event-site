@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.domains.auth.models import ResetPasswordToken
+from app.domains.auth.models import ResetPasswordToken, RevokedToken
 from app.domains.users.models import User
 
 
@@ -27,14 +27,24 @@ def delete_expired_reset_tokens(db: Session, older_than_days: int = 1) -> int:
     return result.rowcount
 
 
+def delete_expired_revoked_tokens(db: Session) -> int:
+    result = db.execute(
+        delete(RevokedToken).where(RevokedToken.expires_at < datetime.now(UTC))
+    )
+    db.commit()
+    return result.rowcount
+
+
 def main() -> None:
     with SessionLocal() as db:
         deleted = delete_unverified_users(db, settings.UNVERIFIED_ACCOUNT_TTL_DAYS)
         tokens = delete_expired_reset_tokens(db)
+        sessions = delete_expired_revoked_tokens(db)
     print(
         f"Deleted {deleted} unverified accounts "
         f"older than {settings.UNVERIFIED_ACCOUNT_TTL_DAYS} days "
-        f"and {tokens} expired password reset tokens"
+        f"and {tokens} expired password reset tokens "
+        f"and {sessions} expired revoked sessions"
     )
 
 

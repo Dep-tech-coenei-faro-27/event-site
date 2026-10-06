@@ -13,6 +13,7 @@ BCRYPT_MAX_PASSWORD_BYTES = 72
 BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
+ACCESS_COOKIE_NAME = "__Host-access_token"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
 PASSWORD_RESET_TOKEN_TYPE = "password_reset"
 
@@ -60,7 +61,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(
-    subject: str, role: str, expires_delta: timedelta | None = None
+    user_id: int, token_version: int, expires_delta: timedelta | None = None
 ) -> str:
     issued_at = datetime.now(UTC)
 
@@ -72,9 +73,10 @@ def create_access_token(
         )
 
     payload = {
-        "sub": subject,
-        "role": role,
+        "sub": str(user_id),
         "type": ACCESS_TOKEN_TYPE,
+        "jti": str(uuid.uuid4()),
+        "tv": token_version,
         "iat": issued_at,
         "exp": expire,
     }

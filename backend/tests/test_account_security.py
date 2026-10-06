@@ -1,8 +1,17 @@
+import pytest
 from sqlalchemy import update
 
+from app.core.security import ACCESS_COOKIE_NAME
 from app.domains.auth import service
 from app.domains.users.models import User
-from tests.helpers import LOGIN_URL, register_and_verify
+from tests.helpers import (
+    LOGIN_URL,
+    ME_URL,
+    access_claims,
+    encode_claims,
+    register_and_verify,
+    user_id_of,
+)
 
 
 def deactivate(db_session, email="ana@example.com"):
@@ -46,3 +55,39 @@ def test_inactive_user_cannot_log_in(auth_client, email_sender, db_session):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_token_of_a_deactivated_user_is_rejected(auth_client, email_sender, db_session):
+    register_and_verify(auth_client, email_sender)
+    auth_client.post(
+        LOGIN_URL, json={"email": "ana@example.com", "password": "Password123!"}
+    )
+    deactivate(db_session)
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Inactive user"
+
+
+def test_valid_token_is_accepted(auth_client, email_sender, db_session):
+    register_and_verify(auth_client, email_sender)
+    claims = access_claims(user_id_of(db_session))
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, encode_claims(claims))
+
+    assert auth_client.get(ME_URL).status_code == 200
+
+
+@pytest.mark.parametrize("claim", ["exp", "sub", "type", "jti", "tv"])
+def test_token_missing_a_required_claim_is_rejected(
+    auth_client, email_sender, db_session, claim
+):
+    register_and_verify(auth_client, email_sender)
+    claims = access_claims(user_id_of(db_session))
+    del claims[claim]
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, encode_claims(claims))
+
+    response = auth_client.get(ME_URL)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid token."

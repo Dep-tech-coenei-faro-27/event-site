@@ -1,10 +1,12 @@
 import re
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.security import (
+    ACCESS_COOKIE_NAME,
     create_password_reset_token,
     verify_password,
 )
@@ -19,6 +21,8 @@ from app.domains.users.service import (
 from tests.helpers import (
     LOGIN_URL,
     REGISTER_URL,
+    access_claims,
+    encode_claims,
     register_and_verify,
     register_user,
     user_id_of,
@@ -163,3 +167,21 @@ def test_verifying_twice_at_the_same_time_is_not_an_error(
     mark_user_verified(db_session, user)
 
     assert mark_user_verified(db_session, stale).is_verified is True
+
+
+def test_changing_the_password_keeps_the_session_alive_even_when_it_is_about_to_expire(
+    auth_client, email_sender, db_session
+):
+    register_and_verify(auth_client, email_sender)
+    claims = access_claims(user_id_of(db_session))
+    claims["exp"] = datetime.now(UTC) + timedelta(seconds=1)
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, encode_claims(claims))
+
+    response = auth_client.put(
+        CHANGE_URL,
+        json={"current_password": "Password123!", "new_password": "Brand-New123!"},
+    )
+
+    assert response.status_code == 200
+    max_age = int(re.search(r"Max-Age=(\d+)", response.headers["set-cookie"])[1])
+    assert max_age >= 60

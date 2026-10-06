@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.email.templates import PASSWORD_RESET_SUBJECT
 from app.core.security import (
+    ACCESS_COOKIE_NAME,
     create_access_token,
     verify_password,
 )
@@ -16,26 +17,15 @@ from tests.helpers import (
     ME_URL,
     REGISTER_URL,
     VERIFY_URL,
+    access_claims,
+    encode_claims,
     extract_verification_token,
     register_and_verify,
     register_user,
+    user_id_of,
 )
 
 FORGOT_PASSWORD_URL = "/api/auth/forgot-password"
-
-
-def _access_token_for(email: str) -> str:
-    return jwt.encode(
-        {
-            "sub": email,
-            "role": Role.USER.value,
-            "type": "access",
-            "iat": datetime.now(UTC),
-            "exp": datetime.now(UTC) + timedelta(minutes=30),
-        },
-        settings.JWT_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM,
-    )
 
 
 def test_register_creates_user(auth_client):
@@ -160,7 +150,7 @@ def test_private_route_missing_cookie_returns_401(auth_client):
 
 
 def test_private_route_invalid_token_returns_401(auth_client):
-    auth_client.cookies.set("access_token", "invalid.jwt.token")
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, "invalid.jwt.token")
 
     response = auth_client.get(ME_URL)
 
@@ -169,7 +159,10 @@ def test_private_route_invalid_token_returns_401(auth_client):
 
 def test_me_requires_verified_account(auth_client, email_sender, db_session):
     register_user(auth_client, email_sender, email="pending@example.com")
-    auth_client.cookies.set("access_token", _access_token_for("pending@example.com"))
+    pending_id = user_id_of(db_session, "pending@example.com")
+    auth_client.cookies.set(
+        ACCESS_COOKIE_NAME, encode_claims(access_claims(pending_id))
+    )
 
     response = auth_client.get(ME_URL)
     assert response.status_code == 403
@@ -306,7 +299,7 @@ def test_me_allows_verified_user_after_login(auth_client, email_sender, db_sessi
 
 
 def test_access_token_carries_access_type_claim():
-    token = create_access_token(subject="carol@example.com", role=Role.USER.value)
+    token = create_access_token(user_id=7, token_version=0)
 
     payload = jwt.decode(
         token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
@@ -318,7 +311,7 @@ def test_verification_token_cannot_be_used_as_access_token(auth_client, email_se
     register_user(auth_client, email_sender, email="verify-only@example.com")
 
     verification_token = extract_verification_token(email_sender)
-    auth_client.cookies.set("access_token", verification_token)
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, verification_token)
 
     response = auth_client.get(ME_URL)
 
@@ -339,7 +332,7 @@ def test_me_rejects_token_without_type_claim(auth_client, email_sender):
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
-    auth_client.cookies.set("access_token", token)
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, token)
 
     response = auth_client.get(ME_URL)
 
@@ -358,7 +351,7 @@ def test_me_rejects_token_with_non_string_subject(auth_client):
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
-    auth_client.cookies.set("access_token", token)
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, token)
 
     response = auth_client.get(ME_URL)
 

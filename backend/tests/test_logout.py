@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 import jwt
 
 from app.core.config import settings
+from app.core.security import ACCESS_COOKIE_NAME
 from tests.helpers import LOGIN_URL, ME_URL, register_and_verify
 
 LOGOUT_URL = "/api/auth/logout"
@@ -35,12 +36,12 @@ def test_logout_clears_access_token_cookie(auth_client, email_sender):
 
 def test_logout_removes_cookie_from_client(auth_client, email_sender):
     register_and_login(auth_client, email_sender)
-    assert auth_client.cookies.get("access_token") is not None
+    assert auth_client.cookies.get(ACCESS_COOKIE_NAME) is not None
 
     response = auth_client.post(LOGOUT_URL)
 
     assert response.status_code == 200
-    assert auth_client.cookies.get("access_token") is None
+    assert auth_client.cookies.get(ACCESS_COOKIE_NAME) is None
 
 
 def test_protected_route_blocked_after_logout(auth_client, email_sender):
@@ -65,7 +66,9 @@ def test_logout_without_login_is_idempotent(auth_client):
 
 
 def test_logout_with_invalid_token_clears_cookie(auth_client):
-    auth_client.cookies.set("access_token", "invalid.jwt.token", domain="testserver")
+    auth_client.cookies.set(
+        ACCESS_COOKIE_NAME, "invalid.jwt.token", domain="testserver"
+    )
 
     response = auth_client.post(LOGOUT_URL)
 
@@ -86,7 +89,7 @@ def test_logout_with_expired_token_clears_cookie(auth_client):
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
-    auth_client.cookies.set("access_token", expired_token, domain="testserver")
+    auth_client.cookies.set(ACCESS_COOKIE_NAME, expired_token, domain="testserver")
 
     response = auth_client.post(LOGOUT_URL)
 
