@@ -9,21 +9,9 @@ import gambelasImage from '../assets/gambelas.webp';
 import companiesImage from '../assets/about-companies.webp';
 import talksImage from '../assets/about-talks.webp';
 import workshopImage from '../assets/about-workshop.webp';
-import Tile from '../components/Tile';
+import Tile, { IconBox, type Tone } from '../components/Tile';
 
-/* ---------- Tipos ---------- */
 
-type Tone = 'cyan' | 'teal' | 'sand' | 'coral' | 'periwinkle';
-
-interface ToneConfig {
-    color: string; // usado na variável --tile-color
-    icon: string;
-}
-
-interface IconBoxProps {
-    tone: Tone;
-    children: ReactNode;
-}
 
 interface TileItem {
     title: string;
@@ -41,35 +29,6 @@ interface Project {
     title: string;
     text: string;
 }
-
-/* ---------- Tons ---------- */
-
-const tones: Record<Tone, ToneConfig> = {
-    cyan: { color: '#28C2FF', icon: 'border-ciano-icone/50 bg-ciano-icone/10 text-ciano-icone' },
-    teal: { color: '#5BD6C4', icon: 'border-verde-agua/45 bg-verde-agua/10 text-verde-agua' },
-    sand: { color: '#E5BF78', icon: 'border-areia/45 bg-areia/10 text-areia' },
-    coral: { color: '#EE9185', icon: 'border-coral-suave/45 bg-coral-suave/10 text-coral-suave' },
-    periwinkle: { color: '#AAB4FF', icon: 'border-pervinca/45 bg-pervinca/10 text-pervinca' },
-};
-
-/* ---------- Componentes ---------- */
-
-const IconBox = ({ tone, children }: IconBoxProps) => (
-    <div
-        aria-hidden="true"
-        className={`mb-5 grid h-[52px] w-[52px] place-items-center rounded-[11px] border ${tones[tone].icon}`}
-    >
-        <svg
-            viewBox="0 0 24 24"
-            focusable="false"
-            className="h-6 w-6 overflow-visible fill-none stroke-current stroke-[1.75] [stroke-linecap:round] [stroke-linejoin:round]"
-        >
-            {children}
-        </svg>
-    </div>
-);
-
-/* ---------- Dados ---------- */
 
 const facts: Fact[] = [
     { value: '18.ª', label: 'Edição nacional realizada em Faro.' },
@@ -136,7 +95,6 @@ const projects: Project[] = [
     },
 ];
 
-/* ---------- Classes partilhadas ---------- */
 
 const wrap = 'mx-auto w-[calc(100%-40px)] max-w-[1180px]';
 const sectionY = 'py-[clamp(72px,9vw,124px)]';
@@ -147,8 +105,6 @@ const btn =
 const btnPrimary = `${btn} border-transparent bg-acento-principal text-texto-sobre-ciano hover:bg-acento-forte`;
 const btnCtaDark = `${btn} border-white/15 bg-azul-painel text-branco hover:bg-azul-elevado`;
 const btnCtaSecondary = `${btn} border-white/70 bg-[rgba(3,16,31,0.72)] text-branco shadow-[0_8px_22px_rgba(0,0,0,0.18)] hover:border-white hover:bg-[rgba(3,16,31,0.9)]`;
-
-/* ---------- Página ---------- */
 
 const galleryImages = [
     { src: talksImage, alt: 'Palestra num auditório do ENEI', className: 'col-span-2 sm:col-span-1 sm:row-span-2' },
@@ -260,7 +216,7 @@ export default function Sobre() {
                     <h2 className={h2Class}>Os nossos pilares</h2>
                     <div className="mt-[42px] grid grid-cols-1 gap-3.5 text-left md:grid-cols-3">
                         {pillars.map(({ title, text, tone, icon }) => (
-                            <Tile key={title} tone={tone} pattern className="px-6 py-[30px] sm:px-[34px]">
+                            <Tile rounded showInnerBorder key={title} tone={tone} pattern className="px-6 py-[30px] sm:px-[34px]">
                                 <IconBox tone={tone}>{icon}</IconBox>
                                 <h3 className="font-poppins text-xl font-bold leading-[1.06] tracking-tight text-branco">{title}</h3>
                                 <p className="mt-2.5 text-sm text-cinza-texto">{text}</p>
@@ -355,7 +311,7 @@ export default function Sobre() {
                     </div>
                     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
                         {departments.map(({ title, text, tone, icon }) => (
-                            <Tile key={title} tone={tone} className="px-6 py-7">
+                            <Tile rounded showInnerBorder key={title} tone={tone} className="px-6 py-7">
                                 <IconBox tone={tone}>{icon}</IconBox>
                                 <h3 className="font-poppins text-xl font-bold leading-[1.06] tracking-tight text-branco">{title}</h3>
                                 <p className="mt-2.5 text-sm text-cinza-texto">{text}</p>
