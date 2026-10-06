@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function CtaBanner() {
   return (
     <section className="relative w-full py-20 bg-[#050d21] text-white">

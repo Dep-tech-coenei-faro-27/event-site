@@ -1,4 +1,3 @@
-import React from 'react';
 import Eyebrow from './EyeBrow';
 
 interface PathItem {

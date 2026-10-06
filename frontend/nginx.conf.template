@@ -1,0 +1,66 @@
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript image/svg+xml application/json;
+
+    # O mesmo tamanho máximo do backend (MAX_REQUEST_BYTES). Acima disto o nginx responde 413.
+    client_max_body_size 1m;
+
+    # Cabeçalhos de segurança. Não usar add_header dentro dos location, senão estes deixam de ser herdados.
+    # O mapa da página de informação usa uma iframe do OpenStreetMap (frame-src).
+    # A API fica no mesmo endereço (/api), por isso o connect-src só precisa de 'self'.
+    # As fontes ainda vêm do Google Fonts (style-src e font-src). Quando passarem a ser servidas
+    # pelo próprio site, estas duas origens saem do CSP.
+    # Se o frontend passar a usar outra origem (vídeo, analytics), é preciso acrescentá-la no CSP.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; frame-src https://www.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    # API e ficheiros enviados vão para o backend. O IP do visitante segue em X-Forwarded-For
+    # (o backend só confia nas redes do Docker e usa o último endereço que não é de confiança).
+    # O nome do backend é resolvido pelo DNS do Docker de 10 em 10 segundos (por isso o endereço
+    # fica numa variável). Sem isto o nginx guardava o IP do arranque e dava 502 se o backend
+    # fosse recriado sozinho com outro IP.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    location ^~ /api/ {
+        set $backend http://backend:8000;
+        proxy_pass $backend;
+        include /etc/nginx/proxy_backend.conf;
+    }
+
+    location ^~ /media/ {
+        set $backend http://backend:8000;
+        proxy_pass $backend;
+        include /etc/nginx/proxy_backend.conf;
+    }
+
+    # Ficheiros com hash no nome nunca mudam
+    location ^~ /assets/ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    # Ficheiros estáticos que não existem devolvem 404 (não o index.html)
+    location ~ \.[A-Za-z0-9]+$ {
+        try_files $uri =404;
+    }
+
+    # O index.html aponta para os ficheiros com hash, por isso não pode ficar em cache
+    location = /index.html {
+        expires -1;
+    }
+
+    # Rotas do React Router
+    location / {
+        try_files $uri /index.html;
+    }
+}
