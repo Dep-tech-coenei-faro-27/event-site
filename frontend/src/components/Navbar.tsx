@@ -6,9 +6,13 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => {
+  // Fecha o menu quando a rota muda. O estado ajusta-se durante a renderização (e não num
+  // efeito), que é o padrão que o React recomenda para reagir a uma mudança de valor.
+  const [menuLocation, setMenuLocation] = useState(location);
+  if (location !== menuLocation) {
+    setMenuLocation(location);
     setIsMenuOpen(false);
-  }, [location]);
+  }
 
   useEffect(() => {
     if (isMenuOpen) {
