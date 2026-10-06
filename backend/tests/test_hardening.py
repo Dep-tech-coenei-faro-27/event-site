@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings, settings
 from app.main import create_app
 
+REGISTER_URL = "/api/auth/register"
+
 
 @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
 def test_api_docs_are_available_in_dev(monkeypatch, path):
@@ -50,3 +52,63 @@ def test_prod_rejects_the_example_database_password():
             FRONTEND_URL="https://app.example.com",
             CORS_ALLOW_ORIGINS=["https://app.example.com"],
         )
+
+
+def test_a_body_over_the_limit_is_refused_with_413(auth_client, monkeypatch):
+    monkeypatch.setattr(settings, "MAX_REQUEST_BYTES", 200)
+
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "A" * 500,
+            "email": "ana@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "Request body too large"}
+
+
+def test_the_413_carries_the_cors_and_security_headers(auth_client, monkeypatch):
+    monkeypatch.setattr(settings, "MAX_REQUEST_BYTES", 200)
+
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "A" * 500,
+            "email": "ana@example.com",
+            "password": "Password123!",
+        },
+        headers={"Origin": "http://localhost:3000"},
+    )
+
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_a_chunked_body_over_the_limit_is_refused_too(auth_client, monkeypatch):
+    monkeypatch.setattr(settings, "MAX_REQUEST_BYTES", 200)
+
+    def chunks():
+        for _ in range(10):
+            yield b"x" * 100
+
+    response = auth_client.post(
+        REGISTER_URL, content=chunks(), headers={"Content-Type": "application/json"}
+    )
+
+    assert response.status_code == 413
+
+
+def test_a_normal_request_is_not_affected_by_the_limit(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": "ana@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    assert response.status_code == 201
