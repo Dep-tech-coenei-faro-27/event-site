@@ -90,9 +90,9 @@ jobs:
           script: |
             cd /home/debian/enei/event-site
             COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
-            # Antes de parar o que está a correr: constrói a imagem nova e confirma que o backend
+            # Antes de parar o que está a correr: constrói as imagens novas e confirma que o backend
             # aceita este .env (segredos em falta ou inseguros). Se falhar, o site atual fica de pé.
-            $COMPOSE build backend || { echo "A preparação do deploy falhou (ver o erro acima). Nada foi parado."; exit 1; }
+            $COMPOSE build backend frontend || { echo "A preparação do deploy falhou (ver o erro acima). Nada foi parado."; exit 1; }
             if ! CHECK=$($COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/python backend -c "from app.core.config import settings" 2>&1); then
               echo "$CHECK" | grep -v input_value || true
               echo "A configuração (.env) não é válida para esta versão. Nada foi parado: o site atual continua a correr."
