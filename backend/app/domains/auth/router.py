@@ -1,8 +1,8 @@
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -14,12 +14,15 @@ from app.core.email import (
     mask_email,
 )
 from app.core.email.templates import (
+    PASSWORD_CHANGED_SUBJECT,
     PASSWORD_RESET_SUBJECT,
     VERIFICATION_EMAIL_SUBJECT,
+    build_password_changed_email_html,
     build_password_reset_email_html,
     build_verification_email_html,
 )
 from app.core.security import (
+    ACCESS_COOKIE_NAME,
     create_access_token,
     create_email_verification_token,
     create_password_reset_token,
@@ -31,6 +34,9 @@ from app.core.security import (
 from app.db.session import get_db
 from app.domains.auth.dependencies import (
     EMAIL_VERIFICATION_REQUIRED_MESSAGE,
+    AuthSession,
+    decode_access_token,
+    get_current_verified_session,
     get_current_verified_user,
 )
 from app.domains.auth.schemas import (
@@ -45,6 +51,7 @@ from app.domains.auth.service import (
     authenticate_user,
     get_password_reset_token,
     register_reset_token,
+    revoke_token,
 )
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRead, UserRegister
@@ -63,6 +70,8 @@ from app.domains.users.service import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 logger = logging.getLogger(__name__)
+
+MIN_SESSION_AFTER_CHANGE = timedelta(minutes=1)
 
 EMAIL_VERIFICATION_SENT_MESSAGE = (
     "If an account is awaiting verification, a verification email has been sent."
@@ -194,32 +203,44 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         )
 
     if payload.remember_me:
-        max_age = 60 * settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES)
     else:
-        max_age = 60 * settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    token = create_access_token(
-        subject=user.email, role=user.role.value, expires_delta=expires_delta
-    )
-
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=max_age,
-    )
+    _start_session(response, user, expires_delta)
 
     return {"message": "Login successful"}
 
 
+def _start_session(response: Response, user: User, expires_delta: timedelta) -> None:
+    token = create_access_token(user.id, user.token_version, expires_delta)
+    response.set_cookie(
+        key=ACCESS_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+        max_age=int(expires_delta.total_seconds()),
+    )
+
+
 @router.post("/logout")
-def logout(response: Response) -> dict[str, str]:
+def logout(
+    request: Request, response: Response, db: Session = Depends(get_db)
+) -> dict[str, str]:
+    token = request.cookies.get(ACCESS_COOKIE_NAME)
+    if token:
+        try:
+            claims = decode_access_token(token)
+        except jwt.InvalidTokenError:
+            claims = None
+        if claims is not None:
+            revoke_token(db, claims["jti"], datetime.fromtimestamp(claims["exp"], UTC))
+
     response.delete_cookie(
-        key="access_token",
+        key=ACCESS_COOKIE_NAME,
+        path="/",
         httponly=True,
         secure=True,
         samesite="lax",
@@ -231,9 +252,12 @@ def logout(response: Response) -> dict[str, str]:
 @router.put("/password")
 def change_password(
     payload: ChangePasswordRequest,
-    current_user: User = Depends(get_current_verified_user),
+    response: Response,
+    auth: AuthSession = Depends(get_current_verified_session),
     db: Session = Depends(get_db),
+    email_sender: EmailSender = Depends(get_email_sender),
 ):
+    current_user = auth.user
 
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(
@@ -248,8 +272,26 @@ def change_password(
         )
 
     update_user_password(db, current_user, payload.new_password)
+    remaining = datetime.fromtimestamp(auth.payload["exp"], UTC) - datetime.now(UTC)
+    _start_session(response, current_user, max(remaining, MIN_SESSION_AFTER_CHANGE))
+    _send_password_changed_email(email_sender, current_user)
 
     return {"message": "Password changed successfully"}
+
+
+def _send_password_changed_email(email_sender: EmailSender, user: User) -> None:
+    try:
+        email_sender.send_html(
+            to_email=user.email,
+            subject=PASSWORD_CHANGED_SUBJECT,
+            html_body=build_password_changed_email_html(user.name),
+        )
+    except EmailDeliveryError as exc:
+        logger.warning(
+            "Failed to send password changed email to %s: %s",
+            mask_email(user.email),
+            exc,
+        )
 
 
 def _send_password_reset_email(
@@ -294,7 +336,11 @@ def forgot_password(
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+    email_sender: EmailSender = Depends(get_email_sender),
+):
 
     try:
         token_payload = decode_password_reset_token(payload.token)
@@ -347,5 +393,6 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password reset token has already been used",
         ) from None
+    _send_password_changed_email(email_sender, user)
 
     return {"message": "Password reset successfully"}

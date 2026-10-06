@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.email import EmailDeliveryError
 from app.core.email.factory import get_email_sender
+from app.core.email.templates import PASSWORD_CHANGED_SUBJECT
 from app.domains.auth.models import ResetPasswordToken
 from app.domains.auth.service import get_password_reset_token
 from app.domains.users.cleanup import delete_expired_reset_tokens
@@ -19,7 +20,7 @@ from app.domains.users.service import (
 from app.main import app
 from tests.helpers import LOGIN_URL, TOKEN_QUERY, register_and_verify
 from tests.test_auth import FORGOT_PASSWORD_URL
-from tests.test_password import RESET_PASSWORD_URL
+from tests.test_password import CHANGE_PASSWORD_URL, RESET_PASSWORD_URL
 
 EMAIL = "ana@example.com"
 
@@ -174,3 +175,49 @@ def test_expired_reset_tokens_are_deleted_and_current_ones_kept(
 
     assert deleted == 1
     assert db_session.scalar(select(ResetPasswordToken.jti)) == "new"
+
+
+def test_changing_the_password_sends_a_notification(auth_client, email_sender):
+    register_and_verify(auth_client, email_sender)
+    auth_client.post(LOGIN_URL, json={"email": EMAIL, "password": "Password123!"})
+
+    response = auth_client.put(
+        CHANGE_PASSWORD_URL,
+        json={"current_password": "Password123!", "new_password": "NewPassword123!"},
+    )
+
+    assert response.status_code == 200
+    notice = email_sender.sent[-1]
+    assert notice["to_email"] == EMAIL
+    assert notice["subject"] == PASSWORD_CHANGED_SUBJECT
+    assert "Ana Silva" in notice["html_body"]
+
+
+def test_resetting_the_password_sends_a_notification(auth_client, email_sender):
+    register_and_verify(auth_client, email_sender)
+    token = request_reset_token(auth_client, email_sender)
+
+    assert reset(auth_client, token).status_code == 200
+
+    assert email_sender.sent[-1]["subject"] == PASSWORD_CHANGED_SUBJECT
+
+
+def test_a_failed_notification_does_not_fail_the_change_and_hides_the_address(
+    auth_client, email_sender, caplog
+):
+    register_and_verify(auth_client, email_sender)
+    auth_client.post(LOGIN_URL, json={"email": EMAIL, "password": "Password123!"})
+    app.dependency_overrides[get_email_sender] = lambda: FailingSender()
+
+    with caplog.at_level(logging.WARNING):
+        response = auth_client.put(
+            CHANGE_PASSWORD_URL,
+            json={
+                "current_password": "Password123!",
+                "new_password": "NewPassword123!",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "Failed to send password changed email to a***@example.com" in caplog.text
+    assert EMAIL not in caplog.text
