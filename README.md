@@ -1,8 +1,14 @@
 # event-site
 
+## Documentação
+
+- [`docs/deploy.md`](docs/deploy.md): como o site chega ao servidor (GitHub Actions e túnel da Cloudflare), segredos, cron, cópias de segurança, como verificar e reverter um deploy.
+- [`docs/api-auth.md`](docs/api-auth.md): contrato dos endpoints de autenticação, para quem faz o frontend.
+- [`backend/README.md`](backend/README.md): o backend (configuração, sessões, limites de pedidos, testes).
+
 ## Docker
 
-O `docker-compose.yml` arranca a base de dados (`postgres`), a API (`backend`) e o túnel da Cloudflare (`tunnel`).
+O `docker-compose.yml` arranca a base de dados (`postgres`), a API (`backend`), o site (`frontend`, o nginx que também encaminha `/api`) e o túnel da Cloudflare (`tunnel`).
 Cada serviço só recebe as variáveis de que precisa, por isso o compose lê o `backend/.env` com `--env-file`.
 
 ```bash
