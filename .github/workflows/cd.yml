@@ -98,15 +98,17 @@ jobs:
               echo "A configuração (.env) não é válida para esta versão. Nada foi parado: o site atual continua a correr."
               exit 1
             fi
-            $COMPOSE down
-            $COMPOSE up -d --build
-            # Cria ou atualiza as tabelas da base de dados (é seguro correr mais do que uma vez).
-            # Se falhar o deploy falha: o /api/health abaixo não toca na base de dados e daria "OK"
-            # com o código novo a correr sobre o esquema antigo.
-            if ! $COMPOSE exec -T backend /app/.venv/bin/alembic upgrade head; then
-              echo "As migrations falharam. A base de dados ficou como estava (são atómicas), mas o backend novo está a correr sobre o esquema antigo."
+            # Migrations antes de trocar o código. A base de dados sobe primeiro (no primeiro deploy é
+            # criada aqui) e a imagem nova corre o alembic num contentor descartável. Se falhar, o site
+            # que está a correr não foi parado e a base de dados ficou como estava (as migrations são
+            # atómicas). Por isso cada migration tem de ser compatível com a versão anterior do código.
+            $COMPOSE up -d --wait postgres || { echo "A base de dados não arrancou. Nada foi parado."; exit 1; }
+            if ! $COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/alembic backend upgrade head; then
+              echo "As migrations falharam. A base de dados ficou como estava e o site atual não foi parado."
               exit 1
             fi
+            $COMPOSE down
+            $COMPOSE up -d --build
             # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
             # por isso não depende de portas publicadas no servidor).
             for i in $(seq 1 30); do
