@@ -18,6 +18,10 @@ COPY . .
 
 RUN uv sync --frozen --no-dev
 
+# Atrás do túnel ou do proxy o IP do visitante vem em X-Forwarded-For. O contentor confia nas
+# redes privadas do Docker; para mudar, defina FORWARDED_ALLOW_IPS no backend/.env.
+ENV FORWARDED_ALLOW_IPS=172.16.0.0/12
+
 EXPOSE 8000
 
 CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

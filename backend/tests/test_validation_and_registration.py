@@ -28,6 +28,11 @@ EMAIL = "ana@example.com"
 RESEND_URL = "/api/auth/resend-verification-email"
 
 
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
+
+
 def register(client, name="Ana Silva", email=EMAIL, password="Password123!"):
     return client.post(
         REGISTER_URL, json={"name": name, "email": email, "password": password}

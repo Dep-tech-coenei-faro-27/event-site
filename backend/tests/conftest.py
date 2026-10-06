@@ -70,6 +70,7 @@ def db_session(test_engine):
         conn.execute(text("DELETE FROM reset_password_tokens"))
         conn.execute(text("DELETE FROM revoked_tokens"))
         conn.execute(text("DELETE FROM users"))
+        conn.execute(text("DELETE FROM rate_limits"))
     session = Session(bind=test_engine)
     yield session
     session.rollback()

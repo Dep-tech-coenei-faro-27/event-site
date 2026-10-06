@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 
 from app.core.config import settings
 from app.core.email.base import EmailDeliveryError
@@ -15,6 +16,11 @@ from tests.helpers import (
 )
 
 RESEND_URL = "/api/auth/resend-verification-email"
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
 
 
 def test_register_sends_verification_email(auth_client, email_sender):

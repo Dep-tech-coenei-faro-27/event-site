@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +15,28 @@ from app.core.middleware import (
 from app.domains.auth.router import router as auth_router
 from app.domains.health.router import router as health_router
 
+logger = logging.getLogger(__name__)
+
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+def only_loopback(trusted: str | None) -> bool:
+    if not trusted:
+        return True
+    hosts = {host.strip() for host in trusted.split(",") if host.strip()}
+    return hosts <= LOOPBACK
+
 
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
+    if settings.ENVIRONMENT == "prod" and only_loopback(
+        os.environ.get("FORWARDED_ALLOW_IPS")
+    ):
+        logger.warning(
+            "FORWARDED_ALLOW_IPS is not set or only trusts localhost. Behind a proxy "
+            "every visitor shares the proxy's IP, so the per-IP rate limits would "
+            "apply to everyone."
+        )
     docs = settings.ENVIRONMENT != "prod"
     app = FastAPI(
         title=settings.PROJECT_NAME,
