@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.security import validate_password
+from app.core.validators import AsciiEmail
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=200)
+    email: AsciiEmail
+    password: str = Field(min_length=1, max_length=200)
     remember_me: bool = False
 
 
@@ -14,7 +15,7 @@ class VerifyEmailRequest(BaseModel):
 
 
 class ResendVerificationEmailRequest(BaseModel):
-    email: EmailStr
+    email: AsciiEmail
 
 
 class ChangePasswordRequest(BaseModel):
@@ -28,11 +29,11 @@ class ChangePasswordRequest(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    email: AsciiEmail
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str = Field()
+    token: str = Field(min_length=1, max_length=2048)
     new_password: str = Field(min_length=8, max_length=200)
 
     @field_validator("new_password")

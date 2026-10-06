@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES: int = Field(default=30, gt=0, le=1440)
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = Field(default=15, gt=0, le=1440)
     FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_VERIFY_PATH: str = "/conta/verificar"
+    FRONTEND_RESET_PATH: str = "/conta/redefinir"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -53,6 +55,8 @@ class Settings(BaseSettings):
     EMAIL_SENDER: str = ""
     SMTP_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
     SMTP_TIMEOUT_SECONDS: int = Field(default=5, gt=0, le=60)
+
+    UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -75,6 +79,14 @@ class Settings(BaseSettings):
     @classmethod
     def strip_frontend_url(cls, value: str) -> str:
         return value.strip().rstrip("/")
+
+    @field_validator("FRONTEND_VERIFY_PATH", "FRONTEND_RESET_PATH")
+    @classmethod
+    def link_path_must_start_with_one_slash(cls, value: str) -> str:
+        value = value.strip()
+        if not value.startswith("/") or value.startswith("//"):
+            raise ValueError("must be a path starting with a single /")
+        return value
 
     @field_validator("CORS_ALLOW_ORIGINS", mode="before")
     @classmethod

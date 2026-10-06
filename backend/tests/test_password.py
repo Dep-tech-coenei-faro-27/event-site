@@ -125,7 +125,9 @@ def test_change_password_invalid_new_password(auth_client, email_sender):
     )
 
     assert response.status_code == 422
-    assert "uppercase" in response.json()["detail"][0]["msg"]
+    error = response.json()["detail"][0]
+    assert error["type"] == "password_invalid"
+    assert error["ctx"]["rules"] == ["missing_uppercase"]
 
 
 def test_change_password_unauthenticated(client):
