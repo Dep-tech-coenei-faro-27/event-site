@@ -67,6 +67,7 @@ def test_engine():
 @pytest.fixture
 def db_session(test_engine):
     with test_engine.begin() as conn:
+        conn.execute(text("DELETE FROM reset_password_tokens"))
         conn.execute(text("DELETE FROM users"))
     session = Session(bind=test_engine)
     yield session

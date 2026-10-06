@@ -1,5 +1,9 @@
 import re
 
+from sqlalchemy import select
+
+from app.domains.users.models import User
+
 REGISTER_URL = "/api/auth/register"
 LOGIN_URL = "/api/auth/login"
 ME_URL = "/api/auth/me"
@@ -44,3 +48,7 @@ def register_and_verify(
     response = auth_client.post(VERIFY_URL, json={"token": token})
     assert response.status_code == 200
     return response
+
+
+def user_id_of(db_session, email="ana@example.com") -> int:
+    return db_session.scalar(select(User.id).where(User.email == email))

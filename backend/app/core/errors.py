@@ -3,13 +3,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
+RULE_ERROR_TYPES = {"password_invalid", "name_invalid"}
+
 
 async def validation_error_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     errors = []
     for error in exc.errors():
-        errors.append({"type": error["type"], "loc": error["loc"], "msg": error["msg"]})
+        item = {"type": error["type"], "loc": error["loc"], "msg": error["msg"]}
+        if error["type"] in RULE_ERROR_TYPES:
+            item["ctx"] = {"rules": error["ctx"]["rules"]}
+        errors.append(item)
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"detail": errors},

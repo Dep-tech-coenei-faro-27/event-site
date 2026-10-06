@@ -85,6 +85,8 @@ def test_register_duplicate_email_returns_409(auth_client, db_session):
     }
     first = auth_client.post(REGISTER_URL, json=payload)
     assert first.status_code == 201
+    db_session.query(User).update({User.is_verified: True})
+    db_session.commit()
 
     second = auth_client.post(REGISTER_URL, json=payload)
     assert second.status_code == 409
@@ -376,7 +378,9 @@ def test_register_missing_uppercase_returns_422(auth_client):
         },
     )
     assert response.status_code == 422
-    assert "uppercase" in response.json()["detail"][0]["msg"]
+    error = response.json()["detail"][0]
+    assert error["type"] == "password_invalid"
+    assert error["ctx"]["rules"] == ["missing_uppercase"]
 
 
 def test_register_missing_number_returns_422(auth_client):
@@ -389,7 +393,9 @@ def test_register_missing_number_returns_422(auth_client):
         },
     )
     assert response.status_code == 422
-    assert "digit" in response.json()["detail"][0]["msg"]
+    error = response.json()["detail"][0]
+    assert error["type"] == "password_invalid"
+    assert error["ctx"]["rules"] == ["missing_digit"]
 
 
 def test_register_missing_symbol_returns_422(auth_client):
@@ -402,7 +408,9 @@ def test_register_missing_symbol_returns_422(auth_client):
         },
     )
     assert response.status_code == 422
-    assert "symbol" in response.json()["detail"][0]["msg"]
+    error = response.json()["detail"][0]
+    assert error["type"] == "password_invalid"
+    assert error["ctx"]["rules"] == ["missing_symbol"]
 
 
 def test_login_remember_me_success(auth_client, email_sender):
@@ -451,7 +459,7 @@ def test_forgot_password_sends_email_if_user_exists(
     assert len(email_sender.sent) == 1
     assert email_sender.sent[0]["to_email"] == "mock@example.com"
     assert email_sender.sent[0]["subject"] == PASSWORD_RESET_SUBJECT
-    assert "reset-password?token=" in email_sender.sent[0]["html_body"]
+    assert "conta/redefinir?token=" in email_sender.sent[0]["html_body"]
 
 
 def test_forgot_password_ignores_non_existent_user_securely(auth_client, email_sender):
