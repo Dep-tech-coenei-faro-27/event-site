@@ -7,7 +7,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.email import EmailDeliveryError, EmailSender, get_email_sender
+from app.core.email import (
+    EmailDeliveryError,
+    EmailSender,
+    get_email_sender,
+    mask_email,
+)
 from app.core.email.templates import (
     PASSWORD_RESET_SUBJECT,
     VERIFICATION_EMAIL_SUBJECT,
@@ -73,7 +78,9 @@ def _send_verification_email(email_sender: EmailSender, user: User) -> None:
             html_body=html_body,
         )
     except EmailDeliveryError as exc:
-        logger.warning("Failed to send verification email to %s: %s", user.email, exc)
+        logger.warning(
+            "Failed to send verification email to %s: %s", mask_email(user.email), exc
+        )
 
 
 @router.post(
@@ -250,7 +257,9 @@ def _send_password_reset_email(
             html_body=html_body,
         )
     except EmailDeliveryError as exc:
-        logger.warning("Failed to send password reset email to %s: %s", user.email, exc)
+        logger.warning(
+            "Failed to send password reset email to %s: %s", mask_email(user.email), exc
+        )
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)

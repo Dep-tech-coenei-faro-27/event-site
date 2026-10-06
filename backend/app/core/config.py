@@ -25,7 +25,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "event-site-backend"
     API_V1_PREFIX: str = "/api"
     ENVIRONMENT: Literal["dev", "prod"] = "prod"
+    MEDIA_DIR: Path = BASE_DIR / "media"
     DEBUG: bool = False
+    MAX_REQUEST_BYTES: int = Field(default=1_048_576, gt=0)
 
     CORS_ALLOW_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
@@ -49,6 +51,8 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     EMAIL_SENDER: str = ""
+    SMTP_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
+    SMTP_TIMEOUT_SECONDS: int = Field(default=5, gt=0, le=60)
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -135,6 +139,8 @@ class Settings(BaseSettings):
             problems.append("POSTGRES_PASSWORD must not be the example value.")
         if not (self.SMTP_HOST and self.EMAIL_SENDER):
             problems.append("SMTP_HOST and EMAIL_SENDER must be set.")
+        if self.SMTP_SECURITY == "none":
+            problems.append("SMTP_SECURITY=none is not allowed in production.")
         if not self.FRONTEND_URL.startswith("https://"):
             problems.append("FRONTEND_URL must start with https://.")
         insecure = [o for o in self.CORS_ALLOW_ORIGINS if not o.startswith("https://")]

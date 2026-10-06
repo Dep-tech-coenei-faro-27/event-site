@@ -1,4 +1,5 @@
 import smtplib
+import ssl
 
 import pytest
 
@@ -11,17 +12,20 @@ from app.core.email.templates import (
 
 
 class _RecordingServer:
-    def __init__(self, host, port, timeout=None):
+    def __init__(self, host, port, timeout=None, context=None):
         self.host = host
         self.port = port
         self.timeout = timeout
+        self.context = context
+        self.starttls_context = None
         self.login_called = None
         self.sent_message = None
         self.quit_called = False
         self.tls_started = False
 
-    def starttls(self):
+    def starttls(self, context=None):
         self.tls_started = True
+        self.starttls_context = context
         return (220, b"Ready to start TLS")
 
     def login(self, username, password):
@@ -43,8 +47,8 @@ class _RecordingServer:
 
 
 def _make_server(recorded, server_cls=_RecordingServer):
-    def factory(host, port, timeout=None):
-        server = server_cls(host, port, timeout)
+    def factory(host, port, timeout=None, context=None):
+        server = server_cls(host, port, timeout, context)
         recorded.append(server)
         return server
 
@@ -151,7 +155,7 @@ def test_send_html_skips_login_when_no_credentials(monkeypatch):
 
 def test_send_html_wraps_network_errors_in_email_delivery_error(monkeypatch):
     class BrokenServer:
-        def __init__(self, host, port, timeout=None):
+        def __init__(self, host, port, timeout=None, context=None):
             pass
 
         def __enter__(self):
@@ -215,3 +219,67 @@ def test_verification_template_escapes_html_in_name():
 
     assert "<script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def _send_with(monkeypatch, patched_class, **sender_kwargs):
+    servers = []
+    monkeypatch.setattr(smtplib, patched_class, _make_server(servers))
+    sender = SmtpEmailSender(
+        username="user",
+        password="secret",
+        from_email="from@example.com",
+        **sender_kwargs,
+    )
+    sender.send_html("to@example.com", "Hi", "<p>Hi</p>")
+    assert len(servers) == 1
+    return servers[0]
+
+
+def test_implicit_tls_verifies_certificate_and_hostname(monkeypatch):
+    server = _send_with(monkeypatch, "SMTP_SSL", host="smtp.example.com", port=465)
+
+    assert server.context.verify_mode == ssl.CERT_REQUIRED
+    assert server.context.check_hostname is True
+
+
+def test_starttls_verifies_certificate_and_hostname(monkeypatch):
+    server = _send_with(monkeypatch, "SMTP", host="smtp.example.com", port=587)
+
+    assert server.tls_started
+    assert server.starttls_context.verify_mode == ssl.CERT_REQUIRED
+    assert server.starttls_context.check_hostname is True
+
+
+def test_security_none_sends_without_tls_for_local_mail_catchers(monkeypatch):
+    server = _send_with(monkeypatch, "SMTP", host="mailpit", port=1025, security="none")
+
+    assert not server.tls_started
+    assert server.sent_message is not None
+
+
+def test_security_ssl_overrides_the_port_rule(monkeypatch):
+    server = _send_with(
+        monkeypatch, "SMTP_SSL", host="smtp.example.com", port=2465, security="ssl"
+    )
+
+    assert server.context.verify_mode == ssl.CERT_REQUIRED
+
+
+def test_legacy_start_tls_false_means_implicit_tls(monkeypatch):
+    server = _send_with(
+        monkeypatch, "SMTP_SSL", host="smtp.example.com", port=587, start_tls=False
+    )
+
+    assert server.context is not None
+
+
+def test_unknown_security_mode_is_rejected():
+    with pytest.raises(ValueError):
+        SmtpEmailSender(
+            host="smtp.example.com",
+            port=587,
+            username="",
+            password="",
+            from_email="from@example.com",
+            security="plaintext-please",
+        )
