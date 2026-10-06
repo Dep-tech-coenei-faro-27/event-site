@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import UTC, datetime, timedelta
 
@@ -5,6 +6,7 @@ import pytest
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import (
     ACCESS_COOKIE_NAME,
     create_password_reset_token,
@@ -18,6 +20,7 @@ from app.domains.users.service import (
     get_user_by_email,
     mark_user_verified,
 )
+from app.main import create_app
 from tests.helpers import (
     LOGIN_URL,
     REGISTER_URL,
@@ -31,6 +34,11 @@ from tests.helpers import (
 FORGOT_URL = "/api/auth/forgot-password"
 RESET_URL = "/api/auth/reset-password"
 CHANGE_URL = "/api/auth/password"
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
 
 
 def reset_token_from(email_sender) -> str:
@@ -185,3 +193,48 @@ def test_changing_the_password_keeps_the_session_alive_even_when_it_is_about_to_
     assert response.status_code == 200
     max_age = int(re.search(r"Max-Age=(\d+)", response.headers["set-cookie"])[1])
     assert max_age >= 60
+
+
+def test_a_warning_is_logged_in_prod_when_the_proxy_ips_are_not_set(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
+
+    with caplog.at_level(logging.WARNING):
+        create_app()
+
+    assert "FORWARDED_ALLOW_IPS" in caplog.text
+
+
+def test_no_proxy_warning_when_the_proxy_ips_are_set_or_in_dev(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "10.0.0.5")
+    with caplog.at_level(logging.WARNING):
+        create_app()
+    monkeypatch.setattr(settings, "ENVIRONMENT", "dev")
+    monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
+    with caplog.at_level(logging.WARNING):
+        create_app()
+
+    assert "FORWARDED_ALLOW_IPS" not in caplog.text
+
+
+def test_a_warning_is_logged_when_only_localhost_is_trusted(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "127.0.0.1")
+
+    with caplog.at_level(logging.WARNING):
+        create_app()
+
+    assert "only trusts localhost" in caplog.text
+
+
+def test_no_warning_when_a_docker_network_is_trusted(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "172.16.0.0/12")
+
+    with caplog.at_level(logging.WARNING):
+        create_app()
+
+    assert "FORWARDED_ALLOW_IPS" not in caplog.text

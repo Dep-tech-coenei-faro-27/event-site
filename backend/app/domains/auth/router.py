@@ -21,6 +21,12 @@ from app.core.email.templates import (
     build_password_reset_email_html,
     build_verification_email_html,
 )
+from app.core.rate_limit import (
+    RateLimit,
+    client_ip,
+    enforce_rate_limit,
+    enforce_rate_limits,
+)
 from app.core.security import (
     ACCESS_COOKIE_NAME,
     create_access_token,
@@ -78,6 +84,35 @@ EMAIL_VERIFICATION_SENT_MESSAGE = (
 )
 
 
+def _login_checks(email: str, ip: str) -> list[tuple[RateLimit, str]]:
+    return [
+        (RateLimit("login", settings.RATE_LIMIT_LOGIN_PER_MINUTE, 60), f"{email}|{ip}"),
+        (
+            RateLimit(
+                "login-email", settings.RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE, 60
+            ),
+            email,
+        ),
+        (RateLimit("login-ip", settings.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE, 60), ip),
+    ]
+
+
+def _email_checks(action: str, email: str, ip: str) -> list[tuple[RateLimit, str]]:
+    return [
+        (RateLimit(action, settings.RATE_LIMIT_EMAIL_PER_MINUTE, 60), email),
+        (RateLimit(action, settings.RATE_LIMIT_EMAIL_PER_HOUR, 3600), email),
+        (
+            RateLimit(f"{action}-ip", settings.RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE, 60),
+            ip,
+        ),
+    ]
+
+
+def _limit_token_attempts(db: Session, name: str, request: Request) -> None:
+    rule = RateLimit(f"{name}-ip", settings.RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE, 60)
+    enforce_rate_limit(db, (rule,), client_ip(request))
+
+
 def _send_verification_email(email_sender: EmailSender, user: User) -> None:
     verification_token = create_email_verification_token(user.email, user.password_hash)
     verification_url = (
@@ -104,9 +139,12 @@ def _send_verification_email(email_sender: EmailSender, user: User) -> None:
 )
 def register(
     payload: UserRegister,
+    request: Request,
     db: Session = Depends(get_db),
     email_sender: EmailSender = Depends(get_email_sender),
 ) -> UserRead:
+    register_limit = RateLimit("register", settings.RATE_LIMIT_REGISTER_PER_MINUTE, 60)
+    enforce_rate_limit(db, (register_limit,), client_ip(request))
     existing = get_user_by_email(db, payload.email)
     if existing is not None and existing.is_verified:
         raise HTTPException(
@@ -128,7 +166,10 @@ def register(
 
 
 @router.post("/verify-email")
-def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+def verify_email(
+    payload: VerifyEmailRequest, request: Request, db: Session = Depends(get_db)
+):
+    _limit_token_attempts(db, "verify", request)
     try:
         email, fingerprint = decode_email_verification_token(payload.token)
     except jwt.ExpiredSignatureError:
@@ -165,9 +206,11 @@ def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
 @router.post("/resend-verification-email")
 def resend_verification_email(
     payload: ResendVerificationEmailRequest,
+    request: Request,
     db: Session = Depends(get_db),
     email_sender: EmailSender = Depends(get_email_sender),
 ):
+    enforce_rate_limits(db, _email_checks("resend", payload.email, client_ip(request)))
     user = get_user_by_email(db, payload.email)
 
     if user is not None and not user.is_verified:
@@ -188,7 +231,13 @@ def get_current_user_info(
 
 
 @router.post("/login")
-def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(
+    payload: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    enforce_rate_limits(db, _login_checks(payload.email, client_ip(request)))
     user = authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(
@@ -258,6 +307,10 @@ def change_password(
     email_sender: EmailSender = Depends(get_email_sender),
 ):
     current_user = auth.user
+    change_limit = RateLimit(
+        "password", settings.RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES, 900
+    )
+    enforce_rate_limit(db, (change_limit,), str(current_user.id))
 
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(
@@ -321,9 +374,11 @@ def _send_password_reset_email(
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 def forgot_password(
     payload: ForgotPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db),
     email_sender: EmailSender = Depends(get_email_sender),
 ):
+    enforce_rate_limits(db, _email_checks("forgot", payload.email, client_ip(request)))
     user = get_user_by_email(db, payload.email)
 
     if user is not None:
@@ -338,9 +393,11 @@ def forgot_password(
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 def reset_password(
     payload: ResetPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db),
     email_sender: EmailSender = Depends(get_email_sender),
 ):
+    _limit_token_attempts(db, "reset", request)
 
     try:
         token_payload = decode_password_reset_token(payload.token)

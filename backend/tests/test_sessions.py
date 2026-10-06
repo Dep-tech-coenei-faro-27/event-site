@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -25,6 +26,11 @@ from tests.test_password import CHANGE_PASSWORD_URL, RESET_PASSWORD_URL
 LOGOUT_URL = "/api/auth/logout"
 EMAIL = "ana@example.com"
 PASSWORD = "Password123!"
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
 
 
 def login(client, remember_me=False):

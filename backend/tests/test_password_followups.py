@@ -18,7 +18,7 @@ from app.domains.users.service import (
     reset_user_password,
 )
 from app.main import app
-from tests.helpers import LOGIN_URL, TOKEN_QUERY, register_and_verify
+from tests.helpers import LOGIN_URL, TOKEN_QUERY, VERIFY_URL, register_and_verify
 from tests.test_auth import FORGOT_PASSWORD_URL
 from tests.test_password import CHANGE_PASSWORD_URL, RESET_PASSWORD_URL
 
@@ -28,6 +28,11 @@ EMAIL = "ana@example.com"
 class FailingSender:
     def send_html(self, to_email, subject, html_body):
         raise EmailDeliveryError("smtp is down")
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
 
 
 def reset_token_from(email_sender):
@@ -221,3 +226,35 @@ def test_a_failed_notification_does_not_fail_the_change_and_hides_the_address(
     assert response.status_code == 200
     assert "Failed to send password changed email to a***@example.com" in caplog.text
     assert EMAIL not in caplog.text
+
+
+def test_changing_the_password_is_rate_limited_per_user(
+    auth_client, email_sender, monkeypatch
+):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(settings, "RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES", 3)
+    register_and_verify(auth_client, email_sender)
+    auth_client.post(LOGIN_URL, json={"email": EMAIL, "password": "Password123!"})
+    guess = {"current_password": "Wrong-Passw0rd!", "new_password": "NewPassword123!"}
+
+    statuses = [
+        auth_client.put(CHANGE_PASSWORD_URL, json=guess).status_code for _ in range(5)
+    ]
+
+    assert statuses == [401, 401, 401, 429, 429]
+
+
+@pytest.mark.parametrize(
+    ("url", "body"),
+    [
+        (VERIFY_URL, {"token": "not-a-token"}),
+        (RESET_PASSWORD_URL, {"token": "not-a-token", "new_password": "NewPass123!"}),
+    ],
+)
+def test_token_endpoints_are_limited_per_ip(auth_client, monkeypatch, url, body):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(settings, "RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE", 3)
+
+    statuses = [auth_client.post(url, json=body).status_code for _ in range(5)]
+
+    assert statuses == [400, 400, 400, 429, 429]

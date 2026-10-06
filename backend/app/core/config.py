@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     SMTP_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
     SMTP_TIMEOUT_SECONDS: int = Field(default=5, gt=0, le=60)
 
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
+    RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
+    RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=30, gt=0)
+    RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=2, gt=0)
+    RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
+    RATE_LIMIT_EMAIL_PER_HOUR: int = Field(default=5, gt=0)
+    RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE: int = Field(default=10, gt=0)
+    RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES: int = Field(default=2, gt=0)
+    RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
+
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
     POSTGRES_USER: str

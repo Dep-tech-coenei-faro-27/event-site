@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -26,6 +27,11 @@ from tests.helpers import (
 )
 
 FORGOT_PASSWORD_URL = "/api/auth/forgot-password"
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
 
 
 def test_register_creates_user(auth_client):
