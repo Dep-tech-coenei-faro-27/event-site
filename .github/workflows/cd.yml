@@ -10,6 +10,14 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# Nunca dois deploys ao mesmo tempo.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   build_deploy:
     runs-on: ubuntu-latest
@@ -18,10 +26,13 @@ jobs:
     
     steps:
       - name: "Download code"
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Com workflow_run o checkout normal traz o ramo por omissão, não o commit que passou no CI.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: "Copy files via SSH"
-        uses: appleboy/scp-action@v1
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -31,7 +42,7 @@ jobs:
           target: "/home/debian/enei/event-site"
 
       - name: "Create .env file for backend on VPS"
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -61,11 +72,16 @@ jobs:
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
             CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
+            EOF
+            chmod 600 .env
+            # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
+            cat << 'EOF' > ../tunnel.env
             TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
             EOF
+            chmod 600 ../tunnel.env
       
       - name: "Build and Run with Docker Compose"
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -73,7 +89,18 @@ jobs:
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
             cd /home/debian/enei/event-site
-            docker compose down
-            docker compose up -d --build
+            COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
+            $COMPOSE down
+            $COMPOSE up -d --build
+            # Cria ou atualiza as tabelas da base de dados (é seguro correr mais do que uma vez).
+            $COMPOSE exec -T backend /app/.venv/bin/alembic upgrade head
+            # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
+            # por isso não depende de portas publicadas no servidor).
+            for i in $(seq 1 30); do
+              if $COMPOSE exec -T backend curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then echo "backend OK"; exit 0; fi
+              sleep 2
+            done
+            $COMPOSE logs --tail 50 backend
+            exit 1
 
       
