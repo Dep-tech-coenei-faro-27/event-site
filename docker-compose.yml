@@ -1,11 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    env_file: ./backend/.env
+    # Só recebe as três variáveis da base de dados, não o .env inteiro.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Corra docker compose --env-file backend/.env (ver README)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Corra docker compose --env-file backend/.env (ver README)}
+      POSTGRES_DB: ${POSTGRES_DB:?Corra docker compose --env-file backend/.env (ver README)}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 5s
@@ -16,18 +21,21 @@ services:
     build: ./backend
     env_file: ./backend/.env
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./backend/media:/app/media
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
   
   tunnel:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.10.0
     restart: unless-stopped
     command: tunnel --no-autoupdate run
-    env_file: ./backend/.env
+    # Só recebe o token do túnel (ficheiro tunnel.env no servidor).
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
     depends_on:
       - backend
 
