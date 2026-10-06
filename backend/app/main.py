@@ -10,7 +10,14 @@ from app.domains.health.router import router as health_router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.PROJECT_NAME, debug=settings.DEBUG)
+    docs = settings.ENVIRONMENT != "prod"
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        debug=settings.DEBUG,
+        docs_url="/docs" if docs else None,
+        redoc_url="/redoc" if docs else None,
+        openapi_url="/openapi.json" if docs else None,
+    )
 
     os.makedirs("media", exist_ok=True)
 
