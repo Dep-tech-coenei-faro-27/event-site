@@ -3,13 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <meta name="description" content="Criação de conta ENEI 2027." />
     <title>Criar conta · ENEI 2027</title>
-    <link
-      rel="stylesheet"
-      href="../../styles.css?v=20260927-edition-logo-desktop"
-    />
-    <link rel="stylesheet" href="../../auth.css?v=20260926-legal-terms" />
+    <link rel="stylesheet" href="../../styles.css?v=20261006-tailwind" />
   </head>
   <body data-page="conta" data-root="../..">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
@@ -79,9 +81,9 @@
             <p class="eyebrow">&lt;CRIAR_CONTA /&gt;</p>
             <h2>Vamos começar.</h2>
             <p class="auth-intro">
-              Preenche os dados abaixo para visualizar o processo de registo.
+              Preenche os dados abaixo para criares a tua conta.
             </p>
-            <form class="auth-form" data-auth-demo>
+            <form class="auth-form" action="../verificar/" method="get">
               <label class="auth-field"
                 ><span>Nome completo</span
                 ><input

@@ -3,15 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <meta
       name="description"
       content="Bilhetes e preparação para o ENEI 2027."
     />
     <title>Bilhetes · ENEI 2027</title>
-    <link
-      rel="stylesheet"
-      href="../styles.css?v=20260927-edition-logo-desktop"
-    />
+    <link rel="stylesheet" href="../styles.css?v=20261006-tailwind" />
   </head>
 
   <body data-page="bilhetes">
@@ -57,7 +60,9 @@
           </p>
           <div class="actions">
             <a class="btn btn--secondary" href="#tipos">Ver modalidades</a
-            ><a class="btn btn--primary" href="#tipos">Comprar bilhete</a>
+            ><a class="btn btn--primary" href="./checkout/conta/"
+              >Comprar bilhete</a
+            >
           </div>
         </div>
       </header>
@@ -79,9 +84,12 @@
                 <li>Programa geral</li>
                 <li>Sem refeições ou estadia</li>
               </ul>
-              <button class="btn btn--secondary" type="button">
+              <a
+                class="btn btn--secondary"
+                href="./checkout/conta/?bilhete=acesso"
+              >
                 Escolher bilhete
-              </button>
+              </a>
             </article>
             <article class="ticket-card">
               <p class="eyebrow">ESTUDANTE</p>
@@ -92,9 +100,12 @@
                 <li>Refeições incluídas</li>
                 <li>Sem estadia</li>
               </ul>
-              <button class="btn btn--secondary" type="button">
+              <a
+                class="btn btn--secondary"
+                href="./checkout/conta/?bilhete=refeicoes"
+              >
                 Escolher bilhete
-              </button>
+              </a>
             </article>
             <article class="ticket-card ticket-card--featured">
               <span class="ticket-badge">Recomendado</span>
@@ -106,9 +117,12 @@
                 <li>Refeições incluídas</li>
                 <li>Alojamento coletivo</li>
               </ul>
-              <button class="btn btn--secondary" type="button">
+              <a
+                class="btn btn--secondary"
+                href="./checkout/conta/?bilhete=completo"
+              >
                 Escolher bilhete
-              </button>
+              </a>
             </article>
             <article class="ticket-card">
               <p class="eyebrow">NÃO ESTUDANTE</p>
@@ -119,9 +133,12 @@
                 <li>Programa completo</li>
                 <li>Condições dedicadas</li>
               </ul>
-              <button class="btn btn--secondary" type="button">
+              <a
+                class="btn btn--secondary"
+                href="./checkout/conta/?bilhete=geral"
+              >
                 Escolher bilhete
-              </button>
+              </a>
             </article>
           </div>
         </div>

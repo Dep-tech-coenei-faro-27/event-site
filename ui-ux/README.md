@@ -1,33 +1,61 @@
 # ENEI 2027 — UI/UX submission
 
-Static HTML and CSS submission for the ENEI 2027 interface.
+Static HTML presentation for the ENEI 2027 interface, built with Tailwind CSS.
 
-Event dates: 1–4 April 2027, Faro, Algarve.
+## Development
 
-## Included
+```powershell
+npm install
+npm run dev
+```
 
-- Responsive landing page, event-information pages, FAQ and footer
-- Login, registration and password-recovery interface screens
-- Brand colours, typography, components and optimized visual assets
-- Static page-to-page navigation
+Tailwind watches every HTML page and compiles `src/tailwind.css` to
+`styles.css`. The generated stylesheet is committed so the prototype can be
+opened or served without installing dependencies.
+
+## Production build
+
+```powershell
+npm run build
+```
+
+## Formatting
+
+```powershell
+npm run format
+npm run format:check
+```
+
+## Architecture
+
+- `tailwind.config.js` is the single source of truth for the complete ENEI palette,
+  typography, radii, shadows, and content discovery.
+- `src/tailwind.css` declares Tailwind's base, component, and utility layers.
+- `src/core.css`, `src/auth.css`, and `src/checkout.css` keep component rules separated by domain.
+- `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
+- `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
+- `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
+- `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
+- `styles.css` is generated output. Do not edit it directly.
+- HTML pages keep descriptive component classes instead of repeating long utility lists.
 
 ## Scope
 
-This folder is a UI/UX deliverable. It contains no JavaScript, backend, database,
-authentication, checkout or other application logic. Controls that would require
-application logic are presented only as interface states.
+This directory is a UI/UX deliverable. It contains no backend, database,
+authentication, or live payment processing. Controls that require application
+logic are presented as interface states.
 
 ## Preview
 
-No installation or build step is required. From this folder, run:
+After building, run:
 
 ```powershell
-python -m http.server 4173 --bind 127.0.0.1
+python -m http.server 4174 --bind 127.0.0.1
 ```
 
-Then open `http://127.0.0.1:4173/`.
+Then open `http://127.0.0.1:4174/`.
 
-## Pages
+## Routes
 
 - `/` — landing page
 - `/sobre/` — event and location
@@ -35,7 +63,11 @@ Then open `http://127.0.0.1:4173/`.
 - `/parcerias/` — partnerships
 - `/equipa/` — team
 - `/informacao-ajuda/` — FAQ and support
-- `/bilhetes/` — ticket interface
+- `/bilhetes/` — ticket options
+- `/bilhetes/checkout/` — ticket selection and MB Way checkout
+- `/bilhetes/checkout/aguardar/` — pending payment
+- `/bilhetes/checkout/sucesso/` — successful payment
+- `/bilhetes/checkout/erro/` — failed payment
 - `/conta/` — login
 - `/conta/criar/` — registration
 - `/conta/recuperar/` — password recovery

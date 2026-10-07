@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Wireframe do fluxo de compra de bilhetes e pagamento MB Way do ENEI 2027."
+    />
+    <title>Comprar bilhete · ENEI 2027</title>
+    <link rel="stylesheet" href="../../styles.css?v=20261007-checkout-status" />
+  </head>
+
+  <body data-page="checkout">
+    <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="brand" href="../../" aria-label="ENEI 2027 — Página inicial">
+          <img src="../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
+          <span>ENEI</span>
+        </a>
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-label="Menu — demonstração visual"
+          aria-expanded="false"
+          aria-controls="nav-links"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path class="nav-toggle__menu" d="M4 7h16M4 12h16M4 17h16" />
+            <path class="nav-toggle__close" d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
+          <div class="nav-main">
+            <a href="../../sobre/">Sobre</a>
+            <a href="../../agenda/">Agenda</a>
+            <a href="../../equipa/">Equipa</a>
+            <a href="../../parcerias/">Parcerias</a>
+            <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+            <a href="../" aria-current="page">Bilhetes</a>
+          </div>
+          <a class="nav-account" href="../../conta/">Entrar</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="conteudo" class="checkout-page">
+      <header class="checkout-heading">
+        <div class="container">
+          <a class="checkout-back" href="../">← Voltar aos bilhetes</a>
+          <div class="checkout-heading__copy">
+            <div>
+              <p class="eyebrow">&lt;CHECKOUT /&gt;</p>
+              <h1>Finaliza a tua inscrição.</h1>
+            </div>
+            <p class="lead">
+              Escolhe o bilhete e conclui o pagamento através de MB Way.
+            </p>
+          </div>
+          <ol class="checkout-steps" aria-label="Etapas da compra">
+            <li class="checkout-step checkout-step--active">
+              <span>01</span><strong>Bilhete</strong>
+            </li>
+            <li class="checkout-step checkout-step--active">
+              <span>02</span><strong>Pagamento</strong>
+            </li>
+            <li class="checkout-step">
+              <span>03</span><strong>Confirmação</strong>
+            </li>
+          </ol>
+        </div>
+      </header>
+
+      <section class="section checkout-section" id="selecao">
+        <div class="container checkout-layout">
+          <form class="checkout-form" action="./aguardar/" data-checkout-form>
+            <section class="checkout-panel" aria-labelledby="ticket-heading">
+              <div class="checkout-panel__heading">
+                <span class="checkout-panel__number">01</span>
+                <div>
+                  <p class="eyebrow">BILHETE</p>
+                  <h2 id="ticket-heading">Escolhe a modalidade</h2>
+                  <p>Seleciona a experiência que melhor se adapta a ti.</p>
+                </div>
+              </div>
+
+              <fieldset class="checkout-ticket-list">
+                <legend class="sr-only">Modalidade do bilhete</legend>
+                <label class="checkout-ticket-option">
+                  <input type="radio" name="ticket" value="acesso" />
+                  <span class="checkout-ticket-option__marker"></span>
+                  <span class="checkout-ticket-option__copy">
+                    <small>ESTUDANTE</small>
+                    <strong>Apenas acesso</strong>
+                    <span>Entrada no evento e programa geral.</span>
+                  </span>
+                  <span class="checkout-ticket-option__price">A confirmar</span>
+                </label>
+                <label class="checkout-ticket-option">
+                  <input type="radio" name="ticket" value="refeicoes" />
+                  <span class="checkout-ticket-option__marker"></span>
+                  <span class="checkout-ticket-option__copy">
+                    <small>ESTUDANTE</small>
+                    <strong>Acesso + refeições</strong>
+                    <span>Entrada no evento e refeições incluídas.</span>
+                  </span>
+                  <span class="checkout-ticket-option__price">A confirmar</span>
+                </label>
+                <label
+                  class="checkout-ticket-option checkout-ticket-option--featured"
+                >
+                  <input type="radio" name="ticket" value="completo" checked />
+                  <span class="checkout-ticket-option__marker"></span>
+                  <span class="checkout-ticket-option__copy">
+                    <small>RECOMENDADO · ESTUDANTE</small>
+                    <strong>Experiência completa</strong>
+                    <span>Evento, refeições e alojamento coletivo.</span>
+                  </span>
+                  <span class="checkout-ticket-option__price">A confirmar</span>
+                </label>
+                <label class="checkout-ticket-option">
+                  <input type="radio" name="ticket" value="geral" />
+                  <span class="checkout-ticket-option__marker"></span>
+                  <span class="checkout-ticket-option__copy">
+                    <small>NÃO ESTUDANTE</small>
+                    <strong>Passe geral</strong>
+                    <span>Acesso ao programa completo.</span>
+                  </span>
+                  <span class="checkout-ticket-option__price">A confirmar</span>
+                </label>
+              </fieldset>
+
+              <input type="hidden" name="quantity" value="1" />
+            </section>
+
+            <section class="checkout-panel" aria-labelledby="payment-heading">
+              <div class="checkout-panel__heading">
+                <span class="checkout-panel__number">02</span>
+                <div>
+                  <p class="eyebrow">PAGAMENTO</p>
+                  <h2 id="payment-heading">Paga com MB Way</h2>
+                  <p>Receberás um pedido de confirmação no telemóvel.</p>
+                </div>
+              </div>
+
+              <div class="mbway-card">
+                <div class="mbway-mark">
+                  <img
+                    src="../../assets/mbway-logo.svg"
+                    alt="MB Way"
+                    width="112"
+                    height="70"
+                  />
+                </div>
+                <div>
+                  <strong>Pagamento seguro</strong>
+                  <span>Confirma a operação na aplicação MB Way.</span>
+                </div>
+              </div>
+
+              <label class="auth-field checkout-phone">
+                <span>Número de telemóvel</span>
+                <span class="checkout-phone__control">
+                  <span aria-hidden="true">+351</span>
+                  <input
+                    type="tel"
+                    name="phone"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    placeholder="9XX XXX XXX"
+                    aria-describedby="phone-help"
+                    required
+                  />
+                </span>
+                <small id="phone-help"
+                  >Utiliza o número associado à tua conta MB Way.</small
+                >
+              </label>
+
+              <label class="auth-check checkout-consent">
+                <input type="checkbox" name="terms" required />
+                <span>
+                  Confirmo que os dados da compra estão corretos e aceito os
+                  termos e condições.
+                </span>
+              </label>
+
+              <button class="btn btn--primary checkout-submit" type="submit">
+                Pagar com MB Way
+                <span aria-hidden="true">→</span>
+              </button>
+            </section>
+          </form>
+
+          <aside class="checkout-summary" aria-labelledby="summary-heading">
+            <p class="eyebrow">RESUMO</p>
+            <h2 id="summary-heading">A tua compra</h2>
+            <div class="checkout-summary__ticket">
+              <span>ENEI 2027</span>
+              <strong data-checkout-summary-ticket>Experiência completa</strong>
+              <small>1–4 abril · Faro, Algarve</small>
+            </div>
+            <dl class="checkout-summary__details">
+              <div>
+                <dt>Quantidade</dt>
+                <dd data-checkout-summary-quantity>1</dd>
+              </div>
+              <div>
+                <dt>Subtotal</dt>
+                <dd>A confirmar</dd>
+              </div>
+              <div>
+                <dt>Taxas</dt>
+                <dd>Incluídas</dd>
+              </div>
+            </dl>
+            <div class="checkout-summary__total">
+              <span>Total</span><strong>A confirmar</strong>
+            </div>
+            <ul class="checkout-trust-list">
+              <li>Pagamento através de MB Way</li>
+              <li>Confirmação enviada por email</li>
+              <li>Bilhete disponível na área pessoal</li>
+            </ul>
+            <a class="checkout-help" href="../../informacao-ajuda/"
+              >Precisas de ajuda?</a
+            >
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-main">
+          <div class="footer-identity">
+            <a class="brand footer-brand" href="../../">
+              <img src="../../assets/ENEI-logo.svg" alt="" />
+              <span>ENEI</span>
+            </a>
+            <p>
+              Encontro Nacional de Estudantes de Informática · Faro, Algarve ·
+              1–4 abril 2027.
+            </p>
+          </div>
+          <div class="footer-navigation">
+            <div>
+              <h3>Explorar</h3>
+              <ul>
+                <li><a href="../../sobre/">Sobre</a></li>
+                <li><a href="../../agenda/">Agenda</a></li>
+                <li><a href="../../parcerias/">Parcerias</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3>Participar</h3>
+              <ul>
+                <li><a href="../../conta/">Entrar</a></li>
+                <li><a href="../">Bilhetes</a></li>
+                <li>
+                  <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="footer-connect">
+            <div class="footer-organizer">
+              <span class="footer-label">Organizado por</span>
+              <img
+                src="../../assets/neei-logo.webp"
+                alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
+              />
+            </div>
+            <div class="footer-social-block">
+              <span class="footer-label">Segue o ENEI</span>
+              <div class="footer-social" aria-label="Redes sociais do ENEI">
+                <span
+                  class="footer-social-icon"
+                  role="img"
+                  aria-label="Instagram"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="1" class="social-dot" />
+                  </svg>
+                </span>
+                <span
+                  class="footer-social-icon"
+                  role="img"
+                  aria-label="Facebook"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M14 21v-8h3l.5-4H14V7.2c0-1.2.4-2.2 2.3-2.2H18V1.5c-.7-.1-1.6-.2-2.8-.2-3.1 0-5.2 1.9-5.2 5.4V9H7v4h3v8"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="footer-social-icon"
+                  role="img"
+                  aria-label="LinkedIn"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path
+                      d="M8 10v7M8 7v.01M12 17v-4a3 3 0 0 1 6 0v4M12 10v7"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2027 ENEI. Todos os direitos reservados.</span>
+          <div class="footer-legal" aria-label="Informação legal">
+            <span>Termos e condições</span>
+            <span>Política de privacidade</span>
+            <span>Acessibilidade</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
