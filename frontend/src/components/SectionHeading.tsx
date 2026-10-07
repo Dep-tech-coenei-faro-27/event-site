@@ -9,7 +9,7 @@ interface SectionHeadingProps {
   classNameLead?: string;
 }
 
-export default function SectionHeading({ eyebrow, title, lead, align = 'left', className = 'text-[clamp(40px,6vw,70px)] tracking-[-0.045em] leading-[1.06]', classNameTitle, classNameLead = 'text-slate-300' }: SectionHeadingProps) {
+export default function SectionHeading({ eyebrow, title, lead, align = 'left', className = 'text-[clamp(40px,6vw,70px)] tracking-tight leading-[1.06]', classNameTitle, classNameLead = 'text-slate-300' }: SectionHeadingProps) {
   const alignment = align === 'center' ? 'text-center mx-auto' : 'text-left';
 
   return (
@@ -21,7 +21,7 @@ export default function SectionHeading({ eyebrow, title, lead, align = 'left', c
         {title}
       </h2>
       {lead && (
-        <p className={`mt-5 text-[clamp(24px,6vw,24px)] max-w-[720px] ${classNameLead} ${align === 'center' ? 'mx-auto' : ''}`}>
+        <p className={`leading-relaxed mt-5 text-[clamp(24px,6vw,24px)] max-w-[720px] ${classNameLead} ${align === 'center' ? 'mx-auto' : ''}`}>
           {lead}
         </p>
       )}
