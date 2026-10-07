@@ -2426,31 +2426,47 @@ body[data-page="agenda"] .timeline-item p {
 .event-location {
   padding-block: clamp(76px, 9vw, 120px);
 }
-.venue-layout {
+.location-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
-  min-height: 560px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.location-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 300px 1fr;
   border: 1px solid var(--line-accent);
   background: var(--panel);
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.2);
 }
-.venue-map {
-  min-height: 560px;
+.location-card__visual {
+  position: relative;
+  min-height: 300px;
   overflow: hidden;
   background: var(--bg-deep);
 }
-.venue-map iframe {
+.location-card__visual iframe {
   width: 100%;
   height: 100%;
-  min-height: 560px;
+  min-height: 300px;
   display: block;
   border: 0;
   filter: saturate(0.72) contrast(0.94) brightness(0.86);
 }
-.venue-panel {
+.location-card__number {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 42px;
+  height: 42px;
   display: grid;
-  grid-template-rows: auto 1fr;
-  border-left: 1px solid var(--line-accent);
+  place-items: center;
+  border: 1px solid var(--line-accent);
+  background: rgba(3, 7, 16, 0.88);
+  color: var(--accent-strong);
+  font:
+    700 11px/1 Montserrat,
+    sans-serif;
 }
 .countdown {
   padding: 34px clamp(26px, 4vw, 48px) 38px;
@@ -2499,12 +2515,12 @@ body[data-page="agenda"] .timeline-item p {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.venue-details {
-  align-content: center;
+.location-card__content {
+  align-content: start;
   display: grid;
-  padding: 42px clamp(26px, 4vw, 48px);
+  padding: clamp(28px, 4vw, 42px);
 }
-.venue-details__label {
+.location-card__label {
   margin: 0 0 10px;
   color: var(--accent-strong);
   font:
@@ -2513,15 +2529,15 @@ body[data-page="agenda"] .timeline-item p {
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
-.venue-details h3 {
-  font-size: clamp(25px, 3vw, 36px);
+.location-card__content h3 {
+  font-size: clamp(25px, 3vw, 34px);
 }
-.venue-details > p:not(.venue-details__label) {
+.location-card__content > p:not(.location-card__label, .location-card__notice) {
   margin: 14px 0 0;
   color: var(--muted);
   line-height: 1.65;
 }
-.venue-facts {
+.location-card__facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
@@ -2529,10 +2545,10 @@ body[data-page="agenda"] .timeline-item p {
   padding: 22px 0;
   border-block: 1px solid var(--line);
 }
-.venue-facts div {
+.location-card__facts div {
   min-width: 0;
 }
-.venue-facts dt {
+.location-card__facts dt {
   color: var(--subtle);
   font:
     700 9px/1 Montserrat,
@@ -2540,13 +2556,32 @@ body[data-page="agenda"] .timeline-item p {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.venue-facts dd {
+.location-card__facts dd {
   margin: 8px 0 0;
   color: white;
   font-size: 13px;
 }
-.venue-details .btn {
+.location-card__content .btn {
   width: fit-content;
+}
+.location-card__notice {
+  margin: 0 0 24px;
+  padding-left: 16px;
+  border-left: 2px solid var(--accent);
+  color: var(--subtle);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.location-countdown {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 70px);
+  border: 1px solid var(--line-accent);
+}
+.location-countdown .countdown__intro {
+  margin-bottom: 0;
 }
 
 /* Parcerias — premium, restrained, and commercially focused. */
@@ -2976,16 +3011,18 @@ body[data-page="bilhetes"] #tipos .feature-list li {
   body[data-page="agenda"] .timeline {
     grid-template-columns: 1fr;
   }
-  .venue-layout {
+  .location-grid {
     grid-template-columns: 1fr;
   }
-  .venue-map,
-  .venue-map iframe {
-    min-height: 430px;
+  .location-card {
+    grid-template-rows: 380px 1fr;
   }
-  .venue-panel {
-    border-left: 0;
-    border-top: 1px solid var(--line-accent);
+  .location-card__visual,
+  .location-card__visual iframe {
+    min-height: 380px;
+  }
+  .location-countdown {
+    grid-template-columns: 1fr;
   }
   body[data-page="parcerias"] .benefit-item {
     min-height: 230px;
@@ -3251,14 +3288,17 @@ body[data-page="bilhetes"] #tipos .feature-list li {
   body[data-page="agenda"] .page-hero {
     min-height: 440px;
   }
-  .venue-map,
-  .venue-map iframe {
-    min-height: 330px;
+  .location-card {
+    grid-template-rows: 280px 1fr;
+  }
+  .location-card__visual,
+  .location-card__visual iframe {
+    min-height: 280px;
   }
   .countdown__grid {
     grid-template-columns: 1fr 1fr;
   }
-  .venue-facts {
+  .location-card__facts {
     grid-template-columns: 1fr;
   }
   body[data-page="agenda"] .timeline-item {

@@ -2976,34 +2976,51 @@ body[data-page="agenda"] .timeline-item p {
   padding-block: clamp(76px, 9vw, 120px);
 }
 
-.venue-layout {
+.location-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
-  min-height: 560px;
-  border: 1px solid var(--line-accent);
-  background: var(--panel);
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
 }
 
-.venue-map {
-  min-height: 560px;
+.location-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 300px 1fr;
+  border: 1px solid var(--line-accent);
+  background: var(--panel);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.2);
+}
+
+.location-card__visual {
+  position: relative;
+  min-height: 300px;
   overflow: hidden;
   background: var(--bg-deep);
 }
 
-.venue-map iframe {
+.location-card__visual iframe {
   width: 100%;
   height: 100%;
-  min-height: 560px;
+  min-height: 300px;
   display: block;
   border: 0;
   filter: saturate(0.72) contrast(0.94) brightness(0.86);
 }
 
-.venue-panel {
+.location-card__number {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 42px;
+  height: 42px;
   display: grid;
-  grid-template-rows: auto 1fr;
-  border-left: 1px solid var(--line-accent);
+  place-items: center;
+  border: 1px solid var(--line-accent);
+  background: rgba(3, 7, 16, 0.88);
+  color: var(--accent-strong);
+  font:
+    700 11px/1 Montserrat,
+    sans-serif;
 }
 
 .countdown {
@@ -3059,13 +3076,13 @@ body[data-page="agenda"] .timeline-item p {
   text-transform: uppercase;
 }
 
-.venue-details {
-  align-content: center;
+.location-card__content {
+  align-content: start;
   display: grid;
-  padding: 42px clamp(26px, 4vw, 48px);
+  padding: clamp(28px, 4vw, 42px);
 }
 
-.venue-details__label {
+.location-card__label {
   margin: 0 0 10px;
   color: var(--accent-strong);
   font:
@@ -3075,17 +3092,17 @@ body[data-page="agenda"] .timeline-item p {
   text-transform: uppercase;
 }
 
-.venue-details h3 {
-  font-size: clamp(25px, 3vw, 36px);
+.location-card__content h3 {
+  font-size: clamp(25px, 3vw, 34px);
 }
 
-.venue-details > p:not(.venue-details__label) {
+.location-card__content > p:not(.location-card__label, .location-card__notice) {
   margin: 14px 0 0;
   color: var(--muted);
   line-height: 1.65;
 }
 
-.venue-facts {
+.location-card__facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
@@ -3094,11 +3111,11 @@ body[data-page="agenda"] .timeline-item p {
   border-block: 1px solid var(--line);
 }
 
-.venue-facts div {
+.location-card__facts div {
   min-width: 0;
 }
 
-.venue-facts dt {
+.location-card__facts dt {
   color: var(--subtle);
   font:
     700 9px/1 Montserrat,
@@ -3107,15 +3124,37 @@ body[data-page="agenda"] .timeline-item p {
   text-transform: uppercase;
 }
 
-.venue-facts dd {
+.location-card__facts dd {
   margin: 8px 0 0;
   color: white;
   font-size: 13px;
 }
 
-.venue-details .btn {
+.location-card__content .btn {
   width: -moz-fit-content;
   width: fit-content;
+}
+
+.location-card__notice {
+  margin: 0 0 24px;
+  padding-left: 16px;
+  border-left: 2px solid var(--accent);
+  color: var(--subtle);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.location-countdown {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 70px);
+  border: 1px solid var(--line-accent);
+}
+
+.location-countdown .countdown__intro {
+  margin-bottom: 0;
 }
 
 /* Parcerias — premium, restrained, and commercially focused. */
@@ -3625,18 +3664,21 @@ body[data-page="bilhetes"] #tipos .feature-list li {
     grid-template-columns: 1fr;
   }
 
-  .venue-layout {
+  .location-grid {
     grid-template-columns: 1fr;
   }
 
-  .venue-map,
-  .venue-map iframe {
-    min-height: 430px;
+  .location-card {
+    grid-template-rows: 380px 1fr;
   }
 
-  .venue-panel {
-    border-left: 0;
-    border-top: 1px solid var(--line-accent);
+  .location-card__visual,
+  .location-card__visual iframe {
+    min-height: 380px;
+  }
+
+  .location-countdown {
+    grid-template-columns: 1fr;
   }
 
   body[data-page="parcerias"] .benefit-item {
@@ -3965,16 +4007,20 @@ body[data-page="bilhetes"] #tipos .feature-list li {
     min-height: 440px;
   }
 
-  .venue-map,
-  .venue-map iframe {
-    min-height: 330px;
+  .location-card {
+    grid-template-rows: 280px 1fr;
+  }
+
+  .location-card__visual,
+  .location-card__visual iframe {
+    min-height: 280px;
   }
 
   .countdown__grid {
     grid-template-columns: 1fr 1fr;
   }
 
-  .venue-facts {
+  .location-card__facts {
     grid-template-columns: 1fr;
   }
 
@@ -5143,15 +5189,39 @@ body[data-page="checkout"] {
 }
 
 .payment-result-main {
+  position: relative;
+  isolation: isolate;
   min-height: calc(100vh - var(--nav));
   display: grid;
   place-items: center;
   padding: clamp(48px, 8vw, 100px) 0;
   background:
-    linear-gradient(rgba(1, 15, 38, 0.82), rgba(1, 15, 38, 0.9)), var(--pattern);
+    radial-gradient(
+      circle at 50% 8%,
+      rgba(var(--accent-rgb), 0.18),
+      transparent 48%
+    ),
+    var(--surface);
+  overflow: hidden;
+}
+
+.payment-result-main::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") center / 104px
+    104px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") center / 104px 104px
+    repeat;
+  opacity: 0.035;
 }
 
 .payment-result-shell {
+  position: relative;
+  z-index: 1;
   width: min(calc(100% - 40px), 720px);
   min-width: 0;
 }
@@ -5173,16 +5243,22 @@ body[data-page="checkout"] {
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
 }
 
+.payment-status--waiting,
+.payment-status--success,
+.payment-status--error {
+  --status-color: var(--accent-strong);
+}
+
 .payment-status--waiting {
-  --status-color: #e5bf78;
+  --status-signal: #f4c542;
 }
 
 .payment-status--success {
-  --status-color: var(--success);
+  --status-signal: var(--success);
 }
 
 .payment-status--error {
-  --status-color: #ff8f84;
+  --status-signal: #ff8f84;
 }
 
 .payment-status__icon {
@@ -5191,10 +5267,10 @@ body[data-page="checkout"] {
   display: grid;
   place-items: center;
   margin-bottom: 26px;
-  border: 1px solid color-mix(in srgb, var(--status-color) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-signal) 58%, transparent);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--status-color) 10%, var(--panel));
-  color: var(--status-color);
+  background: color-mix(in srgb, var(--status-signal) 10%, var(--panel));
+  color: var(--status-signal);
   font-size: 25px;
   font-weight: 700;
 }
@@ -5206,11 +5282,25 @@ body[data-page="checkout"] {
   font-size: 34px;
 }
 
+.payment-status__visuals {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.payment-status__visuals .payment-status__icon,
+.payment-status__visuals .payment-result-mbway {
+  margin: 0;
+}
+
 .payment-spinner {
   width: 25px;
   height: 25px;
-  border: 3px solid color-mix(in srgb, var(--status-color) 24%, transparent);
-  border-top-color: var(--status-color);
+  border: 3px solid color-mix(in srgb, var(--status-signal) 24%, transparent);
+  border-top-color: var(--status-signal);
   border-radius: 50%;
   animation: payment-spin 1s linear infinite;
 }
@@ -5222,7 +5312,7 @@ body[data-page="checkout"] {
 }
 
 .payment-status__tag {
-  color: var(--status-color);
+  color: var(--status-signal);
   font:
     700 9px Montserrat,
     sans-serif;

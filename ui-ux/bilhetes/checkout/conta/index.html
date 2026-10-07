@@ -11,18 +11,25 @@
     />
     <meta
       name="description"
-      content="Verificação de email da conta ENEI 2027."
+      content="Conta necessária para comprar um bilhete do ENEI 2027."
     />
-    <title>Verificar email · ENEI 2027</title>
-    <link rel="stylesheet" href="../../styles.css?v=20261006-tailwind" />
+    <title>Conta necessária · ENEI 2027</title>
+    <link
+      rel="stylesheet"
+      href="../../../styles.css?v=20261007-checkout-status"
+    />
   </head>
-  <body data-page="conta" data-root="../..">
+  <body data-page="conta" data-root="../../..">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
     <header class="site-header">
       <div class="container nav">
-        <a class="brand" href="../../" aria-label="ENEI 2027 — Página inicial">
+        <a
+          class="brand"
+          href="../../../"
+          aria-label="ENEI 2027 — Página inicial"
+        >
           <img
-            src="../../assets/ENEI-logo.svg"
+            src="../../../assets/ENEI-logo.svg"
             alt=""
             aria-hidden="true"
           /><span>ENEI</span>
@@ -41,13 +48,14 @@
         </button>
         <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
           <div class="nav-main">
-            <a href="../../sobre/">Sobre</a><a href="../../agenda/">Agenda</a
-            ><a href="../../equipa/">Equipa</a
-            ><a href="../../parcerias/">Parcerias</a
-            ><a href="../../informacao-ajuda/">Informação &amp; Ajuda</a
-            ><a href="../../bilhetes/">Bilhetes</a>
+            <a href="../../../sobre/">Sobre</a
+            ><a href="../../../agenda/">Agenda</a
+            ><a href="../../../equipa/">Equipa</a
+            ><a href="../../../parcerias/">Parcerias</a
+            ><a href="../../../informacao-ajuda/">Informação &amp; Ajuda</a
+            ><a href="../../../bilhetes/">Bilhetes</a>
           </div>
-          <a class="nav-account" href="../../conta/" aria-current="page"
+          <a class="nav-account" href="../../../conta/" aria-current="page"
             >Entrar</a
           >
         </nav>
@@ -58,54 +66,55 @@
         <div class="container auth-shell">
           <aside class="auth-aside">
             <div>
-              <p class="eyebrow">&lt;EMAIL /&gt;</p>
-              <h1>Falta apenas um passo.</h1>
+              <p class="eyebrow">&lt;COMPRA /&gt;</p>
+              <h1>Antes de comprar, cria a tua conta.</h1>
               <p class="lead">
-                A confirmação mantém a tua conta segura e garante que recebes a
-                informação certa.
+                A conta permite associar o bilhete aos teus dados e acompanhar a
+                inscrição até ao evento.
               </p>
             </div>
             <div class="auth-points">
               <div class="auth-point">
                 <span>01</span>
-                <p>Confirma o endereço de email.</p>
+                <p>Cria a tua conta ou inicia sessão.</p>
               </div>
               <div class="auth-point">
                 <span>02</span>
-                <p>Regressa à área de participante.</p>
+                <p>Escolhe a modalidade do bilhete.</p>
               </div>
               <div class="auth-point">
                 <span>03</span>
-                <p>Completa o teu perfil.</p>
+                <p>Conclui o pagamento por MB Way.</p>
+              </div>
+              <div class="auth-point">
+                <span>04</span>
+                <p>Recebe a confirmação da inscrição.</p>
               </div>
             </div>
           </aside>
           <div class="auth-card">
             <div class="auth-state-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <rect x="3" y="5" width="18" height="14" rx="1"></rect>
-                <path d="m4 7 8 6 8-6M16 16l2 2 4-5"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+                <path d="M4 21a8 8 0 0 1 16 0M18 8h4M20 6v4"></path>
               </svg>
             </div>
-            <p class="eyebrow">&lt;VERIFICAÇÃO /&gt;</p>
-            <h2>Conta criada. Verifica o teu email.</h2>
+            <p class="eyebrow">&lt;CONTA_NECESSÁRIA /&gt;</p>
+            <h2>Precisamos de associar o bilhete a uma conta.</h2>
             <p class="auth-intro">
-              Enviámos uma ligação de confirmação para
-              <strong>participante@exemplo.pt</strong>. Abre-a para ativares a
-              conta.
+              Cria uma conta ENEI para guardares o bilhete, receberes a
+              confirmação por email e gerires a tua participação.
             </p>
             <div class="auth-actions">
-              <a class="btn btn--primary" href="../perfil/"
-                >Continuar para a minha conta</a
+              <a class="btn btn--primary" href="../../../conta/criar/"
+                >Criar conta</a
               >
-              <form data-auth-demo>
-                <button class="btn btn--secondary" type="submit">
-                  Reenviar email
-                </button>
-              </form>
+              <a class="btn btn--secondary" href="../../../conta/"
+                >Já tenho conta</a
+              >
             </div>
             <p class="auth-switch">
-              <a class="auth-back" href="../">← Voltar ao início de sessão</a>
+              <a class="auth-back" href="../../">← Voltar aos bilhetes</a>
             </p>
           </div>
         </div>
@@ -115,8 +124,8 @@
       <div class="container">
         <div class="footer-main">
           <div class="footer-identity">
-            <a class="brand footer-brand" href="../../"
-              ><img src="../../assets/ENEI-logo.svg" alt="" /><span
+            <a class="brand footer-brand" href="../../../"
+              ><img src="../../../assets/ENEI-logo.svg" alt="" /><span
                 >ENEI</span
               ></a
             >
@@ -129,18 +138,20 @@
             <div>
               <h3>Explorar</h3>
               <ul>
-                <li><a href="../../sobre/">Sobre</a></li>
-                <li><a href="../../agenda/">Agenda</a></li>
-                <li><a href="../../parcerias/">Parcerias</a></li>
+                <li><a href="../../../sobre/">Sobre</a></li>
+                <li><a href="../../../agenda/">Agenda</a></li>
+                <li><a href="../../../parcerias/">Parcerias</a></li>
               </ul>
             </div>
             <div>
               <h3>Participar</h3>
               <ul>
-                <li><a href="../../conta/">Entrar</a></li>
-                <li><a href="../../bilhetes/">Bilhetes</a></li>
+                <li><a href="../../../conta/">Entrar</a></li>
+                <li><a href="../../../bilhetes/">Bilhetes</a></li>
                 <li>
-                  <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+                  <a href="../../../informacao-ajuda/"
+                    >Informação &amp; Ajuda</a
+                  >
                 </li>
               </ul>
             </div>
@@ -149,7 +160,7 @@
             <div class="footer-organizer">
               <span class="footer-label">Organizado por</span
               ><img
-                src="../../assets/neei-logo.webp"
+                src="../../../assets/neei-logo.webp"
                 alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
               />
             </div>
@@ -202,7 +213,7 @@
     </footer>
     <aside class="mobile-ticket" aria-label="Bilhetes">
       <span><strong>ENEI 2027</strong>Bilhetes</span
-      ><a class="btn btn--primary" href="../../bilhetes/">Bilhetes</a>
+      ><a class="btn btn--primary" href="../../../bilhetes/">Bilhetes</a>
     </aside>
   </body>
 </html>

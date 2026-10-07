@@ -72,59 +72,36 @@
         <div class="container">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">&lt;LOCALIZAÇÃO /&gt;</p>
-              <h2>Encontramo-nos em Gambelas.</h2>
+              <p class="eyebrow">&lt;LOCALIZAÇÕES /&gt;</p>
+              <h2>Dois lugares, uma experiência.</h2>
             </div>
             <p class="lead">
-              O Campus de Gambelas da Universidade do Algarve recebe os quatro
-              dias do ENEI 2027.
+              O ENEI acontece no Campus de Gambelas e inclui um espaço dedicado
+              ao alojamento dos participantes.
             </p>
           </div>
-          <div class="venue-layout">
-            <div class="venue-map">
-              <iframe
-                title="Mapa do Campus de Gambelas da Universidade do Algarve"
-                loading="lazy"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&amp;layer=mapnik&amp;marker=37.045102%2C-7.971998"
-              ></iframe>
-            </div>
-            <div class="venue-panel">
-              <div
-                class="countdown"
-                data-countdown="2027-04-01T00:00:00+01:00"
-                aria-label="Contagem decrescente para o início do ENEI 2027"
-              >
-                <p class="eyebrow">&lt;COUNTDOWN /&gt;</p>
-                <p class="countdown__intro">Até ao início do ENEI 2027</p>
-                <div class="countdown__grid">
-                  <div>
-                    <strong data-countdown-days>000</strong><span>Dias</span>
-                  </div>
-                  <div>
-                    <strong data-countdown-hours>00</strong><span>Horas</span>
-                  </div>
-                  <div>
-                    <strong data-countdown-minutes>00</strong
-                    ><span>Minutos</span>
-                  </div>
-                  <div>
-                    <strong data-countdown-seconds>00</strong
-                    ><span>Segundos</span>
-                  </div>
-                </div>
+          <div class="location-grid">
+            <article class="location-card">
+              <div class="location-card__visual">
+                <iframe
+                  title="Mapa do Campus de Gambelas da Universidade do Algarve"
+                  loading="lazy"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&amp;layer=mapnik&amp;marker=37.045102%2C-7.971998"
+                ></iframe>
+                <span class="location-card__number">01</span>
               </div>
-              <div class="venue-details">
-                <p class="venue-details__label">Recinto principal</p>
+              <div class="location-card__content">
+                <p class="location-card__label">Recinto do evento</p>
                 <h3>Universidade do Algarve</h3>
                 <p>Campus de Gambelas<br />8005-139 Faro, Portugal</p>
-                <dl class="venue-facts">
+                <dl class="location-card__facts">
+                  <div>
+                    <dt>Função</dt>
+                    <dd>Atividades e programa</dd>
+                  </div>
                   <div>
                     <dt>Data</dt>
                     <dd>1–4 abril 2027</dd>
-                  </div>
-                  <div>
-                    <dt>Campus</dt>
-                    <dd>Gambelas · Faro</dd>
                   </div>
                 </dl>
                 <a
@@ -134,6 +111,66 @@
                   rel="noopener"
                   >Obter direções</a
                 >
+              </div>
+            </article>
+            <article class="location-card location-card--stay">
+              <div class="location-card__visual">
+                <iframe
+                  title="Mapa da Escola Secundária Tomás Cabreira"
+                  loading="lazy"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9358%2C37.0116%2C-7.9190%2C37.0210&amp;layer=mapnik&amp;marker=37.01630042%2C-7.927375733"
+                ></iframe>
+                <span class="location-card__number">02</span>
+              </div>
+              <div class="location-card__content">
+                <p class="location-card__label">Alojamento</p>
+                <h3>Escola Secundária Tomás Cabreira</h3>
+                <p>Rua Manuel de Arriaga, n.º 2<br />8000-334 Faro, Portugal</p>
+                <dl class="location-card__facts">
+                  <div>
+                    <dt>Função</dt>
+                    <dd>Dormida e estadia</dd>
+                  </div>
+                  <div>
+                    <dt>Acesso</dt>
+                    <dd>Experiência completa</dd>
+                  </div>
+                </dl>
+                <p class="location-card__notice">
+                  Os horários de entrada e as indicações para a estadia serão
+                  comunicados aos participantes confirmados.
+                </p>
+                <a
+                  class="btn btn--primary"
+                  href="https://www.google.com/maps/search/?api=1&amp;query=37.01630042%2C-7.927375733"
+                  target="_blank"
+                  rel="noopener"
+                  >Obter direções</a
+                >
+              </div>
+            </article>
+          </div>
+          <div
+            class="countdown location-countdown"
+            data-countdown="2027-04-01T00:00:00+01:00"
+            aria-label="Contagem decrescente para o início do ENEI 2027"
+          >
+            <div>
+              <p class="eyebrow">&lt;COUNTDOWN /&gt;</p>
+              <p class="countdown__intro">Até ao início do ENEI 2027</p>
+            </div>
+            <div class="countdown__grid">
+              <div>
+                <strong data-countdown-days>000</strong><span>Dias</span>
+              </div>
+              <div>
+                <strong data-countdown-hours>00</strong><span>Horas</span>
+              </div>
+              <div>
+                <strong data-countdown-minutes>00</strong><span>Minutos</span>
+              </div>
+              <div>
+                <strong data-countdown-seconds>00</strong><span>Segundos</span>
               </div>
             </div>
           </div>
@@ -299,10 +336,10 @@
                 Onde fico alojado durante o evento?
               </button>
               <div class="faq-answer" hidden>
-                O alojamento coletivo destina-se aos participantes com a
-                modalidade Experiência completa. A localização, os horários de
-                entrada e a lista do que deves levar serão enviados aos
-                participantes confirmados antes do evento.
+                O alojamento coletivo será na Escola Secundária Tomás Cabreira e
+                destina-se aos participantes com a modalidade Experiência
+                completa. Os horários de entrada e a lista do que deves levar
+                serão enviados antes do evento.
               </div>
             </article>
             <article class="faq-item" data-category="alojamento">
