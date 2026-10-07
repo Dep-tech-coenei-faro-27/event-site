@@ -1,8 +1,10 @@
+import { EVENT_DATES_SHORT } from '../data/Event';
+
 export default function QuickInfo() {
   const stats = [
     {
       label: 'DATA',
-      title: '8–11 Abr',
+      title: EVENT_DATES_SHORT,
       subtitle: '2027 · Quinta a domingo',
     },
     {

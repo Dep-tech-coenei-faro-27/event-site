@@ -1,5 +1,6 @@
 import os
 
+os.environ.setdefault("ENVIRONMENT", "dev")
 os.environ.setdefault(
     "JWT_SECRET_KEY",
     "test-only-jwt-secret-that-is-at-least-32-bytes-long",
@@ -66,7 +67,10 @@ def test_engine():
 @pytest.fixture
 def db_session(test_engine):
     with test_engine.begin() as conn:
+        conn.execute(text("DELETE FROM reset_password_tokens"))
+        conn.execute(text("DELETE FROM revoked_tokens"))
         conn.execute(text("DELETE FROM users"))
+        conn.execute(text("DELETE FROM rate_limits"))
     session = Session(bind=test_engine)
     yield session
     session.rollback()

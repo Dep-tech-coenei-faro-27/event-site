@@ -1,9 +1,11 @@
+import hashlib
 import re
 import uuid
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
+from pydantic_core import PydanticCustomError
 
 import app.core.config as config
 
@@ -11,21 +13,35 @@ BCRYPT_MAX_PASSWORD_BYTES = 72
 BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
+ACCESS_COOKIE_NAME = "__Host-access_token"
 EMAIL_VERIFICATION_TOKEN_TYPE = "email_verification"
 PASSWORD_RESET_TOKEN_TYPE = "password_reset"
 
 
 def validate_password(value: str) -> str:
-    if len(value.encode("utf-8")) > 72:
-        raise ValueError("Password must be at most 72 bytes long")
+    """Check every password rule and report all the failures at once."""
+    rules: list[str] = []
+    if len(value.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        rules.append("too_long")
     if not any(char.isupper() for char in value):
-        raise ValueError("Password must contain at least one uppercase letter")
+        rules.append("missing_uppercase")
     if not any(char.isdigit() for char in value):
-        raise ValueError("Password must contain at least one digit")
+        rules.append("missing_digit")
     if not re.search(r"[^a-zA-Z0-9]", value):
-        raise ValueError("Password must contain at least one symbol.")
+        rules.append("missing_symbol")
 
+    if rules:
+        raise PydanticCustomError(
+            "password_invalid",
+            "Password does not meet the requirements",
+            {"rules": rules},
+        )
     return value
+
+
+def password_fingerprint(password_hash: str) -> str:
+    """A short value that changes whenever the password changes."""
+    return hashlib.sha256(password_hash.encode("utf-8")).hexdigest()[:16]
 
 
 def hash_password(password: str) -> str:
@@ -45,7 +61,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(
-    subject: str, role: str, expires_delta: timedelta | None = None
+    user_id: int, token_version: int, expires_delta: timedelta | None = None
 ) -> str:
     issued_at = datetime.now(UTC)
 
@@ -57,9 +73,10 @@ def create_access_token(
         )
 
     payload = {
-        "sub": subject,
-        "role": role,
+        "sub": str(user_id),
         "type": ACCESS_TOKEN_TYPE,
+        "jti": str(uuid.uuid4()),
+        "tv": token_version,
         "iat": issued_at,
         "exp": expire,
     }
@@ -71,7 +88,7 @@ def create_access_token(
     )
 
 
-def create_email_verification_token(email: str) -> str:
+def create_email_verification_token(email: str, password_hash: str) -> str:
     issued_at = datetime.now(UTC)
 
     expire = datetime.now(UTC) + timedelta(
@@ -81,6 +98,7 @@ def create_email_verification_token(email: str) -> str:
     payload = {
         "sub": email,
         "type": EMAIL_VERIFICATION_TOKEN_TYPE,
+        "pwh": password_fingerprint(password_hash),
         "iat": issued_at,
         "exp": expire,
     }
@@ -116,8 +134,8 @@ def create_password_reset_token(email: str) -> str:
     return token, jti, expire
 
 
-def decode_email_verification_token(token: str) -> str:
-    """Return the email bound to a valid verification token.
+def decode_email_verification_token(token: str) -> tuple[str, str]:
+    """Return the email and password fingerprint of a valid verification token.
 
     Raises ``jwt.ExpiredSignatureError`` for expired tokens and
     ``jwt.InvalidTokenError`` for anything else (bad signature, wrong
@@ -136,7 +154,11 @@ def decode_email_verification_token(token: str) -> str:
     if not email:
         raise jwt.InvalidTokenError("Verification token missing subject")
 
-    return email
+    fingerprint = payload.get("pwh")
+    if not fingerprint:
+        raise jwt.InvalidTokenError("Verification token missing password fingerprint")
+
+    return email, fingerprint
 
 
 def decode_password_reset_token(token: str) -> dict:

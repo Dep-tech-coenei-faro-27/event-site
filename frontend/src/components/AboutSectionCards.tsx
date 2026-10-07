@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface CardItem {
   badge: string;
   title: string;

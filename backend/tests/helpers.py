@@ -1,4 +1,12 @@
 import re
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import jwt
+from sqlalchemy import select
+
+from app.core.config import settings
+from app.domains.users.models import User
 
 REGISTER_URL = "/api/auth/register"
 LOGIN_URL = "/api/auth/login"
@@ -44,3 +52,23 @@ def register_and_verify(
     response = auth_client.post(VERIFY_URL, json={"token": token})
     assert response.status_code == 200
     return response
+
+
+def user_id_of(db_session, email="ana@example.com") -> int:
+    return db_session.scalar(select(User.id).where(User.email == email))
+
+
+def access_claims(user_id, token_version=0):
+    now = datetime.now(UTC)
+    return {
+        "sub": str(user_id),
+        "type": "access",
+        "jti": str(uuid.uuid4()),
+        "tv": token_version,
+        "iat": now,
+        "exp": now + timedelta(minutes=5),
+    }
+
+
+def encode_claims(claims) -> str:
+    return jwt.encode(claims, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

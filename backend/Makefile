@@ -5,7 +5,7 @@ VENV := .venv
 HOST ?= 0.0.0.0
 PORT ?= 8000
 
-.PHONY: help install sync dev run test lint format db-upgrade db-downgrade db-revision deploy
+.PHONY: help install sync dev run test lint format db-upgrade db-downgrade db-revision cleanup-unverified deploy
 
 help: ## Lista os comandos disponíveis
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -41,6 +41,9 @@ db-downgrade: ## Desce uma migration
 
 db-revision: ## Cria uma nova migration autogerada (uso: make db-revision m="descrição")
 	$(VENV)/bin/alembic revision --autogenerate -m "$(m)"
+
+cleanup-unverified: ## Apaga contas não verificadas antigas (UNVERIFIED_ACCOUNT_TTL_DAYS)
+	$(PYTHON) -m app.domains.users.cleanup
 
 deploy: ## Faz deploy da aplicação em produção
 	$(VENV)/bin/alembic upgrade head

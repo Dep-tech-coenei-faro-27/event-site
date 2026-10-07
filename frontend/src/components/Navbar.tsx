@@ -6,9 +6,13 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => {
+  // Fecha o menu quando a rota muda. O estado ajusta-se durante a renderização (e não num
+  // efeito), que é o padrão que o React recomenda para reagir a uma mudança de valor.
+  const [menuLocation, setMenuLocation] = useState(location);
+  if (location !== menuLocation) {
+    setMenuLocation(location);
     setIsMenuOpen(false);
-  }, [location]);
+  }
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -20,11 +24,11 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   const navLinks = [
-    { name: 'Sobre', path: '../pages/sobre' },
-    { name: 'Agenda', path: '../pages/agenda' },
-    { name: 'Equipa', path: '../pages/equipa' },
-    { name: 'Parcerias', path: '/pages/parceriais' },
-    { name: 'Informação & Ajuda', path: '/pages/informacao-ajuda' },
+    { name: 'Sobre', path: '/sobre' },
+    { name: 'Agenda', path: '/agenda' },
+    { name: 'Equipa', path: '/equipa' },
+    { name: 'Parcerias', path: '/parcerias' },
+    { name: 'Informação & Ajuda', path: '/informacao-ajuda' },
     { name: 'Bilhetes', path: '/bilhetes' },
   ];
 

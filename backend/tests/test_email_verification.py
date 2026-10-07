@@ -1,14 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 
 from app.core.config import settings
 from app.core.email.base import EmailDeliveryError
 from app.core.email.templates import VERIFICATION_EMAIL_SUBJECT
-from app.domains.auth.router import (
-    EMAIL_ALREADY_VERIFIED_MESSAGE,
-    EMAIL_VERIFICATION_SENT_MESSAGE,
-)
+from app.domains.auth.router import EMAIL_VERIFICATION_SENT_MESSAGE
 from app.domains.users.models import User
 from tests.helpers import (
     REGISTER_URL,
@@ -20,6 +18,11 @@ from tests.helpers import (
 RESEND_URL = "/api/auth/resend-verification-email"
 
 
+@pytest.fixture(autouse=True)
+def no_rate_limits(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
+
+
 def test_register_sends_verification_email(auth_client, email_sender):
     register_user(auth_client, email_sender, email="ana@example.com")
 
@@ -28,7 +31,7 @@ def test_register_sends_verification_email(auth_client, email_sender):
     assert sent["to_email"] == "ana@example.com"
     assert sent["subject"] == VERIFICATION_EMAIL_SUBJECT
     assert sent["html_body"].startswith("<html")
-    assert "verify-email?token=" in sent["html_body"]
+    assert "conta/verificar?token=" in sent["html_body"]
 
 
 def test_register_verification_token_contains_user_email(auth_client, email_sender):
@@ -231,6 +234,8 @@ def test_register_duplicate_does_not_send_verification_email(
     first = auth_client.post(REGISTER_URL, json=payload)
     assert first.status_code == 201
     assert len(email_sender.sent) == 1
+    db_session.query(User).update({User.is_verified: True})
+    db_session.commit()
 
     second = auth_client.post(REGISTER_URL, json=payload)
     assert second.status_code == 409
@@ -273,11 +278,11 @@ def test_register_still_succeeds_when_email_delivery_fails(db_session):
 
 
 def test_verification_email_escapes_html_in_registered_name(auth_client, email_sender):
-    register_user(auth_client, email_sender, name="<script>alert(1)</script>")
+    register_user(auth_client, email_sender, name='Ana "Q" & Co')
 
     html_body = email_sender.sent[0]["html_body"]
-    assert "<script>" not in html_body
-    assert "&lt;script&gt;" in html_body
+    assert 'Ana "Q" & Co' not in html_body
+    assert "Ana &quot;Q&quot; &amp; Co" in html_body
 
 
 def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
@@ -293,7 +298,7 @@ def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):
     sent = email_sender.sent[1]
     assert sent["to_email"] == "resend-me@example.com"
     assert sent["subject"] == VERIFICATION_EMAIL_SUBJECT
-    assert "verify-email?token=" in sent["html_body"]
+    assert "conta/verificar?token=" in sent["html_body"]
 
     second_token = extract_verification_token(email_sender)
     first_payload = jwt.decode(
@@ -343,7 +348,7 @@ def test_resend_does_not_send_for_verified_user(auth_client, email_sender, db_se
     )
 
     assert response.status_code == 200
-    assert response.json() == {"message": EMAIL_ALREADY_VERIFIED_MESSAGE}
+    assert response.json() == {"message": EMAIL_VERIFICATION_SENT_MESSAGE}
     assert len(email_sender.sent) == 1
 
 

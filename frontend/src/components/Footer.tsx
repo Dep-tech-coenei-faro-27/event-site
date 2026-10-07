@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
 import logoNeei from '../assets/neei-logo.webp';
+import { EVENT_DATES } from '../data/Event';
 
 export default function Footer() {
   return (
@@ -12,7 +13,7 @@ export default function Footer() {
           <div className="flex flex-col pr-4">
             <BrandLogo className="text-[32px] gap-4 mb-6" imageClassName="w-[46px] h-[60px]" />
             <p className="text-[15px] leading-relaxed max-w-[460px] m-0">
-              Encontro Nacional de Estudantes de Informática · Faro, Algarve · 8–11 abril 2027.
+              Encontro Nacional de Estudantes de Informática · Faro, Algarve · {EVENT_DATES}.
             </p>
           </div>
 

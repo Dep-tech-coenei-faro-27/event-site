@@ -1,0 +1,121 @@
+name: "CD"
+
+on:
+  workflow_run:
+    workflows: ["CI - Backend"]
+    types:
+      - completed
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Nunca dois deploys ao mesmo tempo.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build_deploy:
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: "Download code"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Com workflow_run o checkout normal traz o ramo por omissão, não o commit que passou no CI.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: "Copy files via SSH"
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: "."
+          target: "/home/debian/enei/event-site"
+
+      - name: "Create .env file for backend on VPS"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site/backend
+            cat << 'EOF' > .env
+            PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+            DEBUG=${{ secrets.DEBUG }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}
+            JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
+            JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES=${{ secrets.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES }}
+            PASSWORD_RESET_TOKEN_EXPIRE_MINUTES=${{ secrets.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            EMAIL_SENDER=${{ secrets.EMAIL_SENDER }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
+            CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
+            CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
+            EOF
+            chmod 600 .env
+            # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
+            cat << 'EOF' > ../tunnel.env
+            TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
+            EOF
+            chmod 600 ../tunnel.env
+      
+      - name: "Build and Run with Docker Compose"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site
+            COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
+            # Antes de parar o que está a correr: constrói as imagens novas e confirma que o backend
+            # aceita este .env (segredos em falta ou inseguros). Se falhar, o site atual fica de pé.
+            $COMPOSE build backend frontend || { echo "A preparação do deploy falhou (ver o erro acima). Nada foi parado."; exit 1; }
+            if ! CHECK=$($COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/python backend -c "from app.core.config import settings" 2>&1); then
+              echo "$CHECK" | grep -v input_value || true
+              echo "A configuração (.env) não é válida para esta versão. Nada foi parado: o site atual continua a correr."
+              exit 1
+            fi
+            # Migrations antes de trocar o código. A base de dados sobe primeiro (no primeiro deploy é
+            # criada aqui) e a imagem nova corre o alembic num contentor descartável. Se falhar, o site
+            # que está a correr não foi parado e a base de dados ficou como estava (as migrations são
+            # atómicas). Por isso cada migration tem de ser compatível com a versão anterior do código.
+            $COMPOSE up -d --wait postgres || { echo "A base de dados não arrancou. Nada foi parado."; exit 1; }
+            if ! $COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/alembic backend upgrade head; then
+              echo "As migrations falharam. A base de dados ficou como estava e o site atual não foi parado."
+              exit 1
+            fi
+            $COMPOSE down
+            $COMPOSE up -d --build
+            # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
+            # por isso não depende de portas publicadas no servidor).
+            for i in $(seq 1 30); do
+              if $COMPOSE exec -T backend curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then echo "backend OK"; exit 0; fi
+              sleep 2
+            done
+            $COMPOSE logs --tail 50 backend
+            exit 1
+
+      

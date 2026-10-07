@@ -3,6 +3,7 @@ import Eyebrow from './EyeBrow';
 import SecundaryButton from './SecundaryButton';
 import PrimaryButton from './PrimaryButton';
 import { Link } from 'react-router-dom';
+import { EVENT_DATES } from '../data/Event';
 
 export default function Hero() {
   return (
@@ -57,7 +58,7 @@ export default function Hero() {
         </p>
 
         <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-full border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
-          <span>8–11 abril 2027 · Faro, Algarve</span>
+          <span>{EVENT_DATES} · Faro, Algarve</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 pt-4">
