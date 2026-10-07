@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import Eyebrow from '../EyeBrow';
+import { EVENT_DATES, EVENT_START } from '../../data/Event';
 
-const TARGET = new Date('2027-04-01T00:00:00+01:00').getTime();
+const TARGET = EVENT_START.getTime();
 
 function useCountdown() {
   const calc = () => Math.max(0, TARGET - Date.now());
@@ -84,7 +85,7 @@ export default function LocationSection() {
               <dl className="my-7 grid grid-cols-1 gap-4 border-y border-white/10 py-5 sm:grid-cols-2">
                 <div>
                   <dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8796a9]">Data</dt>
-                  <dd className="mt-2 text-[13px] text-white">1–4 abril 2027</dd>
+                  <dd className="mt-2 text-[13px] text-white">{EVENT_DATES}</dd>
                 </div>
                 <div>
                   <dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8796a9]">Campus</dt>
