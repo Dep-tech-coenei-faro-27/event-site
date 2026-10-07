@@ -1,6 +1,8 @@
+import { useState, type SyntheticEvent } from "react";
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
+import Field from "../components/Field";
 
 const points = [
   "Consulta o estado dos teus bilhetes.",
@@ -8,22 +10,48 @@ const points = [
   "Recebe informação importante do evento.",
 ];
 
-function Field({ label, ...props }: any) {
-  return (
-    <label className="grid gap-2">
-      <span className="font-montserrat text-xs font-semibold text-gelo">{label}</span>
-      <input
-        {...props}
-        className="h-[52px] w-full rounded-[2px] border border-[rgba(215,227,244,0.1)] bg-azul-base px-4 text-white outline-none placeholder:text-cinza-subtil focus:border-acento-principal focus:shadow-[0_0_0_3px_rgba(26,178,255,0.13)]"
-      />
-    </label>
-  );
-}
 
 export default function LoginPage() {
-  const handleSubmit = (e: any) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: ligar à autenticação real
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // necessário para o cookie de sessão
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
+      });
+
+      if (res.ok) {
+        // 200 → cookie de sessão já guardado pelo browser
+        window.location.href = "/evento"; // TODO: alterar para a url correta
+        return;
+      }
+
+      if (res.status === 401) {
+        setError("Email ou palavra-passe inválidos.");
+      } else if (res.status === 403) {
+        setError("Verifica o teu email antes de continuar.");
+      } else if (res.status === 429) {
+        setError("Demasiadas tentativas. Tenta novamente daqui a pouco.");
+      } else {
+        setError("Ocorreu um erro. Tenta novamente.");
+      }
+    } catch {
+      setError("Não foi possível contactar o servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,7 +80,8 @@ export default function LoginPage() {
                   A tua experiência começa aqui.
                 </h1>
                 <p className="mt-5 max-w-[720px] text-[17px] text-cinza-texto">
-                  Entra para acompanhar a tua inscrição e manter os teus dados do evento organizados.
+                  Entra para acompanhar a tua inscrição e manter os teus dados
+                  do evento organizados.
                 </p>
               </div>
               <div className="relative mt-8 grid max-w-[390px] gap-2.5">
@@ -81,27 +110,58 @@ export default function LoginPage() {
               </p>
 
               <form className="grid gap-[18px]" onSubmit={handleSubmit}>
-                <Field label="Email" type="email" placeholder="nome@exemplo.pt" autoComplete="email" required />
-                <Field label="Palavra-passe" type="password" placeholder="A tua palavra-passe" autoComplete="current-password" required />
+                <Field
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e: any) => setEmail(e.target.value)}
+                  placeholder="nome@exemplo.pt"
+                  autoComplete="email"
+                  required
+                />
+                <Field
+                  label="Palavra-passe"
+                  name="password"
+                  type="password"
+                  value={password}
+                  onChange={(e: any) => setPassword(e.target.value)}
+                  placeholder="A tua palavra-passe"
+                  autoComplete="current-password"
+                  maxLength={200}
+                  required
+                />
 
                 <div className="flex items-start justify-between gap-2.5 text-[13px] max-[620px]:flex-col min-[621px]:items-center min-[621px]:gap-[18px]">
                   <label className="inline-flex cursor-pointer items-start gap-[9px] text-cinza-texto">
-                    <input type="checkbox" className="mt-0.5 size-4 accent-acento-principal" />
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="mt-0.5 size-4 accent-acento-principal"
+                    />
                     <span>Manter sessão iniciada</span>
                   </label>
-                  <a href="/conta/recuperar/" className="font-semibold text-acento-forte">
+                  <a
+                    href="/conta/recuperar/"
+                    className="font-semibold text-acento-forte"
+                  >
                     Esqueceste-te da palavra-passe?
                   </a>
                 </div>
 
-                <PrimaryButton text="Entrar na conta" />
+                {error && (
+                  <p role="alert" className="text-[13px] text-red-400">
+                    {error}
+                  </p>
+                )}
+                <PrimaryButton type="submit" text={loading ? "A entrar..." : "Entrar na conta"} disabled={loading} className="w-full"/>
               </form>
 
               <div className="my-[26px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[11px] uppercase tracking-[0.12em] text-cinza-subtil before:h-px before:bg-[rgba(215,227,244,0.1)] before:content-[''] after:h-px after:bg-[rgba(215,227,244,0.1)] after:content-['']">
                 Ainda não tens conta?
               </div>
-
-              <SecondaryButton text="Criar conta" />
+                <SecondaryButton text="Criar conta" to="/conta/criar" className="w-full"/>
             </div>
           </div>
         </section>
