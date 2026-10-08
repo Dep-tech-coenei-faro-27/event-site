@@ -3,6 +3,7 @@ import Eyebrow from '../EyeBrow';
 import { EVENT_DATES, EVENT_START } from '../../data/Event';
 import MapEmbed from './MapEmbed';
 
+
 const TARGET = EVENT_START.getTime();
 
 function useCountdown() {
@@ -50,7 +51,7 @@ export default function LocationSection() {
             <MapEmbed
               title="Mapa do Campus de Gambelas da Universidade do Algarve"
               src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&layer=mapnik&marker=37.045102%2C-7.971998"
-            />
+           />
           </div>
 
           <div className="grid grid-rows-[auto_1fr] border-t border-[#1ab2ff]/40 md:border-l md:border-t-0">
