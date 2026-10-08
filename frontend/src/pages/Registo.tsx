@@ -3,6 +3,9 @@ import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import Field from "../components/Field";
 
+import { validationMessages } from "../utils/ValidationErrors.ts";
+import { retryAfterMessage } from "../utils/RetryAfter.ts";
+
 const points = [
   "Regista os teus dados essenciais.",
   "Confirma o email da tua conta.",
@@ -113,9 +116,13 @@ export default function RegisterPage() {
       if (res.status === 409) {
         setError("Já existe uma conta com este email.");
       } else if (res.status === 422) {
-        setError("Os dados enviados são inválidos. Verifica os campos e tenta novamente.");
+
+            const body = await res.json().catch(() => null);
+            const msgs = validationMessages(body?.detail);
+            setError(msgs.length ? msgs.join(" ") : "Os dados enviados são inválidos. Verifica os campos.",);
+
       } else if (res.status === 429) {
-        setError("Demasiados registos. Tenta novamente mais tarde.");
+            setError(retryAfterMessage(res, "Demasiados registos."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }
