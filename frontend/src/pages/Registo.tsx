@@ -203,7 +203,7 @@ export default function RegisterPage() {
                       name="name"
                       type="text"
                       value={name}
-                      onChange={(e: any) => setName(e.target.value)}
+                      onChange={(e) => setName(e.target.value)}
                       placeholder="O teu nome completo"
                       autoComplete="name"
                       maxLength={255}
@@ -214,7 +214,7 @@ export default function RegisterPage() {
                       name="email"
                       type="email"
                       value={email}
-                      onChange={(e: any) => setEmail(e.target.value)}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="nome@exemplo.pt"
                       autoComplete="email"
                       required
@@ -226,7 +226,7 @@ export default function RegisterPage() {
                         name="password"
                         type="password"
                         value={password}
-                        onChange={(e: any) => setPassword(e.target.value)}
+                        onChange={(e) => setPassword(e.target.value)}
                         placeholder="Cria uma palavra-passe"
                         autoComplete="new-password"
                         maxLength={200}
@@ -237,7 +237,7 @@ export default function RegisterPage() {
                         name="confirm"
                         type="password"
                         value={confirm}
-                        onChange={(e: any) => setConfirm(e.target.value)}
+                        onChange={(e) => setConfirm(e.target.value)}
                         placeholder="Repete a palavra-passe"
                         autoComplete="new-password"
                         maxLength={200}

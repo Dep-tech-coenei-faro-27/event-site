@@ -115,7 +115,7 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   value={email}
-                  onChange={(e: any) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="nome@exemplo.pt"
                   autoComplete="email"
                   required
@@ -125,7 +125,7 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   value={password}
-                  onChange={(e: any) => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="A tua palavra-passe"
                   autoComplete="current-password"
                   maxLength={200}

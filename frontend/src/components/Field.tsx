@@ -1,4 +1,8 @@
-export default function Field({ label, ...props }: any) {
+import type { InputHTMLAttributes } from "react";
+
+type FieldProps = { label: string } & InputHTMLAttributes<HTMLInputElement>;
+
+export default function Field({ label, ...props }: FieldProps) {
   return (
     <label className="grid gap-2">
       <span className="font-montserrat text-xs font-semibold text-gelo">{label}</span>
