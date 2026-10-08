@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Registo from './pages/Registo';
 import Equipa from './pages/Equipa';
 import InformacaoAjuda from './pages/InformacaoAjuda';
+import Sobre from './pages/Sobre';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 function App() {
   return (
@@ -17,10 +19,13 @@ function App() {
         <main className="flex-grow bg-[#050d21]">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registo" element={<Registo />} />
             <Route path="/equipa" element={<Equipa />} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
+            <Route path="/sobre" element={<Sobre />} />
+
+            <Route path="/conta" element={<Login />} />
+            <Route path="/conta/criar" element={<Registo />} />
+            <Route path="/conta/verificar" element={<VerifyEmailPage />} />
           </Routes>
         </main>
 
