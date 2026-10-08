@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import SectionHeading from '../components/SectionHeading';
 import EyeBrow from '../components/EyeBrow';
@@ -7,8 +6,8 @@ import faroOldTown from '../assets/faro-old-town.webp';
 import azulejoPattern from '../assets/azulejo-pattern-transparent.webp';
 import PrimaryButton from '../components/PrimaryButton';
 import SecundaryButton from '../components/SecundaryButton';
-import Tile, { IconBox, type Tone } from '../components/Tile';
-
+import Tile, { IconBox } from '../components/Tile';
+import type { Tone } from '../components/Tones';
 
 interface TileItem {
     title: string;

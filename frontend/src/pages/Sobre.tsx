@@ -9,7 +9,8 @@ import gambelasImage from '../assets/gambelas.webp';
 import companiesImage from '../assets/about-companies.webp';
 import talksImage from '../assets/about-talks.webp';
 import workshopImage from '../assets/about-workshop.webp';
-import Tile, { IconBox, type Tone } from '../components/Tile';
+import Tile, { IconBox } from '../components/Tile';
+import type { Tone } from '../components/Tones';
 
 
 
