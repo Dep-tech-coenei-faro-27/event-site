@@ -6,8 +6,8 @@ import faroOldTown from '../assets/faro-old-town.webp';
 import azulejoPattern from '../assets/azulejo-pattern-transparent.webp';
 import PrimaryButton from '../components/PrimaryButton';
 import SecundaryButton from '../components/SecundaryButton';
-import Tile, { IconBox, type Tone } from '../components/Tile';
-
+import Tile, { IconBox } from '../components/Tile';
+import type { Tone } from '../components/Tones';
 
 interface TileItem {
     title: string;

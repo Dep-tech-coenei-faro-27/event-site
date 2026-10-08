@@ -1,8 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import azulejoPattern from '../assets/azulejo-pattern-transparent.webp';
-import { tones, type Tone } from './TileTones.ts';
-
-export type { Tone, ToneConfig } from './TileTones.ts';
+import { tones, type Tone } from './Tones.ts';
 
 export interface IconBoxProps {
     tone: Tone;
@@ -17,8 +15,6 @@ export interface TileProps {
     className?: string;
     children: ReactNode;
 }
-
-
 
 /* ---------- Componente IconBox (Exportado) ---------- */
 
