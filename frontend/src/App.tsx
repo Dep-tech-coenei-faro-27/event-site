@@ -8,6 +8,8 @@ import Equipa from './pages/Equipa';
 import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import Bilhetes from './pages/Bilhetes';
+import Parcerias from './pages/Parcerias';
 
 function App() {
   return (
