@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="pt-PT">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,21 +11,17 @@
     />
     <meta
       name="description"
-      content="Pagamento confirmado e bilhete ENEI 2027 garantido."
+      content="O serviço do ENEI está temporariamente indisponível."
     />
-    <title>Pagamento confirmado · ENEI 2027</title>
-    <link rel="stylesheet" href="../../../styles.css?v=20261009-motion-v6" />
+    <title>Serviço indisponível · ENEI 2027</title>
+    <link rel="stylesheet" href="../../styles.css?v=20261009-motion-v6" />
   </head>
-  <body class="payment-result-page" data-page="checkout">
+  <body class="system-state-page system-state-page--danger" data-page="estado">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
     <header class="site-header">
       <div class="container nav">
-        <a
-          class="brand"
-          href="../../../"
-          aria-label="ENEI 2027 — Página inicial"
-        >
-          <img src="../../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
+        <a class="brand" href="../../" aria-label="ENEI 2027 — Página inicial">
+          <img src="../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
           <span>ENEI</span>
         </a>
         <button
@@ -42,36 +38,74 @@
         </button>
         <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
           <div class="nav-main">
-            <a href="../../../sobre/">Sobre</a>
-            <a href="../../../agenda/">Agenda</a>
-            <a href="../../../equipa/">Equipa</a>
-            <a href="../../../parcerias/">Parcerias</a>
-            <a href="../../../informacao-ajuda/">Informação &amp; Ajuda</a>
-            <a href="../../" aria-current="page">Bilhetes</a>
+            <a href="../../sobre/">Sobre</a>
+            <a href="../../agenda/">Agenda</a>
+            <a href="../../equipa/">Equipa</a>
+            <a href="../../parcerias/">Parcerias</a>
+            <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+            <a href="../../bilhetes/">Bilhetes</a>
           </div>
-          <a class="nav-account" href="../../../conta/">Entrar</a>
+          <a class="nav-account" href="../../conta/">Entrar</a>
         </nav>
       </div>
     </header>
 
-    <main class="payment-result-main" id="conteudo">
-      <div class="payment-result-shell">
-        <article
-          class="payment-status payment-status--success"
-          aria-labelledby="status-title"
-        >
-          <div class="payment-status__icon" aria-hidden="true">✓</div>
-          <span class="payment-status__tag">PAGAMENTO CONFIRMADO</span>
-          <h1 id="status-title">O teu lugar está garantido.</h1>
-          <p>
-            O pagamento foi concluído e enviámos a confirmação para o teu email.
-          </p>
-          <div class="payment-status__meta">
-            <span>Bilhete</span><strong>ENEI—XXXX</strong>
+    <main class="system-state-main" id="conteudo">
+      <div class="container">
+        <article class="system-state-shell" aria-labelledby="state-title">
+          <div class="system-state-content">
+            <div class="system-state-heading">
+              <div class="system-state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 8v5M12 16v.01" />
+                  <path
+                    d="M10.3 3.9 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
+                  />
+                </svg>
+              </div>
+              <p class="system-state-kicker">Erro do servidor</p>
+            </div>
+            <h1 id="state-title">Algo não correu como esperado.</h1>
+            <p class="system-state-lead">
+              Não conseguimos concluir o teu pedido. O problema é temporário e
+              os teus dados continuam seguros — tenta novamente dentro de
+              momentos.
+            </p>
+            <div class="system-state-actions">
+              <a class="btn btn--primary" href="./">Tentar novamente</a>
+              <a class="btn btn--secondary" href="../../informacao-ajuda/"
+                >Pedir ajuda</a
+              >
+            </div>
+            <p class="system-state-note">
+              Se o erro continuar, indica à equipa de apoio o código apresentado
+              nesta página.
+            </p>
           </div>
-          <a class="btn btn--primary" href="../../../conta/perfil/"
-            >Ver o meu bilhete</a
-          >
+          <aside class="system-state-detail" aria-label="Detalhes do erro">
+            <div>
+              <div class="system-state-code" aria-hidden="true">500</div>
+              <h2>O serviço está temporariamente indisponível.</h2>
+              <p>
+                Não precisas de repetir ações anteriores enquanto esta página
+                estiver aberta.
+              </p>
+            </div>
+            <dl class="system-state-facts">
+              <div>
+                <dt>Código</dt>
+                <dd>500</dd>
+              </div>
+              <div>
+                <dt>Conta</dt>
+                <dd>Sem alterações</dd>
+              </div>
+              <div>
+                <dt>Próximo passo</dt>
+                <dd>Tentar novamente</dd>
+              </div>
+            </dl>
+          </aside>
         </article>
       </div>
     </main>
@@ -80,8 +114,8 @@
       <div class="container">
         <div class="footer-main">
           <div class="footer-identity">
-            <a class="brand footer-brand" href="../../../">
-              <img src="../../../assets/ENEI-logo.svg" alt="" />
+            <a class="brand footer-brand" href="../../">
+              <img src="../../assets/ENEI-logo.svg" alt="" />
               <span>ENEI</span>
             </a>
             <p>
@@ -93,20 +127,18 @@
             <div>
               <h3>Explorar</h3>
               <ul>
-                <li><a href="../../../sobre/">Sobre</a></li>
-                <li><a href="../../../agenda/">Agenda</a></li>
-                <li><a href="../../../parcerias/">Parcerias</a></li>
+                <li><a href="../../sobre/">Sobre</a></li>
+                <li><a href="../../agenda/">Agenda</a></li>
+                <li><a href="../../parcerias/">Parcerias</a></li>
               </ul>
             </div>
             <div>
               <h3>Participar</h3>
               <ul>
-                <li><a href="../../../conta/">Entrar</a></li>
-                <li><a href="../../">Bilhetes</a></li>
+                <li><a href="../../conta/">Entrar</a></li>
+                <li><a href="../../bilhetes/">Bilhetes</a></li>
                 <li>
-                  <a href="../../../informacao-ajuda/"
-                    >Informação &amp; Ajuda</a
-                  >
+                  <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
                 </li>
               </ul>
             </div>
@@ -115,7 +147,7 @@
             <div class="footer-organizer">
               <span class="footer-label">Organizado por</span>
               <img
-                src="../../../assets/neei-logo.webp"
+                src="../../assets/neei-logo.webp"
                 alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
               />
             </div>
@@ -163,13 +195,13 @@
         <div class="footer-bottom">
           <span>© 2027 ENEI. Todos os direitos reservados.</span>
           <div class="footer-legal" aria-label="Informação legal">
-            <a href="../../../termos/">Termos e condições</a
-            ><a href="../../../privacidade/">Política de privacidade</a
-            ><a href="../../../acessibilidade/">Acessibilidade</a>
+            <a href="../../termos/">Termos e condições</a>
+            <a href="../../privacidade/">Política de privacidade</a>
+            <a href="../../acessibilidade/">Declaração de acessibilidade</a>
           </div>
         </div>
       </div>
     </footer>
-    <script src="../../../motion.js?v=20261009-motion-v3" defer></script>
+    <script src="../../motion.js?v=20261009-motion-v3" defer></script>
   </body>
 </html>

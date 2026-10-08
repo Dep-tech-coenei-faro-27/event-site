@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="pt-PT">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,21 +11,17 @@
     />
     <meta
       name="description"
-      content="Confirmação pendente do pagamento MB Way do bilhete ENEI 2027."
+      content="A ligação de verificação ou recuperação já expirou ou foi utilizada."
     />
-    <title>A aguardar pagamento · ENEI 2027</title>
-    <link rel="stylesheet" href="../../../styles.css?v=20261009-motion-v6" />
+    <title>Ligação expirada · ENEI 2027</title>
+    <link rel="stylesheet" href="../../styles.css?v=20261009-motion-v6" />
   </head>
-  <body class="payment-result-page" data-page="checkout">
+  <body class="system-state-page system-state-page--warning" data-page="conta">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
     <header class="site-header">
       <div class="container nav">
-        <a
-          class="brand"
-          href="../../../"
-          aria-label="ENEI 2027 — Página inicial"
-        >
-          <img src="../../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
+        <a class="brand" href="../../" aria-label="ENEI 2027 — Página inicial">
+          <img src="../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
           <span>ENEI</span>
         </a>
         <button
@@ -42,45 +38,77 @@
         </button>
         <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
           <div class="nav-main">
-            <a href="../../../sobre/">Sobre</a>
-            <a href="../../../agenda/">Agenda</a>
-            <a href="../../../equipa/">Equipa</a>
-            <a href="../../../parcerias/">Parcerias</a>
-            <a href="../../../informacao-ajuda/">Informação &amp; Ajuda</a>
-            <a href="../../" aria-current="page">Bilhetes</a>
+            <a href="../../sobre/">Sobre</a>
+            <a href="../../agenda/">Agenda</a>
+            <a href="../../equipa/">Equipa</a>
+            <a href="../../parcerias/">Parcerias</a>
+            <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+            <a href="../../bilhetes/">Bilhetes</a>
           </div>
-          <a class="nav-account" href="../../../conta/">Entrar</a>
+          <a class="nav-account" href="../../conta/">Entrar</a>
         </nav>
       </div>
     </header>
 
-    <main class="payment-result-main" id="conteudo">
-      <div class="payment-result-shell">
-        <article
-          class="payment-status payment-status--waiting"
-          aria-labelledby="status-title"
-          aria-live="polite"
-        >
-          <div class="payment-status__visuals">
-            <div class="payment-status__icon" aria-hidden="true">
-              <span class="payment-spinner"></span>
+    <main class="system-state-main" id="conteudo">
+      <div class="container">
+        <article class="system-state-shell" aria-labelledby="state-title">
+          <div class="system-state-content">
+            <div class="system-state-heading">
+              <div class="system-state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"
+                  />
+                  <path
+                    d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1M12 8v4l2 1"
+                  />
+                </svg>
+              </div>
+              <p class="system-state-kicker">Ligação inválida</p>
             </div>
-            <img
-              class="payment-result-mbway"
-              src="../../../assets/mbway-logo.svg"
-              alt="MB Way"
-            />
+            <h1 id="state-title">Esta ligação já não está disponível.</h1>
+            <p class="system-state-lead">
+              A ligação expirou ou já foi utilizada. Pede uma nova para
+              continuares a verificação do email ou a recuperação da conta.
+            </p>
+            <div class="system-state-actions">
+              <a class="btn btn--primary" href="../recuperar/"
+                >Pedir nova ligação</a
+              >
+              <a class="btn btn--secondary" href="../"
+                >Voltar ao início de sessão</a
+              >
+            </div>
+            <p class="system-state-note">
+              Usa sempre a ligação mais recente. As anteriores deixam de
+              funcionar quando é feito um novo pedido.
+            </p>
           </div>
-          <span class="payment-status__tag">A AGUARDAR</span>
-          <h1 id="status-title">Confirma no MB Way</h1>
-          <p>
-            Enviámos um pedido para o teu telemóvel. Confirma o pagamento na
-            aplicação MB Way.
-          </p>
-          <div class="payment-status__meta">
-            <span>Referência</span><strong>ENEI—XXXX</strong>
-          </div>
-          <small>O pedido expira dentro de alguns minutos.</small>
+          <aside class="system-state-detail" aria-label="Detalhes do erro">
+            <div>
+              <div class="system-state-code" aria-hidden="true">422</div>
+              <h2>A tua conta continua protegida.</h2>
+              <p>
+                Nenhuma palavra-passe ou definição foi alterada através desta
+                ligação.
+              </p>
+            </div>
+            <dl class="system-state-facts">
+              <div>
+                <dt>Código</dt>
+                <dd>422</dd>
+              </div>
+              <div>
+                <dt>Conta</dt>
+                <dd>Sem alterações</dd>
+              </div>
+              <div>
+                <dt>Próximo passo</dt>
+                <dd>Pedir nova ligação</dd>
+              </div>
+            </dl>
+          </aside>
         </article>
       </div>
     </main>
@@ -89,8 +117,8 @@
       <div class="container">
         <div class="footer-main">
           <div class="footer-identity">
-            <a class="brand footer-brand" href="../../../">
-              <img src="../../../assets/ENEI-logo.svg" alt="" />
+            <a class="brand footer-brand" href="../../">
+              <img src="../../assets/ENEI-logo.svg" alt="" />
               <span>ENEI</span>
             </a>
             <p>
@@ -102,20 +130,18 @@
             <div>
               <h3>Explorar</h3>
               <ul>
-                <li><a href="../../../sobre/">Sobre</a></li>
-                <li><a href="../../../agenda/">Agenda</a></li>
-                <li><a href="../../../parcerias/">Parcerias</a></li>
+                <li><a href="../../sobre/">Sobre</a></li>
+                <li><a href="../../agenda/">Agenda</a></li>
+                <li><a href="../../parcerias/">Parcerias</a></li>
               </ul>
             </div>
             <div>
               <h3>Participar</h3>
               <ul>
-                <li><a href="../../../conta/">Entrar</a></li>
-                <li><a href="../../">Bilhetes</a></li>
+                <li><a href="../../conta/">Entrar</a></li>
+                <li><a href="../../bilhetes/">Bilhetes</a></li>
                 <li>
-                  <a href="../../../informacao-ajuda/"
-                    >Informação &amp; Ajuda</a
-                  >
+                  <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
                 </li>
               </ul>
             </div>
@@ -124,7 +150,7 @@
             <div class="footer-organizer">
               <span class="footer-label">Organizado por</span>
               <img
-                src="../../../assets/neei-logo.webp"
+                src="../../assets/neei-logo.webp"
                 alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
               />
             </div>
@@ -172,13 +198,13 @@
         <div class="footer-bottom">
           <span>© 2027 ENEI. Todos os direitos reservados.</span>
           <div class="footer-legal" aria-label="Informação legal">
-            <a href="../../../termos/">Termos e condições</a
-            ><a href="../../../privacidade/">Política de privacidade</a
-            ><a href="../../../acessibilidade/">Acessibilidade</a>
+            <a href="../../termos/">Termos e condições</a>
+            <a href="../../privacidade/">Política de privacidade</a>
+            <a href="../../acessibilidade/">Declaração de acessibilidade</a>
           </div>
         </div>
       </div>
     </footer>
-    <script src="../../../motion.js?v=20261009-motion-v3" defer></script>
+    <script src="../../motion.js?v=20261009-motion-v3" defer></script>
   </body>
 </html>
