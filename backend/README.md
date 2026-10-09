@@ -126,6 +126,7 @@ Uma conta que nunca confirmou o email continua a ocupar esse email. O comando `m
 A bilheteira tem quatro modalidades (`acesso`, `refeicoes`, `completo`, `geral`), guardadas na tabela `tickets` e semeadas na migration a partir de `TICKET_PRICE_*_CENTS` (com IVA, em cêntimos). As três primeiras são de estudante.
 
 - **Preço do servidor:** `POST /api/payment/initiate` ignora qualquer preço enviado pelo cliente e usa o da base de dados, multiplicado pela quantidade.
+- **Stock atómico:** a verificação de disponibilidade e a reserva do lugar acontecem na mesma transação, com a linha do bilhete bloqueada (`SELECT ... FOR UPDATE`), por isso dois pedidos em simultâneo não podem vender mais do que o `inventory_limit`.
 - **Estudante:** quem se regista com um email cujo domínio está em `STUDENT_EMAIL_DOMAINS` fica com `student_verification_status: "verified"` automaticamente; os outros ficam `pending` e não podem comprar bilhetes de estudante (recebem `403`). O estado é exposto em `GET /api/auth/me`.
 - **MB WAY:** sem `MBWAY_KEY` o gateway é simulado (responde sempre `pending`, sem contactar nada); com `MBWAY_KEY` fala com a ifthenpay (`MBWAY_BASE_URL`). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar.
 - O contrato detalhado está em [`docs/api-payments.md`](../docs/api-payments.md).

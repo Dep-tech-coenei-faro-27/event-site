@@ -80,13 +80,20 @@ def initiate_payment(
     payload: PaymentInitiateRequest,
     gateway: MBWayGateway,
 ) -> tuple[Transaction, Ticket]:
-    ticket = db.scalar(select(Ticket).where(Ticket.tier == payload.ticket_tier))
+    # Lock the ticket row so that the stock check and the reservation are a single
+    # atomic step. Without it, two concurrent buyers of a limited tier can both read
+    # the same remaining quantity and oversell the tier.
+    ticket = db.scalar(
+        select(Ticket).where(Ticket.tier == payload.ticket_tier).with_for_update()
+    )
     if ticket is None:
+        db.rollback()
         raise TicketUnavailableError("Ticket tier is not available")
 
     if ticket.is_student and (
         user.student_verification_status is not StudentVerificationStatus.VERIFIED
     ):
+        db.rollback()
         raise StudentVerificationRequiredError(
             "Student verification is required to buy this ticket"
         )
@@ -95,6 +102,7 @@ def initiate_payment(
     if ticket.inventory_limit is not None:
         remaining = ticket.inventory_limit - _reserved_quantity(db, ticket, now)
         if remaining < payload.quantity:
+            db.rollback()
             raise TicketSoldOutError("This ticket tier is sold out")
 
     amount_cents = ticket.price_cents * payload.quantity
@@ -109,6 +117,12 @@ def initiate_payment(
         provider=gateway.name,
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )
+    db.add(transaction)
+    # Persist the reservation before talking to the provider: the seat is held
+    # while the user confirms, and the row lock is released without waiting on the
+    # network call.
+    db.commit()
+    db.refresh(transaction)
 
     try:
         payment = gateway.create_payment(
@@ -119,12 +133,10 @@ def initiate_payment(
         )
     except PaymentGatewayError:
         transaction.status = TransactionStatus.FAILED
-        db.add(transaction)
         db.commit()
         raise
 
     transaction.provider_reference = payment.provider_reference
-    db.add(transaction)
     db.commit()
     db.refresh(transaction)
     return transaction, ticket
