@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import Navbar from './components/Navbar'; 
+import Footer from './components/Footer'; 
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registo from './pages/Registo';
@@ -9,7 +9,7 @@ import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import Parcerias from './pages/Parcerias';
-import Agenda from './pages/Agenda';
+
 
 
 
@@ -19,21 +19,20 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
+    <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-[#050d21]">
-
+        
         <Navbar />
 
         <main className="flex-grow bg-[#050d21]">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/equipa" element={<Equipa />} />
-            <Route path="/bilhetes" element={<Bilhetes />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/parcerias" element={<Parcerias />} />
+            <Route path="/bilhetes" element ={<Bilhetes/>} />
+            <Route path="/sobre" element ={<Sobre/>} />
+            <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
-            <Route path="/agenda" element={<Agenda />} />
             
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
@@ -42,7 +41,7 @@ function App() {
         </main>
 
         <Footer />
-
+        
       </div>
     </BrowserRouter>
   )
