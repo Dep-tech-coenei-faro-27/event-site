@@ -34,7 +34,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         // 200 → cookie de sessão já guardado pelo browser
-        window.location.href = "/evento"; // TODO: alterar para a url correta
+        window.location.href = "/perfil"; // TODO: alterar para a url correta
         return;
       }
 
