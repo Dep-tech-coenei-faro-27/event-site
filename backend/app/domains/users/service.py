@@ -30,10 +30,13 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 
 def create_user(db: Session, payload: UserRegister) -> User:
+    now = datetime.now(UTC)
     user = User(
         name=payload.name.strip(),
         email=payload.email.strip().lower(),
         password_hash=hash_password(payload.password),
+        terms_accepted_at=now,
+        term_version=CURRENT_TERMS_VERSION,
     )
     db.add(user)
     try:
@@ -64,7 +67,7 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
             created_at=now,
             token_version=User.token_version + 1,
             terms_accepted_at=now,
-            terms_version=CURRENT_TERMS_VERSION,
+            term_version=CURRENT_TERMS_VERSION,
         )
     ).rowcount
     if replaced != 1:
@@ -115,7 +118,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-        db: Session, user: User, new_password: str, token: ResetPasswordToken
+    db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)

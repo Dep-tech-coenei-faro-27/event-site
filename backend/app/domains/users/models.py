@@ -65,12 +65,12 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
     )
-    term_version: Mapped[str] = mapped_column(
+    term_version: Mapped[str | None] = mapped_column(
         String(50),
         nullable=False,
         server_default="'1.0'",
     )
-    created_at: Mapped[datetime] = mapped_column(
+    created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
