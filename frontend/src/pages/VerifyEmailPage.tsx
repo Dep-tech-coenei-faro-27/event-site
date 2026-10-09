@@ -219,7 +219,7 @@ export default function VerifyEmailPage() {
                       <PrimaryButton
                         text="Abrir a minha conta"
                         className={actionClass}
-                        onClick={() => navigate("/conta/entrar")}
+                        onClick={() => navigate("/conta")}
                       />
                       <SecondaryButton
                         text="Reenviar email"
