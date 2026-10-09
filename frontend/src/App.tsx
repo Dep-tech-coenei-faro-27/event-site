@@ -8,12 +8,18 @@ import Equipa from './pages/Equipa';
 import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
-import Bilhetes from './pages/Bilhetes';
 import Parcerias from './pages/Parcerias';
 
+
+
+
+import Bilhetes from './pages/Bilhetes';
+
+import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-[#050d21]">
         
         <Navbar />
@@ -27,7 +33,7 @@ function App() {
             <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
-
+            
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
