@@ -6,6 +6,12 @@ import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 const minify = process.argv.includes("--minify");
 const modules = ["core.css", "auth.css", "checkout.css"];
+<<<<<<< Updated upstream
+=======
+modules.push("states.css", "account-actions.css");
+modules.push("admin.css");
+modules.push("motion.css");
+>>>>>>> Stashed changes
 
 export function build() {
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "enei-tailwind-"));
