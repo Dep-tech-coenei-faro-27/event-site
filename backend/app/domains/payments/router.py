@@ -65,8 +65,9 @@ def read_transaction(
     reference: str,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db),
+    gateway: MBWayGateway = Depends(get_mbway_gateway),
 ) -> TransactionRead:
-    transaction = get_transaction(db, current_user, reference)
+    transaction = get_transaction(db, current_user, reference, gateway)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

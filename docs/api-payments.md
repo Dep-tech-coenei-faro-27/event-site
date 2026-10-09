@@ -70,7 +70,7 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 | `403` | email por verificar |
 | `404` | referência inexistente ou de outro utilizador |
 
-Se o pagamento ainda estiver `pending` e já tiver passado o prazo, esta chamada devolve o estado `expired` (e grava-o).
+Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at`). Só quando o fornecedor ainda responde `pending` é que o prazo local decide: se já tiver passado, a chamada devolve (e grava) o estado `expired`. Se o fornecedor estiver temporariamente inacessível, a API mantém o estado atual para o *polling* não falhar.
 
 ## Estados de uma transação
 

@@ -142,7 +142,45 @@ def initiate_payment(
     return transaction, ticket
 
 
-def get_transaction(db: Session, user: User, reference: str) -> Transaction | None:
+def _sync_provider_status(
+    db: Session, transaction: Transaction, gateway: MBWayGateway
+) -> None:
+    """Ask the provider for the real state of a pending payment and persist it.
+
+    The provider is the source of truth: a confirmed payment must reach the
+    frontend even if the local ``expires_at`` window already passed, and a
+    failed/expired one must not stay ``pending`` until the timeout. When the
+    gateway is unreachable we fall back to the local expiry window so the poll
+    keeps working instead of failing the request.
+    """
+    now = datetime.now(UTC)
+    try:
+        provider_status = gateway.get_status(
+            reference=transaction.reference,
+            provider_reference=transaction.provider_reference,
+        )
+    except PaymentGatewayError:
+        logger.warning(
+            "MB WAY status poll failed for %s; keeping stored status",
+            transaction.reference,
+        )
+        provider_status = TransactionStatus.PENDING
+
+    if provider_status is TransactionStatus.PENDING:
+        if _as_utc(transaction.expires_at) > now:
+            return
+        provider_status = TransactionStatus.EXPIRED
+    elif provider_status is TransactionStatus.CONFIRMED:
+        transaction.confirmed_at = now
+
+    transaction.status = provider_status
+    db.commit()
+    db.refresh(transaction)
+
+
+def get_transaction(
+    db: Session, user: User, reference: str, gateway: MBWayGateway
+) -> Transaction | None:
     transaction = db.scalar(
         select(Transaction).where(
             Transaction.reference == reference,
@@ -152,12 +190,8 @@ def get_transaction(db: Session, user: User, reference: str) -> Transaction | No
     if transaction is None:
         return None
 
-    if transaction.status is TransactionStatus.PENDING and _as_utc(
-        transaction.expires_at
-    ) <= datetime.now(UTC):
-        transaction.status = TransactionStatus.EXPIRED
-        db.commit()
-        db.refresh(transaction)
+    if transaction.status is TransactionStatus.PENDING:
+        _sync_provider_status(db, transaction, gateway)
 
     return transaction
 
