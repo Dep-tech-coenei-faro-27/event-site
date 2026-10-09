@@ -17,12 +17,13 @@ TOKEN_QUERY = re.compile(r"[?&]token=([A-Za-z0-9._\-]+)")
 
 
 def register_user(
-    auth_client,
-    email_sender,
-    *,
-    name="Ana Silva",
-    email="ana@example.com",
-    password="Password123!",
+        auth_client,
+        email_sender,
+        *,
+        name="Ana Silva",
+        email="ana@example.com",
+        password="Password123!",
+        accept_terms=True,
 ):
     response = auth_client.post(
         REGISTER_URL,
@@ -40,12 +41,12 @@ def extract_verification_token(email_sender) -> str:
 
 
 def register_and_verify(
-    auth_client,
-    email_sender,
-    *,
-    name="Ana Silva",
-    email="ana@example.com",
-    password="Password123!",
+        auth_client,
+        email_sender,
+        *,
+        name="Ana Silva",
+        email="ana@example.com",
+        password="Password123!",
 ):
     register_user(auth_client, email_sender, name=name, email=email, password=password)
     token = extract_verification_token(email_sender)

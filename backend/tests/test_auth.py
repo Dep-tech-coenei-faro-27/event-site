@@ -41,6 +41,7 @@ def test_register_creates_user(auth_client):
             "name": "Ana Silva",
             "email": "ana@example.com",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
@@ -438,7 +439,7 @@ def test_login_remember_me_success(auth_client, email_sender):
 
 
 def test_forgot_password_sends_email_if_user_exists(
-    auth_client, email_sender, db_session
+        auth_client, email_sender, db_session
 ):
     register_user(
         auth_client,
@@ -452,8 +453,8 @@ def test_forgot_password_sends_email_if_user_exists(
 
     assert response.status_code == 200
     assert (
-        response.json()["message"] == "If the email exists in our system, "
-        "you will receive a password recovery link shortly."
+            response.json()["message"] == "If the email exists in our system, "
+                                          "you will receive a password recovery link shortly."
     )
     assert len(email_sender.sent) == 1
     assert email_sender.sent[0]["to_email"] == "mock@example.com"
@@ -470,7 +471,31 @@ def test_forgot_password_ignores_non_existent_user_securely(auth_client, email_s
 
     assert response.status_code == 200
     assert (
-        response.json()["message"] == "If the email exists in our system, "
-        "you will receive a password recovery link shortly."
+            response.json()["message"] == "If the email exists in our system, "
+                                          "you will receive a password recovery link shortly."
     )
     assert len(email_sender.sent) == 0
+
+
+def test_register_fails_without_terms_acceptance(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": "ana@example.com",
+            "password": "Password123!",
+            "accept_terms": False,
+        },
+    )
+    assert response.status_code == 422
+
+    response_missing = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": "ana@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    assert response_missing.status_code == 422
