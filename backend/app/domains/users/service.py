@@ -10,6 +10,8 @@ from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import StudentVerificationStatus, User
 from app.domains.users.schemas import UserRegister
 
+CURRENT_TERMS_VERSION = "1.0"
+
 
 class ResetTokenUsedError(Exception):
     """The password reset token was already used."""
@@ -45,12 +47,15 @@ def resolve_student_status(
 def create_user(db: Session, payload: UserRegister) -> User:
     email = payload.email.strip().lower()
     student_status, student_verified_at = resolve_student_status(email)
+    now = datetime.now(UTC)
     user = User(
         name=payload.name.strip(),
         email=email,
         password_hash=hash_password(payload.password),
         student_verification_status=student_status,
         student_verified_at=student_verified_at,
+        terms_accepted_at=now,
+        term_version=CURRENT_TERMS_VERSION
     )
     db.add(user)
     try:
@@ -85,6 +90,8 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
             student_verified_at=student_verified_at,
             created_at=now,
             token_version=User.token_version + 1,
+            terms_accepted_at=now,
+            term_version=CURRENT_TERMS_VERSION,
         )
     ).rowcount
     if replaced != 1:

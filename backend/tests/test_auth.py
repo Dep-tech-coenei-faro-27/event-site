@@ -41,6 +41,7 @@ def test_register_creates_user(auth_client):
             "name": "Ana Silva",
             "email": "ana@example.com",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
@@ -61,6 +62,7 @@ def test_register_stores_bcrypt_hash_in_db(auth_client, db_session):
             "name": "João Mendes",
             "email": "joao@example.com",
             "password": "S3cret-pass!",
+            "accept_terms": True,
         },
     )
 
@@ -78,6 +80,7 @@ def test_register_duplicate_email_returns_409(auth_client, db_session):
         "name": "Duplicado",
         "email": "dupe@example.com",
         "password": "Password123!",
+        "accept_terms": True,
     }
     first = auth_client.post(REGISTER_URL, json=payload)
     assert first.status_code == 201
@@ -100,6 +103,7 @@ def test_register_normalizes_email(auth_client, db_session):
             "name": "Case",
             "email": "  MixedCASE@Example.COM ",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
@@ -117,6 +121,7 @@ def test_register_invalid_email_returns_422(auth_client):
             "name": "Ana",
             "email": "not-an-email",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
@@ -130,6 +135,7 @@ def test_register_short_password_returns_422(auth_client):
             "name": "Ana",
             "email": "ana2@example.com",
             "password": "@Short1",
+            "accept_terms": True,
         },
     )
 
@@ -143,6 +149,7 @@ def test_register_overlong_password_returns_422(auth_client):
             "name": "Ana",
             "email": "ana3@example.com",
             "password": "x" * 100,
+            "accept_terms": True,
         },
     )
 
@@ -180,7 +187,11 @@ def test_me_requires_verified_account(auth_client, email_sender, db_session):
 
 def test_login_success_after_verification(auth_client, email_sender):
     register_user(
-        auth_client, email_sender, email="joao123@example.com", password="Password456!"
+        auth_client,
+        email_sender,
+        email="joao123@example.com",
+        password="Password456!",
+        accept_terms=True,
     )
     token = extract_verification_token(email_sender)
     auth_client.post(VERIFY_URL, json={"token": token})
@@ -190,6 +201,7 @@ def test_login_success_after_verification(auth_client, email_sender):
         json={
             "email": "joao123@example.com",
             "password": "Password456!",
+            "accept_terms": True,
         },
     )
 
@@ -374,6 +386,7 @@ def test_register_missing_uppercase_returns_422(auth_client):
             "name": "Mock",
             "email": "mock_upper@example.com",
             "password": "password123!",
+            "accept_terms": True,
         },
     )
     assert response.status_code == 422
@@ -389,6 +402,7 @@ def test_register_missing_number_returns_422(auth_client):
             "name": "Mock",
             "email": "mock_upper@example.com",
             "password": "Password!!!",
+            "accept_terms": True,
         },
     )
     assert response.status_code == 422
@@ -404,6 +418,7 @@ def test_register_missing_symbol_returns_422(auth_client):
             "name": "Mock",
             "email": "mock_upper@example.com",
             "password": "Password123",
+            "accept_terms": True,
         },
     )
     assert response.status_code == 422
@@ -474,3 +489,27 @@ def test_forgot_password_ignores_non_existent_user_securely(auth_client, email_s
         "you will receive a password recovery link shortly."
     )
     assert len(email_sender.sent) == 0
+
+
+def test_register_fails_without_terms_acceptance(auth_client):
+    response = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": "ana@example.com",
+            "password": "Password123!",
+            "accept_terms": False,
+        },
+    )
+    assert response.status_code == 422
+
+    response_missing = auth_client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": "ana@example.com",
+            "password": "Password123!",
+        },
+    )
+
+    assert response_missing.status_code == 422
