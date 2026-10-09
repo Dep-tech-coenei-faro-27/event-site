@@ -6597,6 +6597,112 @@ body[data-account-view="security"]
   }
 }
 
+/* Account UI: square geometry and a stable, readable sidebar. */
+
+body[data-account-view]
+  :where(
+    .account-nav,
+    .account-nav a,
+    .account-avatar,
+    .account-ticket,
+    .account-ticket__mark,
+    .account-ticket__status,
+    .account-ticket__qr-frame,
+    .account-ticket__personal,
+    .account-ticket-empty__icon,
+    .account-pass,
+    .account-pass__status,
+    .account-pass__actions .btn,
+    .account-pass__actions .account-text-link,
+    .account-pass__qr-frame,
+    .account-pass__code-ref,
+    .account-ready,
+    .account-info-card,
+    .account-checklist li,
+    .account-panel,
+    .account-security-summary div,
+    .account-privacy-panel,
+    .account-danger-zone,
+    .account-confirm-dialog,
+    .auth-field input,
+    .auth-field select,
+    .btn
+  ) {
+  border-radius: 0;
+}
+
+@media (min-width: 841px) {
+  .account-layout {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .account-nav {
+    position: sticky;
+    top: calc(var(--nav) + 24px);
+    width: 360px;
+    min-width: 360px;
+  }
+
+  .account-nav__head {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 0 16px;
+  }
+
+  .account-avatar {
+    grid-row: 1 / 4;
+  }
+
+  .account-nav__head .muted,
+  .account-verified {
+    grid-column: 2;
+  }
+
+  .account-verified {
+    grid-row: auto;
+    margin-top: 9px;
+  }
+
+  .account-nav nav {
+    display: block;
+  }
+
+  .account-nav a,
+  .account-nav a[aria-current="page"] {
+    justify-content: flex-start;
+    margin: 3px 0;
+    padding: 13px 16px;
+    text-align: left;
+  }
+
+  .account-nav a:last-child {
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 840px) {
+  .account-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-nav {
+    width: min(100%, 360px);
+    min-width: 0;
+  }
+
+  .account-nav nav {
+    display: block;
+  }
+
+  .account-nav a,
+  .account-nav a[aria-current="page"] {
+    justify-content: flex-start;
+    margin: 3px 0;
+    padding: 13px 16px;
+    text-align: left;
+  }
+}
+
 /* checkout module */
 
 /* Ticket checkout and MB Way payment states. */
@@ -8301,7 +8407,9 @@ Version 2 signature, recoloured to the current ENEI palette. */
     animation: none;
   }
 }
+
 /* Home hero: brighten the photo toward the right without touching the 27 layer. */
+
 .home-hero,
 .hero-home,
 body:has(.hero__title) .hero,

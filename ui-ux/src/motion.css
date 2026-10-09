@@ -381,3 +381,15 @@ Version 2 signature, recoloured to the current ENEI palette. */
     animation: none;
   }
 }
+
+/* Home hero: brighten the photo toward the right without touching the 27 layer. */
+.home-hero,
+.hero-home,
+body:has(.hero__title) .hero,
+body:has(.hero-title) .hero,
+body:has(.hero-year) .hero,
+body:has(.hero h1) .hero {
+  box-shadow:
+    inset -38vw 0 34vw -22vw rgba(56, 184, 235, 0.12),
+    inset 0 -120px 120px -96px rgba(0, 9, 31, 0.18);
+}
