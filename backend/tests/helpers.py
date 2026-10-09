@@ -99,9 +99,7 @@ def authenticate(
     password="Password123!",
 ) -> User:
     """Register, verify and log a user in by attaching a valid access cookie."""
-    register_and_verify(
-        auth_client, email_sender, email=email, password=password
-    )
+    register_and_verify(auth_client, email_sender, email=email, password=password)
     user = db_session.scalar(select(User).where(User.email == email))
     auth_client.cookies.set(
         ACCESS_COOKIE_NAME, encode_claims(access_claims(user.id, user.token_version))

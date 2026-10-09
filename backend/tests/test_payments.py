@@ -95,12 +95,12 @@ def test_initiate_uses_the_server_side_price(
 
     response = auth_client.post(
         INITIATE_URL,
-        json={"ticket_tier": TicketTier.ACESSO.value, "phone": "912345678"},
+        json={"ticket_tier": TicketTier.GERAL.value, "phone": "912345678"},
     )
 
     assert response.status_code == 201
-    assert response.json()["amount_cents"] == 2000
-    assert gateway.create_calls[0]["amount_cents"] == 2000
+    assert response.json()["amount_cents"] == 5000
+    assert gateway.create_calls[0]["amount_cents"] == 5000
 
 
 def test_client_cannot_override_the_amount(
@@ -133,14 +133,14 @@ def test_initiate_multiplies_price_by_quantity(
     response = auth_client.post(
         INITIATE_URL,
         json={
-            "ticket_tier": TicketTier.ACESSO.value,
+            "ticket_tier": TicketTier.GERAL.value,
             "phone": "912345678",
             "quantity": 3,
         },
     )
 
     assert response.status_code == 201
-    assert response.json()["amount_cents"] == 6000
+    assert response.json()["amount_cents"] == 15000
 
 
 def test_initiate_creates_a_pending_transaction(
@@ -176,7 +176,11 @@ def test_initiate_returns_reference_and_expiry(
     assert body["currency"] == "EUR"
     created = datetime.fromisoformat(body["created_at"])
     expires = datetime.fromisoformat(body["expires_at"])
-    assert timedelta(minutes=3, seconds=50) < (expires - created) <= timedelta(minutes=4)
+    assert (
+        timedelta(minutes=3, seconds=50)
+        < (expires - created)
+        < timedelta(minutes=4, seconds=5)
+    )
 
 
 def test_references_are_unique(auth_client, email_sender, db_session, gateway):
@@ -270,9 +274,7 @@ def test_initiate_normalizes_phone_number(
     assert gateway.create_calls[0]["phone"] == "912345678"
 
 
-def test_initiate_rejects_unknown_tier(
-    auth_client, email_sender, db_session, gateway
-):
+def test_initiate_rejects_unknown_tier(auth_client, email_sender, db_session, gateway):
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 

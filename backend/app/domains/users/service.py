@@ -4,9 +4,10 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.domains.auth.models import ResetPasswordToken
-from app.domains.users.models import User
+from app.domains.users.models import StudentVerificationStatus, User
 from app.domains.users.schemas import UserRegister
 
 
@@ -27,11 +28,29 @@ def get_user_by_email(db: Session, email: str) -> User | None:
     return db.scalar(select(User).where(User.email == normalized_email))
 
 
+def resolve_student_status(
+    email: str,
+) -> tuple[StudentVerificationStatus, datetime | None]:
+    """Auto-verify students whose email domain is on the institutional allowlist.
+
+    Anything else stays ``pending`` and only a manual review can approve it.
+    """
+    domain = email.strip().lower().rpartition("@")[2]
+    for allowed in settings.STUDENT_EMAIL_DOMAINS:
+        if domain == allowed or domain.endswith(f".{allowed}"):
+            return StudentVerificationStatus.VERIFIED, datetime.now(UTC)
+    return StudentVerificationStatus.PENDING, None
+
+
 def create_user(db: Session, payload: UserRegister) -> User:
+    email = payload.email.strip().lower()
+    student_status, student_verified_at = resolve_student_status(email)
     user = User(
         name=payload.name.strip(),
-        email=payload.email.strip().lower(),
+        email=email,
         password_hash=hash_password(payload.password),
+        student_verification_status=student_status,
+        student_verified_at=student_verified_at,
     )
     db.add(user)
     try:
@@ -52,6 +71,9 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
     """
     password_hash = hash_password(payload.password)
     now = datetime.now(UTC)
+    student_status, student_verified_at = resolve_student_status(
+        payload.email.strip().lower()
+    )
 
     replaced = db.execute(
         update(User)
@@ -59,6 +81,8 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
         .values(
             name=payload.name.strip(),
             password_hash=password_hash,
+            student_verification_status=student_status,
+            student_verified_at=student_verified_at,
             created_at=now,
             token_version=User.token_version + 1,
         )

@@ -23,7 +23,7 @@ Cria uma conta e envia o email de verificação. Se o email já foi registado ma
 | Nome | 1 a 255 caracteres, cortado nas pontas, com pelo menos uma letra. Sem caracteres de controlo, invisíveis (por exemplo zero-width), `<` ou `>`. |
 | Email | só caracteres ASCII. É guardado em minúsculas (`Ana@Example.com` e `ana@example.com` são a mesma conta). |
 | Password | 8 a 200 caracteres, com pelo menos uma maiúscula, um dígito e um símbolo, e no máximo 72 bytes. Um símbolo é **qualquer carácter que não seja `A-Z`, `a-z` ou `0-9`**: o espaço e as letras com acento (`é`, `ç`) contam. |
-| `201` | `{"id", "name", "email", "role", "is_verified"}` (`role` é `user` ou `admin`) |
+| `201` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` (`role` é `user` ou `admin`; `student_verification_status` é `pending`, `verified` ou `rejected` e fica `verified` quando o domínio do email está em `STUDENT_EMAIL_DOMAINS`) |
 | `409` | `A user with this email already exists` (só se a conta já está verificada). Revela que o email já tem conta. |
 | `422` | corpo inválido (ver os códigos abaixo) |
 | `429` | demasiados registos deste IP |
@@ -67,7 +67,7 @@ Precisa de sessão.
 
 | | |
 | --- | --- |
-| `200` | `{"id", "name", "email", "role", "is_verified"}` |
+| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` |
 | `401` | qualquer problema com a sessão. O `detail` diz qual: `Not authenticated. Missing access token cookie.` (sem cookie), `Token has expired.`, `Invalid token.`, `Token has been revoked.` (sessão terminada), `User not found` (conta apagada) ou `Inactive user`. O frontend só precisa de olhar para o `401` e levar o utilizador ao login. |
 | `403` | `Please verify your email address to continue.` |
 

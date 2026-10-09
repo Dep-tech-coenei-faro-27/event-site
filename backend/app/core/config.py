@@ -66,8 +66,27 @@ class Settings(BaseSettings):
     RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE: int = Field(default=10, gt=0)
     RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES: int = Field(default=2, gt=0)
     RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
+    RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
+
+    # Institutional email domains that grant the student status automatically.
+    STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
+
+    # Ticket prices, with VAT, in cents. Placeholders until the organisation
+    # confirms the final table; the server is always the source of truth.
+    TICKET_PRICE_ACESSO_CENTS: int = Field(default=0, ge=0)
+    TICKET_PRICE_REFEICOES_CENTS: int = Field(default=0, ge=0)
+    TICKET_PRICE_COMPLETO_CENTS: int = Field(default=0, ge=0)
+    TICKET_PRICE_GERAL_CENTS: int = Field(default=0, ge=0)
+
+    # ifthenpay MB WAY v2. Without MBWAY_KEY the gateway answers with simulated
+    # responses so the frontend can integrate before the contract is signed.
+    MBWAY_KEY: str = ""
+    MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
+    MBWAY_AUTH_TOKEN: str = ""
+    MBWAY_TIMEOUT_SECONDS: int = Field(default=10, gt=0, le=60)
+    MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -124,6 +143,28 @@ class Settings(BaseSettings):
                 )
             origins.append(origin)
         return origins
+
+    @field_validator("STUDENT_EMAIL_DOMAINS", mode="before")
+    @classmethod
+    def parse_student_domains(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            value = json.loads(text) if text.startswith("[") else text.split(",")
+        if not isinstance(value, list):
+            return value
+
+        domains: list[str] = []
+        for item in value:
+            domain = str(item).strip().lower().rstrip(".")
+            if not domain:
+                continue
+            if "@" in domain or "/" in domain or any(char.isspace() for char in domain):
+                raise ValueError(
+                    f"Student email domain {domain!r} must look like "
+                    "student.example.edu"
+                )
+            domains.append(domain)
+        return domains
 
     @model_validator(mode="after")
     def build_database_url(self) -> "Settings":
