@@ -198,6 +198,7 @@ def test_register_is_limited_per_ip(auth_client, monkeypatch):
                 "name": "Ana Silva",
                 "email": f"ana{number}@example.com",
                 "password": "Password123!",
+                "accept_terms": True,
             },
         ).status_code
         for number in range(6)
@@ -368,6 +369,7 @@ def test_registration_allows_two_a_minute_per_ip(auth_client, clock):
                 "name": "Ana Silva",
                 "email": f"ana{number}@example.com",
                 "password": "Password123!",
+                "accept_terms": True,
             },
         ).status_code
 

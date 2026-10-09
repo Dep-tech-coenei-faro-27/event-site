@@ -9,6 +9,7 @@ class UserRegister(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: AsciiEmail
     password: str = Field(min_length=8, max_length=200)
+    accept_terms: bool
 
     @field_validator("name")
     @classmethod
@@ -19,6 +20,13 @@ class UserRegister(BaseModel):
     @classmethod
     def validate_password(cls, value: str) -> str:
         return validate_password(value)
+
+    @field_validator("accept_terms")
+    @classmethod
+    def validate_accept_terms(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("You must accept the terms and conditions")
+        return value
 
 
 class UserRead(BaseModel):

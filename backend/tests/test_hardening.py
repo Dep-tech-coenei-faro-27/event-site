@@ -108,6 +108,7 @@ def test_a_normal_request_is_not_affected_by_the_limit(auth_client):
             "name": "Ana Silva",
             "email": "ana@example.com",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
