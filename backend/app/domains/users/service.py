@@ -9,6 +9,8 @@ from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import User
 from app.domains.users.schemas import UserRegister
 
+CURRENT_TERMS_VERSION = "1.0"
+
 
 class ResetTokenUsedError(Exception):
     """The password reset token was already used."""
@@ -61,6 +63,8 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
             password_hash=password_hash,
             created_at=now,
             token_version=User.token_version + 1,
+            terms_accepted_at=now,
+            terms_version=CURRENT_TERMS_VERSION,
         )
     ).rowcount
     if replaced != 1:
@@ -111,7 +115,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-    db: Session, user: User, new_password: str, token: ResetPasswordToken
+        db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)
