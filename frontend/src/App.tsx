@@ -8,6 +8,9 @@ import Equipa from './pages/Equipa';
 import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
+import Parcerias from './pages/Parcerias';
 
 function App() {
   return (
@@ -22,10 +25,14 @@ function App() {
             <Route path="/equipa" element={<Equipa />} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
+            <Route path="/parcerias" element={<Parcerias />} />
+
 
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+            <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+            <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
           </Routes>
         </main>
 
