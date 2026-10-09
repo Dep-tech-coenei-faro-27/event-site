@@ -23,10 +23,16 @@ def register_user(
     name="Ana Silva",
     email="ana@example.com",
     password="Password123!",
+    accept_terms=True,
 ):
     response = auth_client.post(
         REGISTER_URL,
-        json={"name": name, "email": email, "password": password},
+        json={
+            "name": name,
+            "email": email,
+            "password": password,
+            "accept_terms": accept_terms,
+        },
     )
     assert response.status_code == 201
     return response

@@ -229,6 +229,7 @@ def test_register_duplicate_does_not_send_verification_email(
         "name": "Dupe",
         "email": "dupe@example.com",
         "password": "Password123!",
+        "accept_terms": True,
     }
 
     first = auth_client.post(REGISTER_URL, json=payload)
@@ -267,6 +268,7 @@ def test_register_still_succeeds_when_email_delivery_fails(db_session):
                     "name": "Resilient",
                     "email": "resilient@example.com",
                     "password": "Password123!",
+                    "accept_terms": True,
                 },
             )
     finally:
