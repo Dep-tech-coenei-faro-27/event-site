@@ -41,6 +41,7 @@ class FakeGateway:
         self.status = TransactionStatus.PENDING
         self.provider_reference = "TX-1"
         self.create_error: Exception | None = None
+        self.status_error: Exception | None = None
 
     def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
         self.create_calls.append(
@@ -57,6 +58,8 @@ class FakeGateway:
 
     def get_status(self, *, reference, provider_reference) -> TransactionStatus:
         self.status_calls.append((reference, provider_reference))
+        if self.status_error is not None:
+            raise self.status_error
         return self.status
 
 
@@ -435,6 +438,161 @@ def test_confirmed_transaction_is_returned(
 
     assert response.status_code == 200
     assert response.json()["status"] == "confirmed"
+
+
+def test_get_status_polls_the_provider_and_persists_confirmed(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    gateway.status = TransactionStatus.CONFIRMED
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "confirmed"
+    assert body["confirmed_at"] is not None
+    assert gateway.status_calls == [(reference, "TX-1")]
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is TransactionStatus.CONFIRMED
+    assert stored.confirmed_at is not None
+
+
+def test_get_status_persists_provider_failed(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    gateway.status = TransactionStatus.FAILED
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "failed"
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is TransactionStatus.FAILED
+
+
+def test_get_status_persists_provider_expired(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    gateway.status = TransactionStatus.EXPIRED
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "expired"
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is TransactionStatus.EXPIRED
+
+
+def test_pending_status_is_kept_until_the_window_passes(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    gateway.status = TransactionStatus.PENDING
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending"
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is TransactionStatus.PENDING
+
+
+def test_local_expiry_applies_when_the_provider_still_says_pending(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    db_session.add(
+        Transaction(
+            reference="ENEI-0000000007",
+            user_id=user.id,
+            ticket_id=tickets[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.PENDING,
+            phone="910000000",
+            provider="fake",
+            provider_reference="TX-7",
+            expires_at=datetime.now(UTC) - timedelta(seconds=5),
+        )
+    )
+    db_session.commit()
+
+    response = auth_client.get(transaction_url("ENEI-0000000007"))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "expired"
+    assert gateway.status_calls == [("ENEI-0000000007", "TX-7")]
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == "ENEI-0000000007")
+    )
+    assert stored.status is TransactionStatus.EXPIRED
+
+
+def test_finalized_transactions_are_not_synced_with_the_provider_again(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    db_session.add(
+        Transaction(
+            reference="ENEI-0000000008",
+            user_id=user.id,
+            ticket_id=tickets[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.CONFIRMED,
+            phone="910000000",
+            provider="fake",
+            provider_reference="TX-8",
+            confirmed_at=datetime.now(UTC),
+            expires_at=datetime.now(UTC) - timedelta(seconds=5),
+        )
+    )
+    db_session.commit()
+
+    response = auth_client.get(transaction_url("ENEI-0000000008"))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "confirmed"
+    assert gateway.status_calls == []
+
+
+def test_gateway_error_during_poll_keeps_the_stored_status(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    gateway.status_error = PaymentGatewayError("provider down")
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending"
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is TransactionStatus.PENDING
 
 
 def test_simulated_gateway_is_used_without_an_api_key(monkeypatch):
