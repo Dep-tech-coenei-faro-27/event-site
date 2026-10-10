@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
+import { usePageMeta } from "../utils/usePageMeta";
 
 type Status =
   | "pending" // sem token: "Verifica o teu email" (texto do mockup)
@@ -54,6 +55,9 @@ const actionClass = "w-full !rounded-[2px]";
 const headingFont = "font-montserrat font-extrabold";
 
 export default function VerifyEmailPage() {
+
+    usePageMeta("Verificar email · ENEI 2027", "Verificação de email da conta ENEI 2027.");
+
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();

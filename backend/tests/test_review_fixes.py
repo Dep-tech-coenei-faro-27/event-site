@@ -66,6 +66,7 @@ def test_replacing_an_account_never_overwrites_one_verified_in_the_meantime(
             "name": "Intruso",
             "email": "ana@example.com",
             "password": "Intruso123!x",
+            "accept_terms": True,
         },
     )
 
