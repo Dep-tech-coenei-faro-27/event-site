@@ -12,13 +12,14 @@ server {
     # O mesmo tamanho máximo do backend (MAX_REQUEST_BYTES). Acima disto o nginx responde 413.
     client_max_body_size 1m;
 
+
     # Cabeçalhos de segurança. Não usar add_header dentro dos location, senão estes deixam de ser herdados.
     # O mapa da página de informação usa uma iframe do OpenStreetMap (frame-src).
     # A API fica no mesmo endereço (/api), por isso o connect-src só precisa de 'self'.
     # As fontes ainda vêm do Google Fonts (style-src e font-src). Quando passarem a ser servidas
     # pelo próprio site, estas duas origens saem do CSP.
     # Se o frontend passar a usar outra origem (vídeo, analytics), é preciso acrescentá-la no CSP.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; frame-src https://www.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-src https://www.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
