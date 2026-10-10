@@ -11,21 +11,18 @@
     />
     <meta
       name="description"
-      content="Recuperação de palavra-passe ENEI 2027."
+      content="É necessário aguardar antes de voltar a tentar aceder à conta ENEI."
     />
-    <title>Recuperar palavra-passe · ENEI 2027</title>
+    <title>Demasiadas tentativas · ENEI 2027</title>
     <link rel="stylesheet" href="../../styles.css?v=20261009-motion-v6" />
   </head>
-  <body data-page="conta" data-root="../..">
+  <body class="system-state-page system-state-page--danger" data-page="conta">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
     <header class="site-header">
       <div class="container nav">
         <a class="brand" href="../../" aria-label="ENEI 2027 — Página inicial">
-          <img
-            src="../../assets/ENEI-logo.svg"
-            alt=""
-            aria-hidden="true"
-          /><span>ENEI</span>
+          <img src="../../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
+          <span>ENEI</span>
         </a>
         <button
           class="nav-toggle"
@@ -41,87 +38,94 @@
         </button>
         <nav class="nav-links" id="nav-links" aria-label="Navegação principal">
           <div class="nav-main">
-            <a href="../../sobre/">Sobre</a><a href="../../agenda/">Agenda</a
-            ><a href="../../equipa/">Equipa</a
-            ><a href="../../parcerias/">Parcerias</a
-            ><a href="../../informacao-ajuda/">Informação &amp; Ajuda</a
-            ><a href="../../bilhetes/">Bilhetes</a>
+            <a href="../../sobre/">Sobre</a>
+            <a href="../../agenda/">Agenda</a>
+            <a href="../../equipa/">Equipa</a>
+            <a href="../../parcerias/">Parcerias</a>
+            <a href="../../informacao-ajuda/">Informação &amp; Ajuda</a>
+            <a href="../../bilhetes/">Bilhetes</a>
           </div>
-          <a class="nav-account" href="../../conta/" aria-current="page"
-            >Entrar</a
-          >
+          <a class="nav-account" href="../../conta/">Entrar</a>
         </nav>
       </div>
     </header>
-    <main id="conteudo" class="auth-page">
-      <section class="auth-section">
-        <div class="container auth-shell">
-          <aside class="auth-aside">
-            <div>
-              <p class="eyebrow">&lt;RECUPERAÇÃO /&gt;</p>
-              <h1>Volta à tua conta.</h1>
-              <p class="lead">
-                Enviaremos as instruções de recuperação para o email associado
-                ao teu perfil.
-              </p>
-            </div>
-            <div class="auth-points">
-              <div class="auth-point">
-                <span>01</span>
-                <p>Introduz o email da conta.</p>
+
+    <main class="system-state-main" id="conteudo">
+      <div class="container">
+        <article class="system-state-shell" aria-labelledby="state-title">
+          <div class="system-state-content">
+            <div class="system-state-heading">
+              <div class="system-state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2M8 3 5-2 5 2" />
+                </svg>
               </div>
-              <div class="auth-point">
-                <span>02</span>
-                <p>Abre a ligação de recuperação.</p>
-              </div>
-              <div class="auth-point">
-                <span>03</span>
-                <p>Define uma nova palavra-passe.</p>
-              </div>
+              <p class="system-state-kicker">Acesso temporariamente limitado</p>
             </div>
-          </aside>
-          <div class="auth-card">
-            <div class="auth-state-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <rect x="3" y="5" width="18" height="14" rx="1"></rect>
-                <path d="m4 7 8 6 8-6"></path>
-              </svg>
-            </div>
-            <p class="eyebrow">&lt;PALAVRA-PASSE /&gt;</p>
-            <h2>Recuperar acesso.</h2>
-            <p class="auth-intro">
-              Indica o teu email. Se existir uma conta associada, receberás as
-              instruções.
+            <h1 id="state-title">Precisamos de fazer uma pausa.</h1>
+            <p class="system-state-lead">
+              Foram feitas várias tentativas num curto período. Para proteger a
+              tua conta, aguarda antes de voltares a tentar.
             </p>
-            <form class="auth-form" data-auth-demo>
-              <label class="auth-field"
-                ><span>Email</span
-                ><input
-                  type="email"
-                  placeholder="nome@exemplo.pt"
-                  autocomplete="email"
-                  required
-              /></label>
-              <button class="btn btn--primary" type="submit">
-                Enviar ligação
+            <div class="system-state-actions">
+              <button
+                class="btn btn--primary"
+                type="button"
+                disabled
+                data-countdown-action
+              >
+                Aguardar para tentar
               </button>
-            </form>
-            <p class="auth-switch">
-              <a class="auth-back" href="../">← Voltar ao início de sessão</a>
+              <a class="btn btn--secondary" href="../../informacao-ajuda/"
+                >Pedir ajuda</a
+              >
+            </div>
+            <p class="system-state-note">
+              Não atualizes repetidamente a página. O contador continua até ser
+              seguro fazer uma nova tentativa.
             </p>
           </div>
-        </div>
-      </section>
+          <aside class="system-state-detail" aria-label="Detalhes do erro">
+            <div>
+              <div class="system-state-code" aria-hidden="true">429</div>
+              <h2>Volta a tentar quando o tempo terminar.</h2>
+              <p>
+                O limite evita tentativas automáticas e não altera os dados da
+                tua conta.
+              </p>
+              <div class="system-state-countdown" data-state-countdown="900">
+                <span>Nova tentativa disponível em</span>
+                <strong data-countdown-output aria-live="polite">15:00</strong>
+              </div>
+            </div>
+            <dl class="system-state-facts">
+              <div>
+                <dt>Código</dt>
+                <dd>429</dd>
+              </div>
+              <div>
+                <dt>Conta</dt>
+                <dd>Sem alterações</dd>
+              </div>
+              <div>
+                <dt>Próximo passo</dt>
+                <dd>Aguardar</dd>
+              </div>
+            </dl>
+          </aside>
+        </article>
+      </div>
     </main>
+
     <footer class="site-footer">
       <div class="container">
         <div class="footer-main">
           <div class="footer-identity">
-            <a class="brand footer-brand" href="../../"
-              ><img src="../../assets/ENEI-logo.svg" alt="" /><span
-                >ENEI</span
-              ></a
-            >
+            <a class="brand footer-brand" href="../../">
+              <img src="../../assets/ENEI-logo.svg" alt="" />
+              <span>ENEI</span>
+            </a>
             <p>
               Encontro Nacional de Estudantes de Informática · Faro, Algarve ·
               1–4 abril 2027.
@@ -149,8 +153,8 @@
           </div>
           <div class="footer-connect">
             <div class="footer-organizer">
-              <span class="footer-label">Organizado por</span
-              ><img
+              <span class="footer-label">Organizado por</span>
+              <img
                 src="../../assets/neei-logo.webp"
                 alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
               />
@@ -162,33 +166,36 @@
                   class="footer-social-icon"
                   role="img"
                   aria-label="Instagram"
-                  ><svg viewBox="0 0 24 24" aria-hidden="true">
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="3" width="18" height="18" rx="5" />
                     <circle cx="12" cy="12" r="4" />
-                    <circle
-                      cx="17.5"
-                      cy="6.5"
-                      r="1"
-                      class="social-dot"
-                    /></svg></span
-                ><span
+                    <circle cx="17.5" cy="6.5" r="1" class="social-dot" />
+                  </svg>
+                </span>
+                <span
                   class="footer-social-icon"
                   role="img"
                   aria-label="Facebook"
-                  ><svg viewBox="0 0 24 24" aria-hidden="true">
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M14 21v-8h3l.5-4H14V7.2c0-1.2.4-2.2 2.3-2.2H18V1.5c-.7-.1-1.6-.2-2.8-.2-3.1 0-5.2 1.9-5.2 5.4V9H7v4h3v8"
-                    /></svg></span
-                ><span
+                    />
+                  </svg>
+                </span>
+                <span
                   class="footer-social-icon"
                   role="img"
                   aria-label="LinkedIn"
-                  ><svg viewBox="0 0 24 24" aria-hidden="true">
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="3" width="18" height="18" rx="2" />
                     <path
                       d="M8 10v7M8 7v.01M12 17v-4a3 3 0 0 1 6 0v4M12 10v7"
-                    /></svg
-                ></span>
+                    />
+                  </svg>
+                </span>
               </div>
             </div>
           </div>
@@ -196,17 +203,14 @@
         <div class="footer-bottom">
           <span>© 2027 ENEI. Todos os direitos reservados.</span>
           <div class="footer-legal" aria-label="Informação legal">
-            <a href="../../termos/">Termos e condições</a
-            ><a href="../../privacidade/">Política de privacidade</a
-            ><a href="../../acessibilidade/">Acessibilidade</a>
+            <a href="../../termos/">Termos e condições</a>
+            <a href="../../privacidade/">Política de privacidade</a>
+            <a href="../../acessibilidade/">Declaração de acessibilidade</a>
           </div>
         </div>
       </div>
     </footer>
-    <aside class="mobile-ticket" aria-label="Bilhetes">
-      <span><strong>ENEI 2027</strong>Bilhetes</span
-      ><a class="btn btn--primary" href="../../bilhetes/">Bilhetes</a>
-    </aside>
+    <script src="../../src/state-countdown.js" defer></script>
     <script src="../../motion.js?v=20261009-motion-v3" defer></script>
   </body>
 </html>

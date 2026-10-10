@@ -113,6 +113,7 @@ body[data-page="checkout"] {
 }
 
 .checkout-section {
+  overflow: visible;
   padding-top: clamp(56px, 7vw, 92px);
 }
 
@@ -355,7 +356,7 @@ body[data-page="checkout"] {
 
 .checkout-consent {
   margin: 18px 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .checkout-submit {
@@ -365,6 +366,7 @@ body[data-page="checkout"] {
 
 .checkout-summary {
   position: sticky;
+  align-self: start;
   top: calc(var(--nav) + 24px);
   padding: 30px;
 }
@@ -663,6 +665,7 @@ body[data-page="checkout"] {
 
   .checkout-summary {
     position: static;
+    margin-top: 0;
   }
 }
 
