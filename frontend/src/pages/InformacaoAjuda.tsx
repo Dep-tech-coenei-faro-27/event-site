@@ -4,8 +4,13 @@ import LocationSection from '../components/informacao-ajuda/MapSection';
 import ContactSection from '../components/informacao-ajuda/ContactSection';
 import Eyebrow from '../components/EyeBrow';
 import faroCathedral from '../assets/faro-cathedral.webp';
+import { usePageMeta } from "../utils/usePageMeta";
+
 
 export default function InformacaoAjudaPage() {
+
+    usePageMeta("Informação · ENEI 2027", "Encontra respostas às tuas perguntas sobre o ENEI 2027.");
+
   const [query, setQuery] = useState('');
 
   return (

@@ -2,6 +2,7 @@ import { useMemo, useState, type SyntheticEvent } from "react";
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import Field from "../components/Field";
+import { usePageMeta } from "../utils/usePageMeta";
 
 import { validationMessages } from "../utils/ValidationErrors.ts";
 import { retryAfterMessage } from "../utils/RetryAfter.ts";
@@ -35,6 +36,9 @@ const hasSymbol = (v: string) => /[^A-Za-z0-9]/.test(v);
 const byteLength = (v: string) => new TextEncoder().encode(v).length;
 
 export default function RegisterPage() {
+
+    usePageMeta("Criar conta · ENEI 2027", "Cria a tua conta ENEI 2027 e prepara a tua participação.");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

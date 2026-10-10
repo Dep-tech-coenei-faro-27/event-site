@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
+import { usePageMeta } from "../utils/usePageMeta";
+
 
 /**
  * Perfil — conversão de conta/perfil/index.html.
@@ -11,11 +13,7 @@ import SecondaryButton from "../components/SecundaryButton";
  *  - POST /api/auth/logout
  *
  * Não existe endpoint para editar nome/email, por isso "Dados pessoais" é só leitura.
- * A alteração de palavra-passe vive em /conta/alterar-palavra-passe (ChangePasswordPage).
- * Mesmo domínio: caminhos relativos, o browser envia o cookie sozinho.
  *
- * Quando o ProtectedRoute / AuthContext entrarem, troca o fetch inicial e o
- * logout por useAuth().
  */
 
 type Me = {
@@ -42,6 +40,9 @@ function goToLogin() {
 }
 
 export default function ProfilePage() {
+    
+    usePageMeta("O meu perfil · ENEI 2027", "Consulta e atualiza os teus dados de participante no ENEI 2027.",);
+
   const [loadState, setLoadState] = useState<
     "loading" | "ready" | "unverified" | "error"
   >("loading");
