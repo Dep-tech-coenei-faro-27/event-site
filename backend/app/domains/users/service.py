@@ -55,7 +55,7 @@ def create_user(db: Session, payload: UserRegister) -> User:
         student_verification_status=student_status,
         student_verified_at=student_verified_at,
         terms_accepted_at=now,
-        term_version=CURRENT_TERMS_VERSION
+        term_version=CURRENT_TERMS_VERSION,
     )
     db.add(user)
     try:
