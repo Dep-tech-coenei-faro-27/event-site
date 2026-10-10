@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "node ./scripts/build-css.mjs",
-    "build:min": "node ./scripts/build-css.mjs --minify",
+    "build": "node ./scripts/build-css.mjs && node ./scripts/build-admin-pages.mjs",
+    "build:min": "node ./scripts/build-css.mjs --minify && node ./scripts/build-admin-pages.mjs",
     "dev": "node ./scripts/watch-css.mjs",
     "format": "prettier --write \"**/*.{html,css,js,json,md}\" && prettier --write \"assets/**/*.svg\" --parser html",
     "format:check": "prettier --check \"**/*.{html,css,js,json,md}\" && prettier --check \"assets/**/*.svg\" --parser html"
