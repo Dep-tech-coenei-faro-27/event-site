@@ -11,7 +11,7 @@ import talksImage from '../assets/about-talks.webp';
 import workshopImage from '../assets/about-workshop.webp';
 import Tile, { IconBox } from '../components/Tile';
 import type { Tone } from '../components/Tones';
-
+import { usePageMeta } from "../utils/usePageMeta";
 
 
 interface TileItem {
@@ -120,6 +120,9 @@ const historyItems = [
 ];
 
 export default function Sobre() {
+
+    usePageMeta( "Sobre · ENEI 2027", "Conhece o ENEI, o Encontro Nacional de Estudantes de Informática, que decorre em Faro, no Algarve, de 1 a 4 de abril de 2027.",);
+
     return (
         <main>
             <PageHeader backgroundImage={faroBaixa} className="pt-[220px] pb-[160px]">
