@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
-from app.domains.users.models import Role
+from app.domains.users.models import Role, StudentVerificationStatus
 
 
 class UserRegister(BaseModel):
@@ -37,3 +37,4 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     is_verified: bool
+    student_verification_status: StudentVerificationStatus

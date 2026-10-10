@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, String, func
 from sqlalchemy import Enum as SAEnum
@@ -11,6 +11,14 @@ from app.db.base import Base
 class Role(Enum):
     USER = "user"
     ADMIN = "admin"
+
+
+class StudentVerificationStatus(StrEnum):
+    """Whether an account proved it is entitled to the student price."""
+
+    PENDING = "pending"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
 
 
 class User(Base):
@@ -45,6 +53,23 @@ class User(Base):
         server_default="false",
     )
     email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    student_verification_status: Mapped[StudentVerificationStatus] = mapped_column(
+        SAEnum(
+            StudentVerificationStatus,
+            name="ck_users_student_status",
+            native_enum=False,
+            create_constraint=True,
+            values_callable=lambda enum: [member.value for member in enum],
+            length=20,
+        ),
+        default=StudentVerificationStatus.PENDING,
+        nullable=False,
+        server_default=StudentVerificationStatus.PENDING.value,
+    )
+    student_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

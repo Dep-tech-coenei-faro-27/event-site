@@ -6,6 +6,9 @@ import jwt
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.core.security import ACCESS_COOKIE_NAME
+from app.domains.payments.models import Ticket, TicketTier
+from app.domains.payments.tiers import TIER_SPECS
 from app.domains.users.models import User
 
 REGISTER_URL = "/api/auth/register"
@@ -13,7 +16,20 @@ LOGIN_URL = "/api/auth/login"
 ME_URL = "/api/auth/me"
 VERIFY_URL = "/api/auth/verify-email"
 
+INITIATE_URL = "/api/payment/initiate"
+
 TOKEN_QUERY = re.compile(r"[?&]token=([A-Za-z0-9._\-]+)")
+
+DEFAULT_TEST_PRICES = {
+    TicketTier.ACESSO: 2000,
+    TicketTier.REFEICOES: 3000,
+    TicketTier.COMPLETO: 4500,
+    TicketTier.GERAL: 5000,
+}
+
+
+def transaction_url(reference: str) -> str:
+    return f"/api/payment/transactions/{reference}"
 
 
 def register_user(
@@ -78,3 +94,39 @@ def access_claims(user_id, token_version=0):
 
 def encode_claims(claims) -> str:
     return jwt.encode(claims, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def authenticate(
+    auth_client,
+    email_sender,
+    db_session,
+    *,
+    email="ana@example.com",
+    password="Password123!",
+) -> User:
+    """Register, verify and log a user in by attaching a valid access cookie."""
+    register_and_verify(auth_client, email_sender, email=email, password=password)
+    user = db_session.scalar(select(User).where(User.email == email))
+    auth_client.cookies.set(
+        ACCESS_COOKIE_NAME, encode_claims(access_claims(user.id, user.token_version))
+    )
+    return user
+
+
+def seed_ticket_tiers(db_session) -> dict[TicketTier, Ticket]:
+    """Insert the four ticket modalities with deterministic test prices."""
+    tickets: dict[TicketTier, Ticket] = {}
+    for tier, spec in TIER_SPECS.items():
+        ticket = Ticket(
+            tier=tier,
+            name=spec.name,
+            price_cents=DEFAULT_TEST_PRICES[tier],
+            is_student=spec.is_student,
+            inventory_limit=None,
+        )
+        db_session.add(ticket)
+        tickets[tier] = ticket
+    db_session.commit()
+    for ticket in tickets.values():
+        db_session.refresh(ticket)
+    return tickets
