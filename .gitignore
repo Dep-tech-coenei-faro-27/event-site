@@ -8,3 +8,4 @@ tunnel.env
 # Python (os testes importam scripts/)
 __pycache__/
 *.py[cod]
+monitoring/.discord_webhook.test

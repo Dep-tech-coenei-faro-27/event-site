@@ -1,0 +1,23 @@
+groups:
+  - name: vps
+    rules:
+      - alert: DiskUsage80
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 80
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Disk usage at {{ $value | printf \"%.0f\" }}%"
+
+      - alert: DiskUsage90
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 90
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Disk usage at {{ $value | printf \"%.0f\" }}% (critical)"
+
+      - alert: ExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "The node-exporter has stopped responding"
