@@ -1,28 +1,17 @@
-import { useEffect, useState } from "react";
 import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
 import { usePageMeta } from "../utils/usePageMeta";
-
+import { useAuth } from "../utils/AuthContext";
 
 /**
  * Perfil — conversão de conta/perfil/index.html.
  *
- * Contrato usado:
- *  - GET  /api/auth/me        → { id, name, email, role, is_verified }
- *                               401 sem sessão · 403 email por verificar
- *  - POST /api/auth/logout
+ * O utilizador vem do AuthContext (GET /api/auth/me é feito pelo AuthProvider)
+ * e a página só é renderizada dentro do ProtectedRoute, ou seja, com sessão.
+ * O logout é o global do contexto (POST /api/auth/logout, limpa estado, redireciona).
  *
  * Não existe endpoint para editar nome/email, por isso "Dados pessoais" é só leitura.
- *
  */
-
-type Me = {
-  id: number | string;
-  name: string;
-  email: string;
-  role: "user" | "admin";
-  is_verified: boolean;
-};
 
 const BORDER = "border-[rgba(215,227,244,0.1)]";
 const BORDER_ACCENT = "border-[rgba(26,178,255,0.42)]";
@@ -35,58 +24,16 @@ function initialsOf(name: string, email: string): string {
   return letters.toUpperCase();
 }
 
-function goToLogin() {
-  window.location.href = "/conta/";
-}
-
 export default function ProfilePage() {
-    
-    usePageMeta("O meu perfil · ENEI 2027", "Consulta e atualiza os teus dados de participante no ENEI 2027.",);
+  usePageMeta(
+    "O meu perfil · ENEI 2027",
+    "Consulta e atualiza os teus dados de participante no ENEI 2027.",
+  );
 
-  const [loadState, setLoadState] = useState<
-    "loading" | "ready" | "unverified" | "error"
-  >("loading");
-  const [me, setMe] = useState<Me | null>(null);
-
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.status === 401) {
-          goToLogin();
-          return;
-        }
-        if (res.status === 403) {
-          if (!cancelled) setLoadState("unverified");
-          return;
-        }
-        if (!res.ok) throw new Error("bad status");
-        const data = (await res.json()) as Me;
-        if (cancelled) return;
-        setMe(data);
-        setLoadState("ready");
-      } catch {
-        if (!cancelled) setLoadState("error");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  const { user: me, logout } = useAuth();
   const name = me?.name ?? "";
   const email = me?.email ?? "";
   const firstName = name.trim().split(/\s+/)[0] || "participante";
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      goToLogin();
-    }
-  };
 
   const navLink =
     "block border-b-[3px] border-transparent px-5 py-[13px] text-[13px] text-cinza-texto max-[900px]:min-w-max min-[901px]:border-b-0 min-[901px]:border-l-[3px]";
@@ -144,7 +91,7 @@ export default function ProfilePage() {
                 </a>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => void logout()}
                   className={`${navLink} w-full cursor-pointer bg-transparent text-left`}
                 >
                   Sair
@@ -154,25 +101,7 @@ export default function ProfilePage() {
 
             {/* Conteúdo */}
             <div id="visao-geral" className="grid gap-[18px]">
-              {loadState === "loading" && (
-                <p role="status" className="text-cinza-texto">
-                  A carregar o teu perfil…
-                </p>
-              )}
-              {loadState === "unverified" && (
-                <p role="alert" className="text-[13px] text-red-400">
-                  Verifica o teu email antes de continuar. Procura a mensagem de
-                  verificação na tua caixa de entrada.
-                </p>
-              )}
-              {loadState === "error" && (
-                <p role="alert" className="text-[13px] text-red-400">
-                  Não foi possível carregar o teu perfil. Atualiza a página e tenta
-                  novamente.
-                </p>
-              )}
-
-              {loadState === "ready" && me && (
+              {me && (
                 <>
                   {/* Dados pessoais (só leitura: a API não tem endpoint de edição) */}
                   <article id="dados" className={panel}>
