@@ -37,3 +37,8 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     is_verified: bool
+
+class UserProfileRead(UserRead):
+    model_config = ConfigDict(from_attributes=True)
+
+    qr_code: str | None = None
