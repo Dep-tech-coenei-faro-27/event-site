@@ -1,7 +1,7 @@
 import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
 import { usePageMeta } from "../utils/usePageMeta";
-import { useAuth } from "../utils/AuthContext";
+import { useAuth } from "../utils/useAuth";
 
 /**
  * Perfil — conversão de conta/perfil/index.html.
