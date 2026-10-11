@@ -18,7 +18,7 @@ def promote_to_admin(db: Session, email: str) -> int:
         return 1
     if user.role == Role.ADMIN:
         print(f"User with email {email} is already an admin.")
-        return 1
+        return 0
 
     user.role = Role.ADMIN
     db.commit()
