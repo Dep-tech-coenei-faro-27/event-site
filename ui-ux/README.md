@@ -63,6 +63,9 @@ Then open `http://127.0.0.1:4174/`.
 - `/parcerias/` — partnerships
 - `/equipa/` — team
 - `/informacao-ajuda/` — FAQ and support
+- `/termos/` — terms and conditions
+- `/privacidade/` — privacy policy
+- `/acessibilidade/` — accessibility information
 - `/bilhetes/` — ticket options
 - `/bilhetes/checkout/` — ticket selection and MB Way checkout
 - `/bilhetes/checkout/aguardar/` — pending payment
@@ -73,4 +76,7 @@ Then open `http://127.0.0.1:4174/`.
 - `/conta/recuperar/` — password recovery
 - `/conta/redefinir/` — password reset
 - `/conta/verificar/` — email verification
-- `/conta/perfil/` — profile interface
+- `/conta/perfil/` — account overview and digital ticket
+- `/conta/dados/` — personal and academic profile settings
+- `/conta/seguranca/` — password and account security settings
+- `/conta/perfil-sem-bilhete/` — dashboard without a purchased ticket
