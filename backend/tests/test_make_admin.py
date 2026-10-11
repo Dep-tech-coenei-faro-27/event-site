@@ -4,16 +4,16 @@ from app.domains.users.schemas import UserRegister
 from app.domains.users.service import create_user, mark_user_verified
 
 
-def test_promote_user_not_found(db, capsys):
-    code = promote_to_admin(db, "nonexistent@example.com")
+def test_promote_user_not_found(db_session, capsys):
+    code = promote_to_admin(db_session, "nonexistent@example.com")
     out, _ = capsys.readouterr()
     assert code == 1
-    assert "User not found" in out
+    assert "not found" in out
 
 
-def test_promote_unverified_user_fails(db, capsys):
+def test_promote_unverified_user_fails(db_session, capsys):
     user = create_user(
-        db,
+        db_session,
         UserRegister(
             name="Unverified User",
             email="unverified@example.com",
@@ -21,16 +21,16 @@ def test_promote_unverified_user_fails(db, capsys):
             accept_terms=True,
         ),
     )
-    code = promote_to_admin(db, user.email)
+    code = promote_to_admin(db_session, user.email)
     out, _ = capsys.readouterr()
     assert code == 1
-    assert "User is not verified" in out
+    assert "is not verified" in out
     assert user.role == Role.USER
 
 
-def test_promote_verified_user_to_admin(db, capsys):
+def test_promote_verified_user_to_admin(db_session, capsys):
     user = create_user(
-        db,
+        db_session,
         UserRegister(
             name="Teste Válido",
             email="verificado@example.com",
@@ -38,18 +38,17 @@ def test_promote_verified_user_to_admin(db, capsys):
             accept_terms=True,
         ),
     )
-    mark_user_verified(db, user)
-    code = promote_to_admin(db, user.email)
+    mark_user_verified(db_session, user)
+    code = promote_to_admin(db_session, user.email)
     out, _ = capsys.readouterr()
-
     assert code == 0
-    assert "promoted" in out
+    assert "promoted to admin" in out
     assert user.role == Role.ADMIN
 
 
-def test_promote_user_already_admin(db, capsys):
+def test_promote_user_already_admin(db_session, capsys):
     user = create_user(
-        db,
+        db_session,
         UserRegister(
             name="Admin Existente",
             email="admin@example.com",
@@ -57,11 +56,11 @@ def test_promote_user_already_admin(db, capsys):
             accept_terms=True,
         ),
     )
-    mark_user_verified(db, user)
+    mark_user_verified(db_session, user)
     user.role = Role.ADMIN
-    db.commit()
+    db_session.commit()
 
-    code = promote_to_admin(db, user.email)
+    code = promote_to_admin(db_session, user.email)
     out, _ = capsys.readouterr()
     assert code == 0
-    assert "User is already an admin" in out
+    assert "already an admin" in out
