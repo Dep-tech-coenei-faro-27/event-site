@@ -10,7 +10,7 @@ import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
 import Parcerias from './pages/Parcerias';
-
+import Agenda from './pages/Agenda';
 
 
 
@@ -34,7 +34,8 @@ function App() {
             <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
-            
+            <Route path="/agenda" element={<Agenda/>} />
+
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
