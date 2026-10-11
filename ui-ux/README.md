@@ -31,7 +31,7 @@ npm run format:check
 - `tailwind.config.js` is the single source of truth for the complete ENEI palette,
   typography, radii, shadows, and content discovery.
 - `src/tailwind.css` declares Tailwind's base, component, and utility layers.
-- `src/core.css`, `src/auth.css`, and `src/checkout.css` keep component rules separated by domain.
+- `src/core.css`, `src/auth.css`, `src/checkout.css`, and `src/admin.css` keep component rules separated by domain.
 - `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
 - `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
 - `scripts/build-css.mjs` compiles Tailwind first, then appends component modules in deterministic cascade order.
@@ -73,4 +73,12 @@ Then open `http://127.0.0.1:4174/`.
 - `/conta/recuperar/` — password recovery
 - `/conta/redefinir/` — password reset
 - `/conta/verificar/` — email verification
+<<<<<<< Updated upstream
 - `/conta/perfil/` — profile interface
+=======
+- `/conta/perfil/` — account overview and digital ticket
+- `/conta/dados/` — personal and academic profile settings
+- `/conta/seguranca/` — password and account security settings
+- `/conta/perfil-sem-bilhete/` — dashboard without a purchased ticket
+- `/admin/` — operations, content, communication, diagnostics and site configuration control centre
+>>>>>>> Stashed changes

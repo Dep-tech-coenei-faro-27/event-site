@@ -1,0 +1,1518 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Wireframe do painel de administração do ENEI 2027."
+    />
+    <title>Administração · ENEI 2027</title>
+    <link
+      rel="stylesheet"
+      href="../styles.css?v=20261009-admin-background-v8"
+    />
+    <script src="../src/admin.js?v=20261009-admin-background-v8" defer></script>
+  </head>
+  <body
+    class="admin-page"
+    data-page="admin"
+    data-root=".."
+    data-admin-view="overview"
+  >
+    <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
+    <div class="admin-shell">
+      <aside class="admin-sidebar" aria-label="Administração">
+        <a
+          class="admin-brand"
+          href="../"
+          aria-label="ENEI 2027 — Página inicial"
+        >
+          <img src="../assets/ENEI-logo.svg" alt="" aria-hidden="true" />
+          <span><strong>ENEI</strong><small>Administração</small></span>
+        </a>
+
+        <nav class="admin-nav" aria-label="Navegação do painel">
+          <p class="admin-nav__label">Visão geral</p>
+          <a href="./" data-admin-link="overview" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            Visão geral
+          </a>
+          <p class="admin-nav__label">Operações</p>
+          <a href="./utilizadores/" data-admin-link="utilizadores">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9" cy="8" r="4" />
+              <path d="M2.5 21a6.5 6.5 0 0 1 13 0M16 7h6M19 4v6" />
+            </svg>
+            Utilizadores
+          </a>
+          <a href="./bilhetes/" data-admin-link="bilhetes">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3 8.5A2.5 2.5 0 0 0 5.5 11 2.5 2.5 0 0 0 3 13.5V18h18v-4.5a2.5 2.5 0 0 0-2.5-2.5A2.5 2.5 0 0 0 21 8.5V4H3z"
+              />
+              <path d="M14 6v12" />
+            </svg>
+            Bilhetes
+          </a>
+          <a href="./transacoes/" data-admin-link="transacoes">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h10" />
+              <path d="m17 15 3 3-3 3" />
+            </svg>
+            Transações
+          </a>
+          <a href="./apoio/" data-admin-link="apoio">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v11H8l-4 4z" />
+              <path d="M8 9h8M8 12h5" />
+            </svg>
+            Apoio
+          </a>
+
+          <p class="admin-nav__label">Site e conteúdo</p>
+          <a href="./paginas/" data-admin-link="paginas">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 4h16v16H4zM4 9h16M9 9v11" />
+            </svg>
+            Páginas e menus
+          </a>
+          <a href="./programa/" data-admin-link="programa">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3v3M19 3v3M4 8h16M4 5h16v16H4z" />
+              <path d="M8 12h3M13 12h3M8 16h3" />
+            </svg>
+            Programa
+          </a>
+          <a href="./equipa-parcerias/" data-admin-link="equipa-parcerias">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="8" cy="8" r="3" />
+              <circle cx="17" cy="9" r="2.5" />
+              <path d="M2.5 20a5.5 5.5 0 0 1 11 0M13 20a4 4 0 0 1 8 0" />
+            </svg>
+            Equipa e parcerias
+          </a>
+          <a href="./comunicacao/" data-admin-link="comunicacao">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16v12H4z" />
+              <path d="m4 7 8 6 8-6" />
+            </svg>
+            Comunicação
+          </a>
+
+          <p class="admin-nav__label">Sistema</p>
+          <a href="./estado-erros/" data-admin-link="estado-erros">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h3l2-5 4 10 2-5h5" />
+              <path d="M3 3h18v18H3z" />
+            </svg>
+            Estado e erros
+          </a>
+          <a href="./auditoria/" data-admin-link="auditoria">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" />
+            </svg>
+            Auditoria
+          </a>
+          <a href="./definicoes/" data-admin-link="definicoes">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+              />
+            </svg>
+            Definições
+          </a>
+        </nav>
+
+        <div class="admin-sidebar__footer">
+          <span class="admin-environment"
+            ><i></i> Ambiente de demonstração</span
+          >
+          <a href="../">Voltar ao site</a>
+        </div>
+      </aside>
+
+      <div class="admin-workspace">
+        <header class="admin-topbar">
+          <button
+            class="admin-menu-toggle"
+            type="button"
+            aria-label="Abrir navegação do painel"
+            aria-expanded="false"
+            data-admin-menu-toggle
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+          <form class="admin-search" role="search">
+            <label for="admin-search">Pesquisar no painel</label>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m16 16 5 5" />
+            </svg>
+            <input
+              id="admin-search"
+              type="search"
+              placeholder="Pesquisar utilizador, email ou referência…"
+            />
+            <kbd>Ctrl K</kbd>
+          </form>
+          <div class="admin-profile">
+            <span class="admin-avatar" aria-hidden="true">AD</span>
+            <span
+              ><strong>Administrador</strong
+              ><small>admin@exemplo.pt</small></span
+            >
+          </div>
+        </header>
+
+        <main id="conteudo" class="admin-main">
+          <section class="admin-heading" id="visao-geral">
+            <div>
+              <p class="eyebrow">ADMINISTRAÇÃO</p>
+              <h1>Centro de controlo</h1>
+              <p>
+                Gere operações, conteúdo e configurações do site num único
+                local, com atalhos para responder rapidamente a incidentes.
+              </p>
+            </div>
+            <button
+              class="btn btn--primary"
+              type="button"
+              data-open-ticket-modal
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Emitir bilhete
+            </button>
+          </section>
+
+          <section class="admin-command-grid" id="estado-site">
+            <article class="admin-system-card">
+              <header class="admin-system-card__head">
+                <div>
+                  <p class="eyebrow">ESTADO DO SITE</p>
+                  <h2>Centro de resposta</h2>
+                  <p>
+                    Diagnóstico rápido dos serviços essenciais antes de fazer
+                    uma alteração.
+                  </p>
+                </div>
+                <span class="admin-status admin-status--neutral"
+                  >Demonstração</span
+                >
+              </header>
+              <div class="admin-service-list">
+                <div>
+                  <span><i></i><strong>Site público</strong></span>
+                  <small>Disponibilidade e carregamento das páginas</small>
+                  <b>A verificar</b>
+                </div>
+                <div>
+                  <span><i></i><strong>Compra de bilhetes</strong></span>
+                  <small>Checkout, pagamentos e emissão automática</small>
+                  <b>A verificar</b>
+                </div>
+                <div>
+                  <span><i></i><strong>Email e notificações</strong></span>
+                  <small>Confirmações, avisos e recuperação de conta</small>
+                  <b>A verificar</b>
+                </div>
+                <div>
+                  <span><i></i><strong>Entrada e QR</strong></span>
+                  <small>Leitura e validação dos bilhetes digitais</small>
+                  <b>A verificar</b>
+                </div>
+              </div>
+            </article>
+
+            <article class="admin-rapid-card">
+              <div>
+                <p class="eyebrow">RESPOSTA RÁPIDA</p>
+                <h2>Resolver um problema</h2>
+                <p>Ações frequentes reunidas sem percorrer vários ecrãs.</p>
+              </div>
+              <div class="admin-rapid-actions">
+                <button type="button" data-open-ticket-modal>
+                  <span>Emitir bilhete</span>
+                  <small>Override com auditoria</small>
+                </button>
+                <button type="button" data-demo-action="Aviso preparado">
+                  <span>Publicar aviso</span>
+                  <small>Mensagem visível no site</small>
+                </button>
+                <button
+                  class="admin-rapid-action--warning"
+                  type="button"
+                  data-demo-action="Pausa de vendas preparada"
+                >
+                  <span>Pausar vendas</span>
+                  <small>Interromper novas compras</small>
+                </button>
+                <button
+                  class="admin-rapid-action--danger"
+                  type="button"
+                  data-demo-action="Modo de manutenção preparado"
+                >
+                  <span>Modo manutenção</span>
+                  <small>Proteger o site durante a correção</small>
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section class="admin-stats" aria-label="Resumo administrativo">
+            <article class="admin-stat">
+              <span>Participantes</span>
+              <strong>1 248</strong>
+              <small>Contas registadas</small>
+            </article>
+            <article class="admin-stat">
+              <span>Bilhetes confirmados</span>
+              <strong>986</strong>
+              <small>79% dos participantes</small>
+            </article>
+            <article class="admin-stat">
+              <span>Pagamentos pendentes</span>
+              <strong>18</strong>
+              <small>A aguardar confirmação</small>
+            </article>
+            <article class="admin-stat admin-stat--alert">
+              <span>Pedidos de apoio</span>
+              <strong>6</strong>
+              <small>2 assinalados como urgentes</small>
+            </article>
+          </section>
+
+          <section class="admin-overview-grid" id="resumo-geral">
+            <article class="admin-panel">
+              <div class="admin-panel__head">
+                <div>
+                  <p class="eyebrow">INSCRIÇÕES</p>
+                  <h2>Distribuição dos bilhetes</h2>
+                  <p>Resumo demonstrativo das modalidades confirmadas.</p>
+                </div>
+              </div>
+              <div class="admin-progress-list">
+                <div>
+                  <span><strong>Experiência completa</strong><b>612</b></span>
+                  <i style="--progress: 62%"></i>
+                </div>
+                <div>
+                  <span><strong>Acesso + refeições</strong><b>244</b></span>
+                  <i style="--progress: 25%"></i>
+                </div>
+                <div>
+                  <span><strong>Apenas acesso</strong><b>130</b></span>
+                  <i style="--progress: 13%"></i>
+                </div>
+              </div>
+            </article>
+            <article class="admin-panel">
+              <div class="admin-panel__head">
+                <div>
+                  <p class="eyebrow">ATIVIDADE RECENTE</p>
+                  <h2>Últimos movimentos</h2>
+                  <p>Eventos recentes de contas, pagamentos e apoio.</p>
+                </div>
+              </div>
+              <div class="admin-activity-list">
+                <div>
+                  <time>14:32</time
+                  ><span
+                    ><strong>Pagamento confirmado</strong
+                    ><small>participante@exemplo.pt</small></span
+                  >
+                </div>
+                <div>
+                  <time>14:26</time
+                  ><span
+                    ><strong>Nova conta verificada</strong
+                    ><small>sem-bilhete@exemplo.pt</small></span
+                  >
+                </div>
+                <div>
+                  <time>13:58</time
+                  ><span
+                    ><strong>Pedido de apoio recebido</strong
+                    ><small>Problema na confirmação do bilhete</small></span
+                  >
+                </div>
+                <div>
+                  <time>13:42</time
+                  ><span
+                    ><strong>Programa atualizado</strong
+                    ><small>Alteração guardada por Administrador</small></span
+                  >
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="admin-panel" id="bilhetes-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">BILHETES</p>
+                <h2>Modalidades e emissão</h2>
+                <p>Controla disponibilidade, vendas e emissão manual.</p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-open-ticket-modal
+              >
+                Emitir bilhete
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Modalidades de bilhete"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Modalidade</th>
+                    <th>Confirmados</th>
+                    <th>Disponibilidade</th>
+                    <th>Estado</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <strong>Experiência completa</strong
+                      ><small>Entrada, refeições e alojamento</small>
+                    </td>
+                    <td>612</td>
+                    <td>Disponível</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Ativa</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button
+                        type="button"
+                        data-demo-action="Modalidade aberta"
+                      >
+                        Gerir
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Acesso + refeições</strong
+                      ><small>Entrada e refeições</small>
+                    </td>
+                    <td>244</td>
+                    <td>Disponível</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Ativa</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button
+                        type="button"
+                        data-demo-action="Modalidade aberta"
+                      >
+                        Gerir
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Apenas acesso</strong
+                      ><small>Entrada nos quatro dias</small>
+                    </td>
+                    <td>130</td>
+                    <td>Disponível</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Ativa</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button
+                        type="button"
+                        data-demo-action="Modalidade aberta"
+                      >
+                        Gerir
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="apoio-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">APOIO</p>
+                <h2>Pedidos e ocorrências</h2>
+                <p>
+                  Acompanha dúvidas e problemas reportados pelos participantes.
+                </p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Novo pedido preparado"
+              >
+                Novo pedido
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Pedidos de apoio"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Pedido</th>
+                    <th>Participante</th>
+                    <th>Assunto</th>
+                    <th>Prioridade</th>
+                    <th>Estado</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>#AP-1042</strong></td>
+                    <td>participante@exemplo.pt</td>
+                    <td>Confirmação do bilhete</td>
+                    <td>
+                      <span class="admin-status admin-status--danger"
+                        >Urgente</span
+                      >
+                    </td>
+                    <td>Em tratamento</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Abrir</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>#AP-1041</strong></td>
+                    <td>sem-bilhete@exemplo.pt</td>
+                    <td>Alteração de dados</td>
+                    <td>
+                      <span class="admin-status admin-status--neutral"
+                        >Normal</span
+                      >
+                    </td>
+                    <td>Novo</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Abrir</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>#AP-1040</strong></td>
+                    <td>por-verificar@exemplo.pt</td>
+                    <td>Email de verificação</td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Alta</span
+                      >
+                    </td>
+                    <td>A aguardar</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Abrir</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="paginas-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">SITE E CONTEÚDO</p>
+                <h2>Páginas e menus</h2>
+                <p>Gere conteúdos públicos, navegação e informação legal.</p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Pré-visualização preparada"
+              >
+                Pré-visualizar site
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Páginas do site"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Página</th>
+                    <th>Área</th>
+                    <th>Estado</th>
+                    <th>Última alteração</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Página inicial</strong><small>/</small></td>
+                    <td>Evento</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Publicada</span
+                      >
+                    </td>
+                    <td>Hoje · 13:42</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Informação e ajuda</strong
+                      ><small>/informacao-ajuda/</small>
+                    </td>
+                    <td>Apoio</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Publicada</span
+                      >
+                    </td>
+                    <td>8 out. 2026</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Termos e condições</strong><small>/termos/</small>
+                    </td>
+                    <td>Legal</td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Revisão</span
+                      >
+                    </td>
+                    <td>8 out. 2026</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="programa-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">PROGRAMA</p>
+                <h2>Agenda do encontro</h2>
+                <p>Edita dias, horários, atividades e espaços.</p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Atividade preparada"
+              >
+                Adicionar atividade
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Programa do evento"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Dia</th>
+                    <th>Horário</th>
+                    <th>Atividade</th>
+                    <th>Espaço</th>
+                    <th>Estado</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Dia 1</td>
+                    <td>09:00</td>
+                    <td><strong>Abertura</strong></td>
+                    <td>Auditório principal</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Publicada</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Dia 1</td>
+                    <td>11:00</td>
+                    <td><strong>Atividade exemplo</strong></td>
+                    <td>Sala a definir</td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Rascunho</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Dia 2</td>
+                    <td>10:00</td>
+                    <td><strong>Atividade exemplo</strong></td>
+                    <td>Auditório principal</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Publicada</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="equipa-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">EQUIPA E PARCERIAS</p>
+                <h2>Pessoas e entidades</h2>
+                <p>
+                  Atualiza membros, cargos, fotografias, parceiros e logótipos.
+                </p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Novo registo preparado"
+              >
+                Adicionar
+              </button>
+            </div>
+            <div class="admin-management-grid">
+              <article>
+                <span>Equipa</span><strong>Direção</strong
+                ><small>Membros, cargos e fotografias</small
+                ><button type="button">Gerir equipa</button>
+              </article>
+              <article>
+                <span>Equipa</span><strong>Departamentos</strong
+                ><small>Atividades, logística e comunicação</small
+                ><button type="button">Gerir departamentos</button>
+              </article>
+              <article>
+                <span>Parcerias</span><strong>Entidades parceiras</strong
+                ><small>Logótipos, ligações e destaque</small
+                ><button type="button">Gerir parceiros</button>
+              </article>
+              <article>
+                <span>Conteúdo</span><strong>Ordem de apresentação</strong
+                ><small>Organização dos cartões no site</small
+                ><button type="button">Reordenar</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="comunicacao-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">COMUNICAÇÃO</p>
+                <h2>Mensagens e avisos</h2>
+                <p>
+                  Prepara comunicações visíveis no site e enviadas por email.
+                </p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Nova comunicação preparada"
+              >
+                Nova comunicação
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Comunicações"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Comunicação</th>
+                    <th>Canal</th>
+                    <th>Público</th>
+                    <th>Estado</th>
+                    <th>Atualização</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Aviso geral do site</strong></td>
+                    <td>Banner</td>
+                    <td>Todos</td>
+                    <td>
+                      <span class="admin-status admin-status--neutral"
+                        >Inativo</span
+                      >
+                    </td>
+                    <td>Hoje · 12:10</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Confirmação de bilhete</strong></td>
+                    <td>Email</td>
+                    <td>Participantes</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Ativa</span
+                      >
+                    </td>
+                    <td>8 out. 2026</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Informação de viagem</strong></td>
+                    <td>Email</td>
+                    <td>Com bilhete</td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Rascunho</span
+                      >
+                    </td>
+                    <td>8 out. 2026</td>
+                    <td class="admin-table__actions">
+                      <button type="button">Editar</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="auditoria-painel">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">AUDITORIA</p>
+                <h2>Histórico de alterações</h2>
+                <p>
+                  Identifica quem alterou conteúdos, bilhetes e configurações.
+                </p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Exportação preparada"
+              >
+                Exportar registo
+              </button>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Registo de auditoria"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Administrador</th>
+                    <th>Ação</th>
+                    <th>Área</th>
+                    <th>Resultado</th>
+                    <th><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Hoje · 13:42</td>
+                    <td>admin@exemplo.pt</td>
+                    <td>Atualizou conteúdo</td>
+                    <td>Página inicial</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Concluída</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Hoje · 12:18</td>
+                    <td>admin@exemplo.pt</td>
+                    <td>Emitiu bilhete manual</td>
+                    <td>Bilhetes</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Concluída</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>8 out. · 18:05</td>
+                    <td>admin@exemplo.pt</td>
+                    <td>Alterou definição</td>
+                    <td>Email</td>
+                    <td>
+                      <span class="admin-status admin-status--neutral"
+                        >Registada</span
+                      >
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-settings" id="definicoes-painel">
+            <article class="admin-panel">
+              <div class="admin-panel__head">
+                <div>
+                  <p class="eyebrow">EVENTO</p>
+                  <h2>Informação geral</h2>
+                  <p>Dados usados no painel, bilhetes e comunicações.</p>
+                </div>
+              </div>
+              <div class="admin-settings-form">
+                <label
+                  ><span>Nome do evento</span
+                  ><input type="text" value="ENEI Faro 2027"
+                /></label>
+                <label
+                  ><span>Datas</span><input type="text" value="1–4 abril 2027"
+                /></label>
+                <label class="admin-settings-form__wide"
+                  ><span>Email de apoio</span
+                  ><input type="email" value="apoio@exemplo.pt"
+                /></label>
+                <button
+                  class="btn btn--primary admin-settings-form__wide"
+                  type="button"
+                  data-demo-action="Definições gerais guardadas"
+                >
+                  Guardar alterações
+                </button>
+              </div>
+            </article>
+            <article class="admin-panel">
+              <div class="admin-panel__head">
+                <div>
+                  <p class="eyebrow">ACESSOS</p>
+                  <h2>Equipa administrativa</h2>
+                  <p>Permissões por área do painel.</p>
+                </div>
+              </div>
+              <div class="admin-setting-list">
+                <div>
+                  <span
+                    ><strong>Administradores</strong
+                    ><small>Acesso total ao painel</small></span
+                  ><button type="button">Gerir</button>
+                </div>
+                <div>
+                  <span
+                    ><strong>Editores de conteúdo</strong
+                    ><small>Páginas, programa e comunicação</small></span
+                  ><button type="button">Gerir</button>
+                </div>
+                <div>
+                  <span
+                    ><strong>Equipa de apoio</strong
+                    ><small>Utilizadores, bilhetes e pedidos</small></span
+                  ><button type="button">Gerir</button>
+                </div>
+              </div>
+            </article>
+            <article class="admin-panel admin-settings__wide">
+              <div class="admin-panel__head">
+                <div>
+                  <p class="eyebrow">INTEGRAÇÕES</p>
+                  <h2>Serviços e segurança</h2>
+                  <p>Estado das ligações necessárias para operar o site.</p>
+                </div>
+              </div>
+              <div class="admin-management-grid admin-management-grid--three">
+                <article>
+                  <span>Pagamentos</span><strong>Gateway</strong
+                  ><small>Ambiente de demonstração</small
+                  ><button type="button">Configurar</button>
+                </article>
+                <article>
+                  <span>Comunicação</span><strong>Serviço de email</strong
+                  ><small>Configuração pendente</small
+                  ><button type="button">Configurar</button>
+                </article>
+                <article>
+                  <span>Segurança</span><strong>Cópias de segurança</strong
+                  ><small>Última verificação: hoje</small
+                  ><button type="button">Ver estado</button>
+                </article>
+              </div>
+            </article>
+          </section>
+
+          <section class="admin-panel" id="conteudo-site">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">GESTÃO DO SITE</p>
+                <h2>Editar qualquer área</h2>
+                <p>
+                  Acesso direto às partes públicas, operacionais e técnicas do
+                  evento.
+                </p>
+              </div>
+              <button
+                class="admin-text-button"
+                type="button"
+                data-demo-action="Pré-visualização preparada"
+              >
+                Pré-visualizar alterações
+              </button>
+            </div>
+            <div class="admin-module-grid">
+              <article class="admin-module-card">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 4h16v16H4zM4 9h16M9 9v11" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Páginas e navegação</h3>
+                  <p>Homepage, menus, rodapé, textos e chamadas para ação.</p>
+                </div>
+                <button
+                  type="button"
+                  data-demo-action="Editor de páginas aberto"
+                >
+                  Editar
+                </button>
+              </article>
+              <article class="admin-module-card" id="programa">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M5 3v3M19 3v3M4 8h16M4 5h16v16H4z" />
+                    <path d="M8 12h3M13 12h3M8 16h3" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Programa e agenda</h3>
+                  <p>Dias, horários, atividades, espaços e alterações.</p>
+                </div>
+                <button
+                  type="button"
+                  data-demo-action="Editor do programa aberto"
+                >
+                  Editar
+                </button>
+              </article>
+              <article class="admin-module-card" id="equipa-parcerias">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="8" cy="8" r="3" />
+                    <circle cx="17" cy="9" r="2.5" />
+                    <path d="M2.5 20a5.5 5.5 0 0 1 11 0M13 20a4 4 0 0 1 8 0" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Equipa e parcerias</h3>
+                  <p>Pessoas, cargos, fotografias, entidades e logótipos.</p>
+                </div>
+                <button
+                  type="button"
+                  data-demo-action="Editor da equipa aberto"
+                >
+                  Editar
+                </button>
+              </article>
+              <article class="admin-module-card" id="bilhetes">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M3 8.5A2.5 2.5 0 0 0 5.5 11 2.5 2.5 0 0 0 3 13.5V18h18v-4.5a2.5 2.5 0 0 0-2.5-2.5A2.5 2.5 0 0 0 21 8.5V4H3z"
+                    />
+                    <path d="M14 6v12" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Bilhetes e modalidades</h3>
+                  <p>Disponibilidade, condições, preços e emissão manual.</p>
+                </div>
+                <button type="button" data-open-ticket-modal>Gerir</button>
+              </article>
+              <article class="admin-module-card" id="comunicacao">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 6h16v12H4z" />
+                    <path d="m4 7 8 6 8-6" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Comunicação</h3>
+                  <p>Avisos no site, emails e mensagens aos participantes.</p>
+                </div>
+                <button type="button" data-demo-action="Comunicação preparada">
+                  Abrir
+                </button>
+              </article>
+              <article class="admin-module-card">
+                <span class="admin-module-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Informação legal</h3>
+                  <p>Termos, privacidade, acessibilidade e ajuda.</p>
+                </div>
+                <button type="button" data-demo-action="Editor legal aberto">
+                  Editar
+                </button>
+              </article>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="utilizadores">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">CONTAS</p>
+                <h2>Utilizadores</h2>
+                <p>Estado da conta, verificação e bilhete associado.</p>
+              </div>
+              <div class="admin-panel__tools">
+                <div class="admin-filter">
+                  <span id="admin-filter-estado">Estado</span>
+                  <select
+                    data-admin-select
+                    aria-labelledby="admin-filter-estado"
+                  >
+                    <option>Todos os estados</option>
+                    <option>Com bilhete</option>
+                    <option>Sem bilhete</option>
+                    <option>Por verificar</option>
+                  </select>
+                </div>
+                <button
+                  class="admin-icon-button"
+                  type="button"
+                  aria-label="Exportar utilizadores"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Tabela de utilizadores"
+            >
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Utilizador</th>
+                    <th scope="col">Conta</th>
+                    <th scope="col">Bilhete</th>
+                    <th scope="col">Registo</th>
+                    <th scope="col"><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <span class="admin-person"
+                        ><i>PE</i
+                        ><span
+                          ><strong>Participante Exemplo</strong
+                          ><small>participante@exemplo.pt</small></span
+                        ></span
+                      >
+                    </td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Verificada</span
+                      >
+                    </td>
+                    <td>
+                      <strong>Experiência completa</strong
+                      ><small>ENEI—XXXX</small>
+                    </td>
+                    <td><time datetime="2026-10-08">8 out. 2026</time></td>
+                    <td class="admin-table__actions">
+                      <button type="button">Abrir</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="admin-person"
+                        ><i>SE</i
+                        ><span
+                          ><strong>Sem bilhete Exemplo</strong
+                          ><small>sem-bilhete@exemplo.pt</small></span
+                        ></span
+                      >
+                    </td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Verificada</span
+                      >
+                    </td>
+                    <td>
+                      <span class="admin-status admin-status--neutral"
+                        >Sem bilhete</span
+                      >
+                    </td>
+                    <td><time datetime="2026-10-08">8 out. 2026</time></td>
+                    <td class="admin-table__actions">
+                      <button type="button" data-open-ticket-modal>
+                        Emitir
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span class="admin-person"
+                        ><i>PV</i
+                        ><span
+                          ><strong>Por Verificar</strong
+                          ><small>por-verificar@exemplo.pt</small></span
+                        ></span
+                      >
+                    </td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Por verificar</span
+                      >
+                    </td>
+                    <td>
+                      <span class="admin-status admin-status--neutral"
+                        >Sem bilhete</span
+                      >
+                    </td>
+                    <td><time datetime="2026-10-08">8 out. 2026</time></td>
+                    <td class="admin-table__actions">
+                      <button type="button">Abrir</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="admin-panel__footer">
+              <span>A mostrar dados de demonstração</span>
+              <nav aria-label="Paginação dos utilizadores">
+                <button type="button" disabled>Anterior</button>
+                <button type="button" aria-current="page">1</button>
+                <button type="button">Seguinte</button>
+              </nav>
+            </div>
+          </section>
+
+          <section class="admin-panel" id="transacoes">
+            <div class="admin-panel__head">
+              <div>
+                <p class="eyebrow">PAGAMENTOS</p>
+                <h2>Transações</h2>
+                <p>Referências MB Way e estado da inscrição associada.</p>
+              </div>
+              <div class="admin-panel__tools">
+                <div class="admin-filter">
+                  <span id="admin-filter-periodo">Período</span>
+                  <select
+                    data-admin-select
+                    aria-labelledby="admin-filter-periodo"
+                  >
+                    <option>Todo o período</option>
+                    <option>Hoje</option>
+                    <option>Últimos 7 dias</option>
+                  </select>
+                </div>
+                <button
+                  class="admin-icon-button"
+                  type="button"
+                  aria-label="Exportar transações"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              class="admin-table-wrap"
+              tabindex="0"
+              role="region"
+              aria-label="Tabela de transações"
+            >
+              <table class="admin-table admin-table--transactions">
+                <thead>
+                  <tr>
+                    <th scope="col">Referência</th>
+                    <th scope="col">Utilizador</th>
+                    <th scope="col">Modalidade</th>
+                    <th scope="col">Valor</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Data</th>
+                    <th scope="col"><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>MBW—XXXX</strong></td>
+                    <td>participante@exemplo.pt</td>
+                    <td>Experiência completa</td>
+                    <td>A confirmar</td>
+                    <td>
+                      <span class="admin-status admin-status--success"
+                        >Confirmada</span
+                      >
+                    </td>
+                    <td>
+                      <time datetime="2026-10-08T14:32">8 out. · 14:32</time>
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>MBW—XXXX</strong></td>
+                    <td>sem-bilhete@exemplo.pt</td>
+                    <td>Acesso + refeições</td>
+                    <td>A confirmar</td>
+                    <td>
+                      <span class="admin-status admin-status--warning"
+                        >Pendente</span
+                      >
+                    </td>
+                    <td>
+                      <time datetime="2026-10-08T14:26">8 out. · 14:26</time>
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>MBW—XXXX</strong></td>
+                    <td>por-verificar@exemplo.pt</td>
+                    <td>Apenas acesso</td>
+                    <td>A confirmar</td>
+                    <td>
+                      <span class="admin-status admin-status--danger"
+                        >Falhada</span
+                      >
+                    </td>
+                    <td>
+                      <time datetime="2026-10-08T13:58">8 out. · 13:58</time>
+                    </td>
+                    <td class="admin-table__actions">
+                      <button type="button">Detalhes</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="admin-panel__footer">
+              <span>A mostrar dados de demonstração</span>
+              <nav aria-label="Paginação das transações">
+                <button type="button" disabled>Anterior</button>
+                <button type="button" aria-current="page">1</button>
+                <button type="button">Seguinte</button>
+              </nav>
+            </div>
+          </section>
+
+          <section class="admin-governance-grid" aria-label="Gestão interna">
+            <article class="admin-governance-card" id="apoio">
+              <p class="eyebrow">APOIO</p>
+              <h2>Pedidos e ocorrências</h2>
+              <p>
+                Centraliza dúvidas, pedidos de alteração e problemas reportados
+                pelos participantes.
+              </p>
+              <ul>
+                <li><span>Novos pedidos</span><strong>—</strong></li>
+                <li><span>Em tratamento</span><strong>—</strong></li>
+                <li><span>Urgentes</span><strong>—</strong></li>
+              </ul>
+              <button type="button" data-demo-action="Fila de apoio aberta">
+                Abrir fila de apoio
+              </button>
+            </article>
+
+            <article class="admin-governance-card" id="auditoria">
+              <p class="eyebrow">AUDITORIA</p>
+              <h2>Histórico de alterações</h2>
+              <p>
+                Consulta quem alterou conteúdo, bilhetes, pagamentos ou
+                configurações e permite investigar erros rapidamente.
+              </p>
+              <ul>
+                <li><span>Última publicação</span><strong>—</strong></li>
+                <li><span>Ações manuais</span><strong>—</strong></li>
+                <li><span>Alertas técnicos</span><strong>—</strong></li>
+              </ul>
+              <button type="button" data-demo-action="Auditoria aberta">
+                Consultar auditoria
+              </button>
+            </article>
+
+            <article class="admin-governance-card" id="definicoes">
+              <p class="eyebrow">DEFINIÇÕES</p>
+              <h2>Acessos e configuração</h2>
+              <p>
+                Gere permissões da equipa, integrações, pagamentos, emails e
+                opções gerais do evento.
+              </p>
+              <ul>
+                <li><span>Administradores</span><strong>—</strong></li>
+                <li><span>Integrações</span><strong>—</strong></li>
+                <li><span>Cópias de segurança</span><strong>—</strong></li>
+              </ul>
+              <button type="button" data-demo-action="Definições abertas">
+                Abrir definições
+              </button>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <dialog
+      class="admin-dialog"
+      aria-labelledby="ticket-dialog-title"
+      data-ticket-dialog
+    >
+      <form class="admin-dialog__panel" data-ticket-form>
+        <header class="admin-dialog__head">
+          <div>
+            <p class="eyebrow">OVERRIDE MANUAL</p>
+            <h2 id="ticket-dialog-title">Emitir bilhete</h2>
+            <p>Associa manualmente uma modalidade a uma conta existente.</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Fechar modal"
+            data-close-ticket-modal
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </header>
+        <div class="admin-dialog__body">
+          <label class="admin-field">
+            <span>Utilizador</span>
+            <input
+              type="email"
+              value="participante@exemplo.pt"
+              autocomplete="off"
+              required
+            />
+            <small>A conta deve existir antes da emissão.</small>
+          </label>
+          <label class="admin-field">
+            <span>Modalidade</span>
+            <select required>
+              <option value="">Seleciona uma modalidade</option>
+              <option>Apenas acesso</option>
+              <option>Acesso + refeições</option>
+              <option>Experiência completa</option>
+              <option>Passe geral</option>
+            </select>
+          </label>
+          <label class="admin-field admin-field--full">
+            <span>Motivo da emissão manual</span>
+            <textarea
+              rows="4"
+              placeholder="Descreve o motivo do override…"
+              required
+            ></textarea>
+            <small>O motivo fica associado ao registo de auditoria.</small>
+          </label>
+          <label class="admin-check admin-field--full">
+            <input type="checkbox" required />
+            <span
+              >Confirmo que validei a conta e a modalidade antes de emitir o
+              bilhete.</span
+            >
+          </label>
+          <div class="admin-dialog__warning admin-field--full" role="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 2 21h20zM12 9v5M12 18v.01" />
+            </svg>
+            <p>
+              <strong>Ação registada</strong>Esta operação ignora o fluxo de
+              pagamento normal e deve ficar documentada.
+            </p>
+          </div>
+        </div>
+        <footer class="admin-dialog__actions">
+          <button
+            class="btn btn--secondary"
+            type="button"
+            data-close-ticket-modal
+          >
+            Cancelar
+          </button>
+          <button class="btn btn--primary" type="submit">Emitir bilhete</button>
+        </footer>
+      </form>
+    </dialog>
+    <div
+      class="admin-toast"
+      role="status"
+      aria-live="polite"
+      data-admin-toast
+      hidden
+    >
+      Ação demonstrativa preparada. Nenhum dado foi alterado.
+    </div>
+  </body>
+</html>
