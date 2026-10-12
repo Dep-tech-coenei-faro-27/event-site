@@ -137,7 +137,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-        db: Session, user: User, new_password: str, token: ResetPasswordToken
+    db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)
