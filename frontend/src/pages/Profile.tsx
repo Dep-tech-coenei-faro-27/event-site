@@ -13,6 +13,11 @@ import { usePageMeta } from "../utils/usePageMeta";
  *  - POST /api/auth/logout
  *
  * Não existe endpoint para editar nome/email, por isso "Dados pessoais" é só leitura.
+ * A alteração de palavra-passe vive em /conta/alterar-palavra-passe (ChangePasswordPage).
+ * Mesmo domínio: caminhos relativos, o browser envia o cookie sozinho.
+ *
+ * Quando o ProtectedRoute / AuthContext entrarem, troca o fetch inicial e o
+ * logout por useAuth().
  *
  */
 

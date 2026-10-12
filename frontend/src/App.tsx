@@ -8,10 +8,10 @@ import Equipa from './pages/Equipa';
 import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ProfilePage from './pages/Profile';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
-import ProfilePage from './pages/Profile';
 import Agenda from './pages/Agenda';
 
 
