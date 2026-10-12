@@ -37,3 +37,16 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     is_verified: bool
+    institution: str | None
+    course: str | None
+
+
+class UserUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    institution: str | None = Field(default=None, max_length=255)
+    course: str | None = Field(default=None, max_length=255)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_field(cls, value: str) -> str:
+        return validate_name(value)
