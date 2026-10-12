@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar'; 
-import Footer from './components/Footer'; 
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registo from './pages/Registo';
@@ -13,9 +13,7 @@ import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
-
-
-
+import NotFound from './pages/NotFound';
 import Bilhetes from './pages/Bilhetes';
 
 import ScrollToTop from './components/ScrollToTop';
@@ -24,41 +22,41 @@ import { AuthProvider } from './utils/AuthContext';
 function App() {
   return (
     <BrowserRouter>
-    <AuthProvider>
-    <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-[#050d21]">
-        
-        <Navbar />
+      <AuthProvider>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen bg-[#050d21]">
 
-        <main className="flex-grow bg-[#050d21]">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/equipa" element={<Equipa />} />
-            <Route path="/bilhetes" element ={<Bilhetes/>} />
-            <Route path="/sobre" element ={<Sobre/>} />
-            <Route path="/parcerias" element ={<Parcerias/>} />
-            <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/parcerias" element={<Parcerias />} />
+          <Navbar />
 
-            <Route path="/agenda" element={<Agenda/>} />
+          <main className="flex-grow bg-[#050d21]">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/equipa" element={<Equipa />} />
+              <Route path="/bilhetes" element={<Bilhetes />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/parcerias" element={<Parcerias />} />
+              <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/parcerias" element={<Parcerias />} />
 
-            <Route path="/conta" element={<Login />} />
-            <Route path="/conta/criar" element={<Registo />} />
-            <Route path="/conta/verificar" element={<VerifyEmailPage />} />
-            <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
-            <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+              <Route path="/agenda" element={<Agenda />} />
 
-            
-            <Route element={<ProtectedRoute />}>
+              <Route path="/conta" element={<Login />} />
+              <Route path="/conta/criar" element={<Registo />} />
+              <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+              <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+              <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+
+
+              <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
-            </Route>
-          </Routes>
-        </main>
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+          <Footer />
 
-        <Footer />
-        
-      </div>
+        </div>
       </AuthProvider>
     </BrowserRouter>
   )

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { http, setUnauthorizedHandler } from './http';
 import { AuthContext, type User } from './authContextValue';
 
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       navigate('/conta', { replace: true });
     });
+    return () => {
+      setUnauthorizedHandler(() => { });
+    };
   }, [navigate]);
 
   const logout = useCallback(async () => {
