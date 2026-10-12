@@ -22,8 +22,6 @@ def get_user_profile(
     ticket = get_ticket_for_user(db, current_user.id)
 
     profile_data = UserRead.model_validate(current_user).model_dump()
-    profile_data["qr_code"] = (
-        ticket.qr_string if ticket is not None else None
-    )
+    profile_data["qr_code"] = ticket.qr_string if ticket is not None else None
 
     return UserProfileRead(**profile_data)
