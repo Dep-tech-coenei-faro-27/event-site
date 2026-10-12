@@ -4,6 +4,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
 import Field from "../components/Field";
 import { usePageMeta } from "../utils/usePageMeta";
+import { retryAfterMessage } from "../utils/RetryAfter";
 
 
 const points = [
@@ -48,7 +49,7 @@ export default function LoginPage() {
       } else if (res.status === 403) {
         setError("Verifica o teu email antes de continuar.");
       } else if (res.status === 429) {
-        setError("Demasiadas tentativas. Tenta novamente daqui a pouco.");
+        setError(retryAfterMessage(res, "Demasiados registos."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }

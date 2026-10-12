@@ -9,6 +9,8 @@ import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 
@@ -17,9 +19,12 @@ import Agenda from './pages/Agenda';
 import Bilhetes from './pages/Bilhetes';
 
 import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './utils/AuthContext';
 function App() {
   return (
     <BrowserRouter>
+    <AuthProvider>
     <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-[#050d21]">
         
@@ -34,19 +39,27 @@ function App() {
             <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
+            <Route path="/parcerias" element={<Parcerias />} />
+
             <Route path="/agenda" element={<Agenda/>} />
 
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+            <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+            <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
 
-            <Route path="/perfil" element={<ProfilePage />} />
+            
+            <Route element={<ProtectedRoute />}>
+                <Route path="/perfil" element={<ProfilePage />} />
+            </Route>
           </Routes>
         </main>
 
         <Footer />
         
       </div>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
