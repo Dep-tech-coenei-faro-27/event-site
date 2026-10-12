@@ -3,11 +3,16 @@ import TeamIntro from "../components/equipa/TeamIntro";
 import TeamDepartment from "../components/equipa/TeamDepartment";
 import TeamCta from "../components/equipa/TeamCta";
 import { departments } from "../data/Team";
+import { usePageMeta } from "../utils/usePageMeta";
+
 
 export default function Equipa() {
+
+    usePageMeta("Equipa · ENEI 2027", "As pessoas por trás do ENEI 2027.");
+
   return (
     <>
-      <main id="conteudo" className="p-t-16">
+      <main id="conteudo" className="pt-16">
         <TeamHero />
 
         <TeamIntro/>

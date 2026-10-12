@@ -74,6 +74,7 @@ def test_deleting_frees_the_email_for_a_new_registration(auth_client, db_session
             "name": "Ana Silva",
             "email": "squatted@example.com",
             "password": "Password123!",
+            "accept_terms": True,
         },
     )
 
