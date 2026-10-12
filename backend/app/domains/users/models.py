@@ -8,6 +8,29 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
+class PortugueseInstitution(str, Enum):
+    ULISBOA = "Universidade de Lisboa"
+    UPORTO = "Universidade do Porto"
+    UCOIMBRA = "Universidade de Coimbra"
+    UNL = "Universidade Nova de Lisboa"
+    UMINHO = "Universidade do Minho"
+    UA = "Universidade de Aveiro"
+    ISCTE = "ISCTE - Instituto Universitário de Lisboa"
+    UBI = "Universidade da Beira Interior"
+    UCA = "Universidade Católica Portuguesa"
+    # Adiciona outras opções conforme necessário
+
+
+class Course(str, Enum):
+    ENGENHARIA_INFORMATICA = "Engenharia Informática"
+    MEDICINA = "Medicina"
+    DIREITO = "Direito"
+    ECONOMIA = "Economia"
+    GESTAO = "Gestão"
+    DESIGN = "Design"
+    # Adiciona outros cursos conforme necessário
+
+
 class Role(Enum):
     USER = "user"
     ADMIN = "admin"
@@ -81,13 +104,23 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    institution: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
+    institution: Mapped[PortugueseInstitution | None] = mapped_column(
+        SAEnum(
+            PortugueseInstitution,
+            name="ck_users_institution",
+            native_enum=False,
+            create_constraint=True
+        ),
+        nullable=True
     )
-    course: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
+    course: Mapped[Course | None] = mapped_column(
+        SAEnum(
+            Course,
+            name="ck_users_course",
+            native_enum=False,
+            create_constraint=True
+        ),
+        nullable=True
     )
 
 

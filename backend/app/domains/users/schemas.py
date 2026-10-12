@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
+from app.domains.users.models import PortugueseInstitution, Course
 from app.domains.users.models import Role
 
 
@@ -10,6 +11,8 @@ class UserRegister(BaseModel):
     email: AsciiEmail
     password: str = Field(min_length=8, max_length=200)
     accept_terms: bool
+    institution: PortugueseInstitution | None = None
+    course: Course | None = None
 
     @field_validator("name")
     @classmethod
@@ -37,14 +40,14 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     is_verified: bool
-    institution: str | None
-    course: str | None
+    institution: PortugueseInstitution | None
+    course: Course | None
 
 
 class UserUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
-    institution: str | None = Field(default=None, max_length=255)
-    course: str | None = Field(default=None, max_length=255)
+    institution: PortugueseInstitution | None = None
+    course: Course | None = None
 
     @field_validator("name")
     @classmethod

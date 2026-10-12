@@ -37,6 +37,8 @@ def create_user(db: Session, payload: UserRegister) -> User:
         password_hash=hash_password(payload.password),
         terms_accepted_at=now,
         term_version=CURRENT_TERMS_VERSION,
+        institution=payload.institution,
+        course=payload.course
     )
     db.add(user)
     try:
@@ -52,8 +54,10 @@ def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
     if payload.name is not None:
         user.name = payload.name.strip()
 
-    user.institution = payload.institution if payload.institution else None
-    user.course = payload.course if payload.course else None
+    if payload.institution is not None:
+        user.institution = payload.institution
+    if payload.course is not None:
+        user.course = payload.course
 
     db.commit()
     db.refresh(user)
@@ -130,7 +134,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-    db: Session, user: User, new_password: str, token: ResetPasswordToken
+        db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)
