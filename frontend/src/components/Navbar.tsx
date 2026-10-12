@@ -13,7 +13,7 @@ const navLinks = [
 ];
 
 const LOGIN_PATH = '/conta';
-const ACCOUNT_PATH = '/conta';
+const ACCOUNT_PATH = '/perfil';
 
 const accountDesktopClass =
   'hidden md:inline-flex min-h-[40px] items-center justify-center px-4 rounded-full border border-acento-principal/50 bg-acento-principal/10 text-branco text-[13px] font-bold transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
