@@ -223,7 +223,7 @@ const experiences: IconItem[] = [
         icon: (
             <>
                 <circle cx="12" cy="8" r="3" />
-                <path d="M12 2v2M12 12v2M6 8H4M20 8h-2M7.8 3.8 6.4 2.4M17.6 13.6l-1.4-1.4M16.2 3.8l1.4-1.4M6.4 13.6l1.4-1.4M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0" />
+                <path d="M12 2v2M12 12v2M6  8h-2M7.8 3.8 6.4 2.4M17.6 13.6l-1.4-1.4M16.2 3.8l1.4-1.4M6.4 13.6l1.4-1.4M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0" />
             </>
         ),
     },
@@ -671,25 +671,25 @@ export default function Agenda() {
                     classNameLead={leadClass}
                 />
 
-                <div className="grid grid-cols-1 gap-3.5 min-[621px]:grid-cols-2">
-                    {platformItems.map(({ title, text, tone, icon }) => (
-                        <Tile
-                            key={title}
-                            tone={tone}
-                            rounded
-                            showInnerBorder
-                            className="min-w-0 p-[22px] min-[621px]:p-[26px]"
-                        >
-                            <div className="grid grid-cols-[auto_1fr] gap-x-[18px]">
-                                <div className="row-span-2 [&>div]:mb-0">
-                                    <IconBox tone={tone}>{icon}</IconBox>
-                                </div>
-                                <h3 className={h3Class}>{title}</h3>
-                                <p className="mt-[7px] text-sm text-cinza-texto">{text}</p>
-                            </div>
-                        </Tile>
-                    ))}
+                <div className="grid grid-cols-1 gap-3.5 min-[621px]:max-[700px]:grid-cols-2 xl:grid-cols-2">
+    {platformItems.map(({ title, text, tone, icon }) => (
+        <Tile
+            key={title}
+            tone={tone}
+            rounded
+            showInnerBorder
+            className="min-w-0 p-[22px] min-[621px]:p-[26px]"
+        >
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px]">
+                <div className="row-span-2 [&>div]:mb-0">
+                    <IconBox tone={tone}>{icon}</IconBox>
                 </div>
+                <h3 className={`${h3Class} min-w-0 break-words`}>{title}</h3>
+                <p className="mt-[7px] min-w-0 break-words text-sm text-cinza-texto">{text}</p>
+            </div>
+        </Tile>
+    ))}
+</div>
             </Section>
         </main>
     );
