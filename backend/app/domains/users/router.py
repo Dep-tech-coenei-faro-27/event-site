@@ -11,15 +11,17 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserRead, status_code=status.HTTP_200_OK)
-def get_current_user(user: User = Depends(get_current_verified_user)) -> UserRead:
-    return UserRead.model_validate(user)
+def get_current_user_info(
+    current_user: User = Depends(get_current_verified_user),
+) -> UserRead:
+    return UserRead.model_validate(current_user)
 
 
 @router.put("/me", response_model=UserRead, status_code=status.HTTP_200_OK)
-def update_current_user_profile(
-        user: User = Depends(get_current_verified_user),
-        payload: UserUpdate = Depends(),
-        db: Session = Depends(get_db),
+def update_current_user(
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_verified_user),
 ) -> UserRead:
-    updated_user = update_user_profile(db, user, payload)
+    updated_user = update_user_profile(db, current_user, payload)
     return UserRead.model_validate(updated_user)

@@ -31,7 +31,7 @@ def only_loopback(trusted: str | None) -> bool:
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
     if settings.ENVIRONMENT == "prod" and only_loopback(
-            os.environ.get("FORWARDED_ALLOW_IPS")
+        os.environ.get("FORWARDED_ALLOW_IPS")
     ):
         logger.warning(
             "FORWARDED_ALLOW_IPS is not set or only trusts localhost. Behind a proxy "
