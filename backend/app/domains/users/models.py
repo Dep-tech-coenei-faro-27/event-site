@@ -81,6 +81,14 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    institution: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    course: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
 
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)
