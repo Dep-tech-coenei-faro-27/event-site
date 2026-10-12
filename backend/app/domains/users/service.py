@@ -49,7 +49,8 @@ def create_user(db: Session, payload: UserRegister) -> User:
 
 
 def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
-    user.name = payload.name.strip()
+    if payload.name is not None:
+        user.name = payload.name.strip()
     db.commit()
     db.refresh(user)
     return user
@@ -125,7 +126,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-    db: Session, user: User, new_password: str, token: ResetPasswordToken
+        db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)

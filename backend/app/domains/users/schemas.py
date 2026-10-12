@@ -40,7 +40,7 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: str | None = Field(min_length=1, max_length=255)
+    name: str = Field(min_length=1, max_length=255)
 
     @field_validator("name")
     @classmethod
