@@ -51,13 +51,16 @@ def create_user(db: Session, payload: UserRegister) -> User:
 
 
 def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
-    if payload.name is not None:
-        user.name = payload.name.strip()
+    update_data = payload.model_dump(exclude_unset=True)
 
-    if payload.institution is not None:
-        user.institution = payload.institution
-    if payload.course is not None:
-        user.course = payload.course
+    if "name" in update_data and update_data["name"] is not None:
+        user.name = update_data["name"].strip()
+
+    if "institution" in update_data:
+        user.institution = update_data["institution"]
+
+    if "course" in update_data:
+        user.course = update_data["course"]
 
     db.commit()
     db.refresh(user)
@@ -134,7 +137,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-    db: Session, user: User, new_password: str, token: ResetPasswordToken
+        db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)

@@ -44,11 +44,13 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
     institution: PortugueseInstitution | None = None
     course: Course | None = None
 
     @field_validator("name")
     @classmethod
-    def validate_name_field(cls, value: str) -> str:
+    def validate_name_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
         return validate_name(value)

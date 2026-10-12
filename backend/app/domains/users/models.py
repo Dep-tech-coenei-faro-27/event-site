@@ -82,8 +82,9 @@ class User(Base):
             name="ck_users_institution",
             native_enum=False,
             create_constraint=True,
+            values_callable=lambda obj: [e.value for e in obj]
         ),
-        nullable=True,
+        nullable=True
     )
     course: Mapped[Course | None] = mapped_column(
         SAEnum(
