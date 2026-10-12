@@ -12,7 +12,6 @@ import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
 import ProfilePage from './pages/Profile';
-import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 
 
