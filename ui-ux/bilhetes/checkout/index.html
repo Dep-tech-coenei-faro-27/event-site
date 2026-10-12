@@ -14,7 +14,7 @@
       content="Wireframe do fluxo de compra de bilhetes e pagamento MB Way do ENEI 2027."
     />
     <title>Comprar bilhete · ENEI 2027</title>
-    <link rel="stylesheet" href="../../styles.css?v=20261007-checkout-status" />
+    <link rel="stylesheet" href="../../styles.css?v=20261009-motion-v6" />
   </head>
 
   <body data-page="checkout">
@@ -188,7 +188,13 @@
                 <input type="checkbox" name="terms" required />
                 <span>
                   Confirmo que os dados da compra estão corretos e aceito os
-                  termos e condições.
+                  <a class="auth-legal-link" href="../../termos/"
+                    >termos e condições</a
+                  >
+                  e a
+                  <a class="auth-legal-link" href="../../privacidade/"
+                    >política de privacidade</a
+                  >.
                 </span>
               </label>
 
@@ -322,12 +328,13 @@
         <div class="footer-bottom">
           <span>© 2027 ENEI. Todos os direitos reservados.</span>
           <div class="footer-legal" aria-label="Informação legal">
-            <span>Termos e condições</span>
-            <span>Política de privacidade</span>
-            <span>Acessibilidade</span>
+            <a href="../../termos/">Termos e condições</a
+            ><a href="../../privacidade/">Política de privacidade</a
+            ><a href="../../acessibilidade/">Acessibilidade</a>
           </div>
         </div>
       </div>
     </footer>
+    <script src="../../motion.js?v=20261009-motion-v3" defer></script>
   </body>
 </html>

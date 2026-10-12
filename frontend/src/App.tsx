@@ -9,6 +9,8 @@ import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 
@@ -37,11 +39,15 @@ function App() {
             <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
+            <Route path="/parcerias" element={<Parcerias />} />
+
             <Route path="/agenda" element={<Agenda/>} />
 
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+            <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+            <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
 
             
             <Route element={<ProtectedRoute />}>

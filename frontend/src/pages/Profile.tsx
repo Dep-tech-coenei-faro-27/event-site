@@ -11,6 +11,12 @@ import { useAuth } from "../utils/useAuth";
  * O logout é o global do contexto (POST /api/auth/logout, limpa estado, redireciona).
  *
  * Não existe endpoint para editar nome/email, por isso "Dados pessoais" é só leitura.
+ * A alteração de palavra-passe vive em /conta/alterar-palavra-passe (ChangePasswordPage).
+ * Mesmo domínio: caminhos relativos, o browser envia o cookie sozinho.
+ *
+ * Quando o ProtectedRoute / AuthContext entrarem, troca o fetch inicial e o
+ * logout por useAuth().
+ *
  */
 
 const BORDER = "border-[rgba(215,227,244,0.1)]";
