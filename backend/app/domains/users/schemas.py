@@ -38,6 +38,7 @@ class UserRead(BaseModel):
     role: Role
     is_verified: bool
 
+
 class UserProfileRead(UserRead):
     model_config = ConfigDict(from_attributes=True)
 
