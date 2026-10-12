@@ -1,43 +1,47 @@
-from datetime import timedelta
-
 from fastapi import status
 
-from app.core.security import ACCESS_COOKIE_NAME, create_access_token
-from app.domains.users.schemas import UserRegister
-from app.domains.users.service import create_user, mark_user_verified
+from app.domains.users.enums import Course, PortugueseInstitution
+from tests.helpers import (
+    LOGIN_URL,
+    register_and_verify,
+)
+
+USERS_ME_URL = "/api/users/me"
 
 
-def test_update_user_profile_reflected_in_get(auth_client, db_session):
-    user = create_user(
-        db_session,
-        UserRegister(
-            name="Nome Antigo",
-            email="update.profile@example.com",
-            password="Password1!",
-            accept_terms=True,
-        ),
+def test_update_user_institution_and_course(auth_client, email_sender):
+    register_and_verify(auth_client, email_sender, email="update_test@example.com")
+    auth_client.post(
+        LOGIN_URL, json={"email": "update_test@example.com", "password": "Password123!"}
     )
-    mark_user_verified(db_session, user)
 
-    token = create_access_token(user.id, user.token_version, timedelta(minutes=15))
-    auth_client.cookies.set(ACCESS_COOKIE_NAME, token)
-
-    payload = {
-        "name": "Nome Atualizado",
-        "institution": "Universidade do Algarve",
-        "course": "Engenharia Informática",
+    update_payload = {
+        "name": "Léo Editado",
+        "institution": PortugueseInstitution.UPORTO.value,
+        "course": Course.GESTAO.value,
     }
-    put_response = auth_client.put("/api/users/me", json=payload)
-    assert put_response.status_code == status.HTTP_200_OK
-    data = put_response.json()
-    assert data["name"] == "Nome Atualizado"
-    assert data["institution"] == "Universidade do Algarve"
-    assert data["course"] == "Engenharia Informática"
 
-    get_response = auth_client.get("/api/users/me")
-    assert get_response.status_code == status.HTTP_200_OK
-    get_data = get_response.json()
-    assert get_data["name"] == "Nome Atualizado"
-    assert get_data["institution"] == "Universidade do Algarve"
-    assert get_data["course"] == "Engenharia Informática"
-    assert get_data["email"] == "update.profile@example.com"
+    response = auth_client.put(USERS_ME_URL, json=update_payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["name"] == "Léo Editado"
+    assert data["institution"] == PortugueseInstitution.UPORTO.value
+    assert data["course"] == Course.GESTAO.value
+
+
+def test_update_user_with_invalid_course_fails(auth_client, email_sender):
+    register_and_verify(auth_client, email_sender, email="invalid_course@example.com")
+    auth_client.post(
+        LOGIN_URL,
+        json={"email": "invalid_course@example.com", "password": "Password123!"},
+    )
+
+    update_payload = {"name": "Léo Editado", "course": "Medicina Quântica"}
+
+    response = auth_client.put(USERS_ME_URL, json=update_payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    errors = response.json()["detail"]
+    assert any(error["loc"] == ["body", "course"] for error in errors)

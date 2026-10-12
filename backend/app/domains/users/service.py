@@ -38,7 +38,7 @@ def create_user(db: Session, payload: UserRegister) -> User:
         terms_accepted_at=now,
         term_version=CURRENT_TERMS_VERSION,
         institution=payload.institution,
-        course=payload.course
+        course=payload.course,
     )
     db.add(user)
     try:
@@ -134,7 +134,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-        db: Session, user: User, new_password: str, token: ResetPasswordToken
+    db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)

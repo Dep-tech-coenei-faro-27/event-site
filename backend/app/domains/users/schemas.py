@@ -2,8 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
-from app.domains.users.models import PortugueseInstitution, Course
-from app.domains.users.models import Role
+from app.domains.users.enums import Course, PortugueseInstitution, Role
 
 
 class UserRegister(BaseModel):
