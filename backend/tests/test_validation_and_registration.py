@@ -35,7 +35,8 @@ def no_rate_limits(monkeypatch):
 
 def register(client, name="Ana Silva", email=EMAIL, password="Password123!"):
     return client.post(
-        REGISTER_URL, json={"name": name, "email": email, "password": password}
+        REGISTER_URL,
+        json={"name": name, "email": email, "password": password, "accept_terms": True},
     )
 
 

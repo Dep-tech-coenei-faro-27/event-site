@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Eyebrow from '../EyeBrow';
 import { EVENT_DATES, EVENT_START } from '../../data/Event';
+import MapEmbed from './MapEmbed';
+
 
 const TARGET = EVENT_START.getTime();
 
@@ -46,12 +48,10 @@ export default function LocationSection() {
 
         <div className="grid border border-[#1ab2ff]/40 bg-[#0a172f] shadow-[0_28px_70px_rgba(0,0,0,0.24)] md:grid-cols-[1.2fr_0.8fr]">
           <div className="min-h-[330px] bg-[#030710] md:min-h-[560px]">
-            <iframe
+            <MapEmbed
               title="Mapa do Campus de Gambelas da Universidade do Algarve"
-              loading="lazy"
               src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&layer=mapnik&marker=37.045102%2C-7.971998"
-              className="block h-full min-h-[330px] w-full border-0 [filter:saturate(0.72)_contrast(0.94)_brightness(0.86)] md:min-h-[560px]"
-            />
+           />
           </div>
 
           <div className="grid grid-rows-[auto_1fr] border-t border-[#1ab2ff]/40 md:border-l md:border-t-0">

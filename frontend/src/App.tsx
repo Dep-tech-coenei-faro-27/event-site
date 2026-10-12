@@ -11,10 +11,19 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
+import ProfilePage from './pages/Profile';
+import Parcerias from './pages/Parcerias';
+import Agenda from './pages/Agenda';
 
+
+
+import Bilhetes from './pages/Bilhetes';
+
+import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-[#050d21]">
         
         <Navbar />
@@ -23,16 +32,22 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/equipa" element={<Equipa />} />
+            <Route path="/bilhetes" element ={<Bilhetes/>} />
+            <Route path="/sobre" element ={<Sobre/>} />
+            <Route path="/parcerias" element ={<Parcerias/>} />
             <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
             <Route path="/sobre" element={<Sobre />} />
             <Route path="/parcerias" element={<Parcerias />} />
 
+            <Route path="/agenda" element={<Agenda/>} />
 
             <Route path="/conta" element={<Login />} />
             <Route path="/conta/criar" element={<Registo />} />
             <Route path="/conta/verificar" element={<VerifyEmailPage />} />
             <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
             <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+
+            <Route path="/perfil" element={<ProfilePage />} />
           </Routes>
         </main>
 

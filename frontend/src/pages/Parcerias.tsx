@@ -8,6 +8,8 @@ import PrimaryButton from '../components/PrimaryButton';
 import SecundaryButton from '../components/SecundaryButton';
 import Tile, { IconBox } from '../components/Tile';
 import type { Tone } from '../components/Tones';
+import { usePageMeta } from "../utils/usePageMeta";
+
 
 interface TileItem {
     title: string;
@@ -180,6 +182,9 @@ const LogoPlaceholder = ({ name }: { name: string }) => (
 
 
 export default function Parcerias() {
+
+    usePageMeta("Parcerias · ENEI 2027", "Conhece as empresas e instituições parceiras do ENEI 2027 e descobre como fazer parte do maior encontro de estudantes de informática do país.",);
+
     return (
         <main>
             <PageHeader backgroundImage={faroOldTown} className="pt-[220px] pb-[160px]">

@@ -1,6 +1,5 @@
 import Eyebrow from './EyeBrow';
 import faroMarinaImg from '../assets/faro-baixa.webp'; // Ou a imagem correspondente da marina
-
 export default function LocationSection() {
   return (
     <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">

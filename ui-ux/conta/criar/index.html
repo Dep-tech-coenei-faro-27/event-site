@@ -11,7 +11,7 @@
     />
     <meta name="description" content="Criação de conta ENEI 2027." />
     <title>Criar conta · ENEI 2027</title>
-    <link rel="stylesheet" href="../../styles.css?v=20261006-tailwind" />
+    <link rel="stylesheet" href="../../styles.css?v=20261009-motion-v6" />
   </head>
   <body data-page="conta" data-root="../..">
     <a class="skip-link" href="#conteudo">Saltar para o conteúdo</a>
@@ -127,21 +127,16 @@
               <label class="auth-check"
                 ><input type="checkbox" required /><span
                   >Li e aceito os
-                  <button
-                    class="auth-legal-link"
-                    type="button"
-                    data-legal="terms"
+                  <a class="auth-legal-link" href="../../termos/"
+                    >termos e condições</a
                   >
-                    termos e condições
-                  </button>
                   e a
-                  <button
-                    class="auth-legal-link"
-                    type="button"
-                    data-legal="privacy"
-                  >
-                    política de privacidade</button
-                  >.</span
+                  <a class="auth-legal-link" href="../../privacidade/"
+                    >política de privacidade</a
+                  >.
+                  <small class="auth-legal-version"
+                    >Documentos legais · versão 1.0 · 8 outubro 2026</small
+                  ></span
                 ></label
               >
               <button class="btn btn--primary" type="submit">
@@ -236,8 +231,9 @@
         <div class="footer-bottom">
           <span>© 2027 ENEI. Todos os direitos reservados.</span>
           <div class="footer-legal" aria-label="Informação legal">
-            <span>Termos e condições</span><span>Política de privacidade</span
-            ><span>Acessibilidade</span>
+            <a href="../../termos/">Termos e condições</a
+            ><a href="../../privacidade/">Política de privacidade</a
+            ><a href="../../acessibilidade/">Acessibilidade</a>
           </div>
         </div>
       </div>
@@ -246,5 +242,6 @@
       <span><strong>ENEI 2027</strong>Bilhetes</span
       ><a class="btn btn--primary" href="../../bilhetes/">Bilhetes</a>
     </aside>
+    <script src="../../motion.js?v=20261009-motion-v3" defer></script>
   </body>
 </html>

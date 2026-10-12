@@ -52,6 +52,7 @@ def test_a_failed_verification_email_is_logged_without_the_address(auth_client, 
                 "name": "Ana Silva",
                 "email": "ana@example.com",
                 "password": "Password123!",
+                "accept_terms": True,
             },
         )
 
