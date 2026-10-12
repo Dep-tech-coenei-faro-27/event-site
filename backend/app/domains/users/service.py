@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import User
-from app.domains.users.schemas import UserRegister
+from app.domains.users.schemas import UserRegister, UserUpdate
 
 CURRENT_TERMS_VERSION = "1.0"
 
@@ -44,6 +44,18 @@ def create_user(db: Session, payload: UserRegister) -> User:
     except IntegrityError:
         db.rollback()
         raise
+    db.refresh(user)
+    return user
+
+
+def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
+    if payload.name is not None:
+        user.name = payload.name.strip()
+
+    user.institution = payload.institution if payload.institution else None
+    user.course = payload.course if payload.course else None
+
+    db.commit()
     db.refresh(user)
     return user
 
@@ -118,7 +130,7 @@ def update_user_password(db: Session, user: User, new_password: str) -> User:
 
 
 def reset_user_password(
-    db: Session, user: User, new_password: str, token: ResetPasswordToken
+        db: Session, user: User, new_password: str, token: ResetPasswordToken
 ) -> User:
     password_hash = hash_password(new_password)
     now = datetime.now(UTC)
