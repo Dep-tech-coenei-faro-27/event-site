@@ -137,13 +137,13 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def check_environment(self) -> "Settings":
         weak_secret = (
-                len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-                or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+            len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+            or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
         weak_qr_secret = (
-                not self.QR_SECRET_KEY.strip()
-                or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-                or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
+            not self.QR_SECRET_KEY.strip()
+            or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+            or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
         )
         if self.ENVIRONMENT != "prod":
             if weak_secret:
@@ -170,9 +170,9 @@ class Settings(BaseSettings):
                 f"Generate one with: {SECRET_HINT}"
             )
         if (
-                weak_qr_secret
-                or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
-                or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
+            weak_qr_secret
+            or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
+            or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
         ):
             problems.append(
                 f"QR_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
