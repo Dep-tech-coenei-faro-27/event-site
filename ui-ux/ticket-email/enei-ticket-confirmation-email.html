@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>O teu bilhete ENEI 2027</title>
+    <style>
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        border-collapse: collapse !important;
+      }
+      img {
+        display: block;
+        border: 0;
+        outline: none;
+      }
+      @media only screen and (max-width: 620px) {
+        .email-shell {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .mobile-pad {
+          padding-right: 20px !important;
+          padding-left: 20px !important;
+        }
+        .ticket-column,
+        .qr-column {
+          display: block !important;
+          width: 100% !important;
+        }
+        .qr-column {
+          border-top: 1px dashed rgba(26, 178, 255, 0.45) !important;
+          border-left: 0 !important;
+        }
+        .event-place {
+          display: none !important;
+        }
+        .ticket-status {
+          display: block !important;
+          width: auto !important;
+          padding-top: 7px !important;
+          text-align: left !important;
+        }
+        .footer-date {
+          display: none !important;
+        }
+        .outer-pad {
+          padding: 20px 0 !important;
+        }
+        .ticket-wrap {
+          padding-right: 0 !important;
+          padding-left: 0 !important;
+        }
+        .ticket-action,
+        .ticket-note {
+          margin-right: 20px !important;
+          margin-left: 20px !important;
+        }
+        .email-copy,
+        .ticket-note {
+          width: 80% !important;
+          max-width: 340px !important;
+        }
+        .brand-block {
+          display: block !important;
+          width: 100% !important;
+        }
+        .email-title {
+          font-size: 36px !important;
+          line-height: 40px !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #030710;
+      color: #ffffff;
+      font-family: Poppins, Arial, Helvetica, sans-serif;
+    "
+  >
+    <!--
+      BACKEND FIELDS
+      [FIRST_NAME] [ATTENDEE_NAME] [TICKET_TYPE] [TICKET_REFERENCE]
+      [EVENT_DATES] [EVENT_LOCATION] [TICKET_URL]
+
+      Replace the preview QR image with the real ticket QR, preferably as a CID
+      attachment: <img src="cid:ticket-qr" ...>.
+      When sending, serve enei-email-tile.png from an absolute public URL or
+      attach it as CID and replace both relative background-image URLs.
+    -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        color: transparent;
+      "
+    >
+      Compra confirmada — o teu bilhete para o ENEI 2027 está pronto.
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      style="width: 100%; background: #030710"
+    >
+      <tr>
+        <td class="outer-pad" align="center" style="padding: 32px 12px">
+          <table
+            class="email-shell"
+            role="presentation"
+            width="100%"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              width: 100%;
+              max-width: 640px;
+              border: 1px solid rgba(26, 178, 255, 0.42);
+              background: #050d21;
+            "
+          >
+            <tr>
+              <td
+                class="mobile-pad"
+                style="
+                  padding: 22px 30px;
+                  border-bottom: 1px solid rgba(215, 227, 244, 0.1);
+                  background-color: #081126;
+                  background-image: url('./enei-email-tile.png');
+                  background-repeat: repeat;
+                  background-size: 96px 96px;
+                "
+              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td class="brand-block" valign="middle">
+                      <p
+                        style="
+                          margin: 0;
+                          color: #ffffff;
+                          font-family: Montserrat, Arial, sans-serif;
+                          font-size: 24px;
+                          font-weight: 800;
+                          line-height: 28px;
+                          letter-spacing: -0.04em;
+                        "
+                      >
+                        ENEI <span style="color: #23caff">2027</span>
+                      </p>
+                      <p
+                        style="
+                          margin: 4px 0 0;
+                          color: #8796a9;
+                          font-size: 10px;
+                          line-height: 15px;
+                          letter-spacing: 0.12em;
+                          text-transform: uppercase;
+                        "
+                      >
+                        Encontro Nacional de Estudantes de Informática
+                      </p>
+                    </td>
+                    <td
+                      class="event-place"
+                      align="right"
+                      valign="middle"
+                      style="
+                        color: #23caff;
+                        font-family: Montserrat, Arial, sans-serif;
+                        font-size: 10px;
+                        font-weight: 700;
+                        line-height: 16px;
+                        letter-spacing: 0.14em;
+                        text-transform: uppercase;
+                      "
+                    >
+                      Faro<br />Algarve
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="mobile-pad" style="padding: 46px 38px 34px">
+                <p
+                  style="
+                    margin: 0 0 14px;
+                    color: #23caff;
+                    font-family: Montserrat, Arial, sans-serif;
+                    font-size: 11px;
+                    font-weight: 700;
+                    line-height: 16px;
+                    letter-spacing: 0.16em;
+                    text-transform: uppercase;
+                  "
+                >
+                  &lt;BILHETE_CONFIRMADO /&gt;
+                </p>
+                <h1
+                  class="email-title"
+                  style="
+                    max-width: 500px;
+                    margin: 0;
+                    color: #ffffff;
+                    font-size: 42px;
+                    font-weight: 700;
+                    line-height: 46px;
+                    letter-spacing: -0.045em;
+                  "
+                >
+                  O teu lugar no ENEI está confirmado.
+                </h1>
+                <p
+                  class="email-copy"
+                  style="
+                    margin: 22px 0 0;
+                    color: #b1bccd;
+                    font-size: 15px;
+                    line-height: 25px;
+                  "
+                >
+                  Olá <strong style="color: #ffffff">[FIRST_NAME]</strong>.<br />
+                  Guarda este email e apresenta o código QR à entrada do evento.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="mobile-pad ticket-wrap" style="padding: 0 38px 38px">
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    width: 100%;
+                    border: 1px solid rgba(26, 178, 255, 0.42);
+                    background: #0d1a34;
+                  "
+                >
+                  <tr>
+                    <td
+                      colspan="2"
+                      style="
+                        padding: 14px 18px;
+                        border-bottom: 1px solid rgba(215, 227, 244, 0.1);
+                        background-color: #081526;
+                        background-image: url('./enei-email-tile.png');
+                        background-repeat: repeat;
+                        background-size: 96px 96px;
+                      "
+                    >
+                      <table
+                        role="presentation"
+                        width="100%"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                      >
+                        <tr>
+                          <td>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #23caff;
+                                font-family: Montserrat, Arial, sans-serif;
+                                font-size: 9px;
+                                font-weight: 700;
+                                line-height: 14px;
+                                letter-spacing: 0.16em;
+                                text-transform: uppercase;
+                              "
+                            >
+                              Bilhete digital
+                            </p>
+                          </td>
+                          <td
+                            class="ticket-status"
+                            align="right"
+                            style="
+                              color: #22c55e;
+                              font-family: Montserrat, Arial, sans-serif;
+                              font-size: 9px;
+                              font-weight: 700;
+                              line-height: 14px;
+                              letter-spacing: 0.1em;
+                              text-transform: uppercase;
+                            "
+                          >
+                            ● Confirmado
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="ticket-column"
+                      width="58%"
+                      valign="top"
+                      style="width: 58%; padding: 28px 24px"
+                    >
+                      <p
+                        style="
+                          margin: 0 0 24px;
+                          color: #ffffff;
+                          font-size: 25px;
+                          font-weight: 700;
+                          line-height: 30px;
+                          letter-spacing: -0.035em;
+                        "
+                      >
+                        [TICKET_TYPE]
+                      </p>
+                      <p
+                        style="
+                          margin: 0 0 5px;
+                          color: #8796a9;
+                          font-family: Montserrat, Arial, sans-serif;
+                          font-size: 9px;
+                          font-weight: 700;
+                          line-height: 14px;
+                          letter-spacing: 0.12em;
+                          text-transform: uppercase;
+                        "
+                      >
+                        Participante
+                      </p>
+                      <p
+                        style="
+                          margin: 0 0 18px;
+                          color: #ffffff;
+                          font-size: 14px;
+                          font-weight: 600;
+                          line-height: 20px;
+                        "
+                      >
+                        [ATTENDEE_NAME]
+                      </p>
+                      <table
+                        role="presentation"
+                        width="100%"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                      >
+                        <tr>
+                          <td width="48%" valign="top" style="width: 48%">
+                            <p
+                              style="
+                                margin: 0 0 5px;
+                                color: #8796a9;
+                                font-family: Montserrat, Arial, sans-serif;
+                                font-size: 9px;
+                                font-weight: 700;
+                                line-height: 14px;
+                                letter-spacing: 0.12em;
+                                text-transform: uppercase;
+                              "
+                            >
+                              Data
+                            </p>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #ffffff;
+                                font-size: 12px;
+                                line-height: 18px;
+                              "
+                            >
+                              [EVENT_DATES]
+                            </p>
+                          </td>
+                          <td width="4%" style="width: 4%">&nbsp;</td>
+                          <td width="48%" valign="top" style="width: 48%">
+                            <p
+                              style="
+                                margin: 0 0 5px;
+                                color: #8796a9;
+                                font-family: Montserrat, Arial, sans-serif;
+                                font-size: 9px;
+                                font-weight: 700;
+                                line-height: 14px;
+                                letter-spacing: 0.12em;
+                                text-transform: uppercase;
+                              "
+                            >
+                              Local
+                            </p>
+                            <p
+                              style="
+                                margin: 0;
+                                color: #ffffff;
+                                font-size: 12px;
+                                line-height: 18px;
+                              "
+                            >
+                              [EVENT_LOCATION]
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                      <p
+                        style="
+                          margin: 22px 0 5px;
+                          color: #8796a9;
+                          font-family: Montserrat, Arial, sans-serif;
+                          font-size: 9px;
+                          font-weight: 700;
+                          line-height: 14px;
+                          letter-spacing: 0.12em;
+                          text-transform: uppercase;
+                        "
+                      >
+                        Referência
+                      </p>
+                      <p
+                        style="
+                          margin: 0;
+                          color: #23caff;
+                          font-family: 'Courier New', monospace;
+                          font-size: 12px;
+                          font-weight: 700;
+                          line-height: 18px;
+                          letter-spacing: 0.06em;
+                        "
+                      >
+                        [TICKET_REFERENCE]
+                      </p>
+                    </td>
+                    <td
+                      class="qr-column"
+                      width="42%"
+                      align="center"
+                      valign="middle"
+                      style="
+                        width: 42%;
+                        padding: 25px 20px;
+                        border-left: 1px dashed rgba(26, 178, 255, 0.45);
+                        background: rgba(3, 7, 16, 0.38);
+                      "
+                    >
+                      <p
+                        style="
+                          margin: 0 0 12px;
+                          color: #23caff;
+                          font-family: Montserrat, Arial, sans-serif;
+                          font-size: 9px;
+                          font-weight: 700;
+                          line-height: 14px;
+                          letter-spacing: 0.14em;
+                          text-transform: uppercase;
+                        "
+                      >
+                        Apresenta à entrada
+                      </p>
+                      <!-- Preview QR. Backend: replace src with the real QR CID or URL. -->
+                      <img
+                        data-field="qr_image"
+                        width="164"
+                        height="164"
+                        alt="Código QR do bilhete"
+                        style="
+                          width: 164px;
+                          height: 164px;
+                          background: #ffffff;
+                        "
+                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='164' height='164' viewBox='0 0 41 41'%3E%3Crect width='41' height='41' fill='white'/%3E%3Cg fill='%2300010a'%3E%3Cpath d='M2 2h11v11H2zm2 2v7h7V4zm2 2h3v3H6zM28 2h11v11H28zm2 2v7h7V4zm2 2h3v3h-3zM2 28h11v11H2zm2 2v7h7v-7zm2 2h3v3H6z'/%3E%3Cpath d='M16 2h2v2h-2zm4 0h3v2h-3zm5 0h1v4h-1zM15 6h4v2h-4zm6 1h2v4h-2zm3 2h2v4h-2zM15 11h3v3h-3zm5 2h4v2h-4zm6 2h3v3h-3zM2 16h4v2H2zm6-1h3v4H8zm5 2h2v3h-2zm3-2h5v2h-5zm7 2h3v3h-3zm5-2h4v2h-4zm6 1h5v3h-5zM2 21h2v4H2zm4-1h4v2H6zm6 2h3v4h-3zm5-3h2v5h-2zm3 3h4v2h-4zm6-2h2v4h-2zm4 2h3v3h-3zm5-2h4v2h-4zM15 27h4v2h-4zm6-1h3v4h-3zm5 2h4v2h-4zm6-2h2v5h-2zm4 1h3v2h-3zM15 32h2v4h-2zm4-1h4v2h-4zm6 2h2v5h-2zm4-1h3v3h-3zm5 1h5v2h-5zM16 38h5v1h-5zm7-3h2v4h-2zm6 2h4v2h-4zm6 0h4v2h-4z'/%3E%3C/g%3E%3C/svg%3E"
+                      />
+                      <p
+                        style="
+                          margin: 12px 0 0;
+                          color: #8796a9;
+                          font-size: 10px;
+                          line-height: 15px;
+                        "
+                      >
+                        Bilhete pessoal e intransmissível
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="mobile-pad" style="padding: 0 38px 44px">
+                <table
+                  class="ticket-action"
+                  role="presentation"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td bgcolor="#1ab2ff" style="background: #1ab2ff">
+                      <a
+                        href="[TICKET_URL]"
+                        style="
+                          display: inline-block;
+                          padding: 13px 20px;
+                          border: 1px solid #1ab2ff;
+                          background: #1ab2ff;
+                          color: #030710;
+                          font-family: Montserrat, Arial, sans-serif;
+                          font-size: 11px;
+                          font-weight: 800;
+                          line-height: 16px;
+                          letter-spacing: 0.04em;
+                          text-decoration: none;
+                          text-transform: uppercase;
+                        "
+                        >Ver o meu bilhete →</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                <p
+                  class="ticket-note"
+                  style="
+                    margin: 18px 0 0;
+                    color: #8796a9;
+                    font-size: 11px;
+                    line-height: 18px;
+                  "
+                >
+                  Não partilhes este email nem o código QR. Se tiveres alguma
+                  questão, responde a esta mensagem para falares com a equipa.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                class="mobile-pad"
+                style="
+                  padding: 22px 30px;
+                  border-top: 1px solid rgba(215, 227, 244, 0.1);
+                  background: #081126;
+                "
+              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td
+                      style="
+                        color: #b1bccd;
+                        font-size: 10px;
+                        line-height: 17px;
+                      "
+                    >
+                      ENEI 2027 · Faro, Algarve<br />
+                      Encontro Nacional de Estudantes de Informática
+                    </td>
+                    <td
+                      class="footer-date"
+                      align="right"
+                      style="
+                        color: #23caff;
+                        font-family: Montserrat, Arial, sans-serif;
+                        font-size: 9px;
+                        font-weight: 700;
+                        line-height: 15px;
+                        letter-spacing: 0.12em;
+                      "
+                    >
+                      1-4 ABRIL 2027
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
