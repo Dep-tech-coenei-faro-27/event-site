@@ -11,6 +11,16 @@ class TicketNotFoundError(Exception):
     """Raised when the ticket or transaction does not exist."""
 
 
+def get_ticket_for_user(db: Session, user_id: int) -> Ticket | None:
+    """The ticket issued to a user, if any.
+
+    A user can only have one active ticket today, so the oldest row wins.
+    """
+    return db.scalar(
+        select(Ticket).where(Ticket.user_id == user_id).order_by(Ticket.id).limit(1)
+    )
+
+
 class PaymentNotConfirmedError(Exception):
     """Raised when attempting to generate a QR code for an unpaid ticket."""
 
