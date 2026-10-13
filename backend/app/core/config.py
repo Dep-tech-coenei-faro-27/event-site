@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     ]
 
     JWT_SECRET_KEY: str
+    QR_SECRET_KEY: str
     JWT_ALGORITHM: Literal["HS256", "HS384", "HS512"] = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, gt=0, le=1440)
     JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = Field(
@@ -83,6 +84,15 @@ class Settings(BaseSettings):
         if not value.strip():
             raise ValueError(
                 f"JWT_SECRET_KEY must be set. Generate one with: {SECRET_HINT}"
+            )
+        return value
+
+    @field_validator("QR_SECRET_KEY")
+    @classmethod
+    def qr_secret_must_be_set(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError(
+                f"QR_SECRET_KEY must be set. Generate one with: {SECRET_HINT}"
             )
         return value
 
@@ -136,14 +146,24 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def check_environment(self) -> "Settings":
         weak_secret = (
-            len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-            or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+                len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+        )
+        weak_qr_secret = (
+                len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
         )
 
         if self.ENVIRONMENT != "prod":
             if weak_secret:
                 warnings.warn(
                     "JWT_SECRET_KEY is short or a known example value. This is "
+                    "accepted in dev only. Generate a real one with: " + SECRET_HINT,
+                    stacklevel=2,
+                )
+            if weak_qr_secret:
+                warnings.warn(
+                    "QR_SECRET_KEY is short or a known example value. This is "
                     "accepted in dev only. Generate a real one with: " + SECRET_HINT,
                     stacklevel=2,
                 )
@@ -155,6 +175,16 @@ class Settings(BaseSettings):
                 f"JWT_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
                 "characters and not be an example value. "
                 f"Generate one with: {SECRET_HINT}"
+            )
+        if weak_qr_secret or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY:
+            problems.append(
+                f"QR_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
+                "characters and not be an example value. "
+                f"Generate one with: {SECRET_HINT}"
+            )
+        if self.JWT_SECRET_KEY == self.QR_SECRET_KEY:
+            problems.append(
+                "JWT_SECRET_KEY and QR_SECRET_KEY must not be the same."
             )
         if self.DEBUG:
             problems.append("DEBUG must be false (it leaks tracebacks in responses).")
