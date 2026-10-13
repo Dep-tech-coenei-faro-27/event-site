@@ -50,19 +50,6 @@ def test_qr_payload_contains_no_personal_data():
     assert payload.isascii()
 
 
-def test_qr_signature_verification_and_tamper_resistance():
-    """Ensure the signed payload can be verified and rejects tampering."""
-    payload = generate_qr_payload(ticket_id=7)
-    verified = verify_qr_payload(payload)
-    assert verified.ticket_id == 7
-
-    # Adulterar o ID do bilhete mantendo a assinatura
-    parts = payload.split(".")
-    tampered = f"{parts[0]}.8.{parts[2]}.{parts[3]}"
-    with pytest.raises(InvalidQRPayloadError):
-        verify_qr_payload(tampered)
-
-
 def test_qr_generated_and_saved_only_after_payment_confirmation(db_session: Session):
     """Requirement: Gerar string única após confirmação do pagamento e guardar."""
     user = User(
@@ -98,8 +85,18 @@ def test_qr_generated_and_saved_only_after_payment_confirmation(db_session: Sess
     assert verified.ticket_id == ticket.id
 
 
-def test_prod_rejects_weak_or_example_qr_secret():
-    """Requirement: Chave de assinatura em Secret, fora do código."""
+@pytest.mark.parametrize(
+    "bad_qr_secret",
+    [
+        "",
+        "   ",
+        "too-short",
+        "dev-only-qr-secret-replace-me-0123456789abcdef",
+        "a" * 48,  # igual à JWT_SECRET_KEY
+    ],
+)
+def test_prod_rejects_missing_weak_or_duplicate_qr_secret(bad_qr_secret: str):
+    """Requirement: Chave de assinatura em Secret, fora do código e forte em prod."""
     from pydantic import ValidationError
 
     from app.core.config import Settings
@@ -119,5 +116,32 @@ def test_prod_rejects_weak_or_example_qr_secret():
             FRONTEND_URL="https://enei.pt",
             CORS_ALLOW_ORIGINS=["https://enei.pt"],
             JWT_SECRET_KEY="a" * 48,
-            QR_SECRET_KEY="dev-only-qr-secret-replace-me-0123456789abcdef",
+            QR_SECRET_KEY=bad_qr_secret,
         )
+
+
+def test_qr_signature_verification_and_tamper_resistance():
+    """Ensure signed payload can be verified and rejects any tampering."""
+    payload = generate_qr_payload(ticket_id=7)
+    verified = verify_qr_payload(payload)
+    assert verified.ticket_id == 7
+
+    prefix, ticket_id, nonce, signature = payload.split(".")
+
+    # 1. Adulterar o ticket_id
+    with pytest.raises(InvalidQRPayloadError):
+        verify_qr_payload(f"{prefix}.8.{nonce}.{signature}")
+
+    # 2. Adulterar o nonce
+    tampered_nonce = nonce[:-1] + ("a" if nonce[-1] != "a" else "b")
+    with pytest.raises(InvalidQRPayloadError):
+        verify_qr_payload(f"{prefix}.{ticket_id}.{tampered_nonce}.{signature}")
+
+    # 3. Adulterar o prefixo
+    with pytest.raises(InvalidQRPayloadError):
+        verify_qr_payload(f"ENEI26.{ticket_id}.{nonce}.{signature}")
+
+    # 4. Adulterar a própria assinatura
+    tampered_sig = signature[:-1] + ("a" if signature[-1] != "a" else "b")
+    with pytest.raises(InvalidQRPayloadError):
+        verify_qr_payload(f"{prefix}.{ticket_id}.{nonce}.{tampered_sig}")

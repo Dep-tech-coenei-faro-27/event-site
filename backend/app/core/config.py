@@ -137,13 +137,13 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def check_environment(self) -> "Settings":
         weak_secret = (
-            len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-            or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+                len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
         weak_qr_secret = (
-            not self.QR_SECRET_KEY.strip()
-            or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-            or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
+                not self.QR_SECRET_KEY.strip()
+                or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
         )
         if self.ENVIRONMENT != "prod":
             if weak_secret:
@@ -169,18 +169,16 @@ class Settings(BaseSettings):
                 "characters and not be an example value. "
                 f"Generate one with: {SECRET_HINT}"
             )
-        if self.QR_SECRET_KEY and (
-            weak_qr_secret
-            or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
-            or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
+        if (
+                weak_qr_secret
+                or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
+                or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
         ):
             problems.append(
                 f"QR_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
                 "characters, not be an example value, and differ from JWT_SECRET_KEY. "
                 f"Generate one with: {SECRET_HINT}"
             )
-        elif not self.QR_SECRET_KEY.strip():
-            self.QR_SECRET_KEY = f"qr-fallback-{self.JWT_SECRET_KEY}"
 
         if self.DEBUG:
             problems.append("DEBUG must be false (it leaks tracebacks in responses).")

@@ -25,13 +25,13 @@ def upgrade() -> None:
         "tickets",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("transaction_reference", sa.String(length=100), nullable=False),
+        sa.Column("transaction_reference", sa.String(length=100), nullable=True),
         sa.Column(
             "payment_status",
             sa.Enum(
                 "pending",
-                "success",
-                "failed",
+                "paid",
+                "cancelled",
                 name="ck_tickets_payment_status",
                 native_enum=False,
                 create_constraint=True,
