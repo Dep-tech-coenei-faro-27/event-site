@@ -1,16 +1,11 @@
 from datetime import datetime
-from enum import Enum
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, String, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
-
-class Role(Enum):
-    USER = "user"
-    ADMIN = "admin"
+from app.domains.users.enums import Course, PortugueseInstitution, Role
 
 
 class User(Base):
@@ -80,6 +75,27 @@ class User(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    institution: Mapped[PortugueseInstitution | None] = mapped_column(
+        SAEnum(
+            PortugueseInstitution,
+            name="ck_users_institution",
+            native_enum=False,
+            create_constraint=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=True,
+    )
+
+    course: Mapped[Course | None] = mapped_column(
+        SAEnum(
+            Course,
+            name="ck_users_course",
+            native_enum=False,
+            create_constraint=True,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=True,
     )
 
 
