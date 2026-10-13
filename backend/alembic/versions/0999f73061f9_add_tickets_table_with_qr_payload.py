@@ -25,7 +25,7 @@ def upgrade() -> None:
         "tickets",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("transaction_reference", sa.String(length=100), nullable=True),
+        sa.Column("transaction_reference", sa.String(length=100), nullable=False),
         sa.Column(
             "payment_status",
             sa.Enum(

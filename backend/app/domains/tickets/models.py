@@ -27,7 +27,7 @@ class Ticket(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), index=True, nullable=False
     )
-    transaction_reference: Mapped[str | None] = mapped_column(
+    transaction_reference: Mapped[str] = mapped_column(
         String(100), unique=True, index=True, nullable=False
     )
     payment_status: Mapped[PaymentStatus] = mapped_column(
