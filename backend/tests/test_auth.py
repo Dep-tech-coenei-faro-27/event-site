@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 import pytest
+from fastapi import status
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -12,7 +13,8 @@ from app.core.security import (
     verify_password,
 )
 from app.domains.auth.dependencies import EMAIL_VERIFICATION_REQUIRED_MESSAGE
-from app.domains.users.models import Role, User
+from app.domains.users.enums import Course, PortugueseInstitution, Role
+from app.domains.users.models import User
 from tests.helpers import (
     LOGIN_URL,
     ME_URL,
@@ -42,6 +44,8 @@ def test_register_creates_user(auth_client):
             "email": "ana@example.com",
             "password": "Password123!",
             "accept_terms": True,
+            "institution": PortugueseInstitution.ULISBOA.value,
+            "course": Course.ENGENHARIA_INFORMATICA.value,
         },
     )
 
@@ -513,3 +517,39 @@ def test_register_fails_without_terms_acceptance(auth_client):
     )
 
     assert response_missing.status_code == 422
+
+
+def test_register_with_valid_institution_and_course(auth_client):
+    payload = {
+        "name": "Mock user",
+        "email": "mock.user@example.com",
+        "password": "ValidPassword123!",
+        "accept_terms": True,
+        "institution": PortugueseInstitution.ULISBOA.value,
+        "course": Course.ENGENHARIA_INFORMATICA.value,
+    }
+
+    response = auth_client.post(REGISTER_URL, json=payload)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data["institution"] == PortugueseInstitution.ULISBOA.value
+    assert data["course"] == Course.ENGENHARIA_INFORMATICA.value
+
+
+def test_register_with_invalid_institution_fails(auth_client):
+    payload = {
+        "name": "Invalid user",
+        "email": "invalid.user@example.com",
+        "password": "ValidPassword123!",
+        "accept_terms": True,
+        "institution": "Universidade Inventada de Hogwarts",
+        "course": Course.ENGENHARIA_INFORMATICA.value,
+    }
+
+    response = auth_client.post(REGISTER_URL, json=payload)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    errors = response.json()["detail"]
+    assert any(error["loc"] == ["body", "institution"] for error in errors)

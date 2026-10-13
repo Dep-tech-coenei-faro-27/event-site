@@ -3,6 +3,9 @@ import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
 import Field from "../components/Field";
+import { usePageMeta } from "../utils/usePageMeta";
+import { retryAfterMessage } from "../utils/RetryAfter";
+
 
 const points = [
   "Consulta o estado dos teus bilhetes.",
@@ -12,6 +15,9 @@ const points = [
 
 
 export default function LoginPage() {
+
+    usePageMeta("Entrar · ENEI 2027", "Entra na tua conta ENEI 2027 para acompanhares a tua inscrição.");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -34,7 +40,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         // 200 → cookie de sessão já guardado pelo browser
-        window.location.href = "/evento"; // TODO: alterar para a url correta
+        window.location.href = "/perfil"; // TODO: alterar para a url correta
         return;
       }
 
@@ -43,7 +49,7 @@ export default function LoginPage() {
       } else if (res.status === 403) {
         setError("Verifica o teu email antes de continuar.");
       } else if (res.status === 429) {
-        setError("Demasiadas tentativas. Tenta novamente daqui a pouco.");
+        setError(retryAfterMessage(res, "Demasiados registos."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }

@@ -8,6 +8,7 @@ export interface IconBoxProps {
 }
 
 export interface TileProps {
+    as?: 'article' | 'div' | 'section';
     tone: Tone;
     pattern?: boolean;
     rounded?: boolean;
@@ -36,6 +37,7 @@ export const IconBox = ({ tone, children }: IconBoxProps) => (
 /* ---------- Componente Principal Tile (Exportado por Defeito) ---------- */
 
 export default function Tile({
+    as: Component = 'article',
     tone,
     pattern = false,
     rounded = false,
@@ -44,7 +46,8 @@ export default function Tile({
     children,
 }: TileProps) {
     return (
-        <article
+
+        <Component
             style={{ '--tile-color': tones[tone].color } as CSSProperties}
             className={`
                 relative overflow-hidden border border-t-[3px]
@@ -88,6 +91,6 @@ export default function Tile({
             <div className="relative z-10">
                 {children}
             </div>
-        </article>
+        </Component>
     );
 }

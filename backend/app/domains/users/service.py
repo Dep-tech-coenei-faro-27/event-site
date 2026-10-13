@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.security import hash_password
 from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import StudentVerificationStatus, User
-from app.domains.users.schemas import UserRegister
+from app.domains.users.schemas import UserRegister, UserUpdate
 
 CURRENT_TERMS_VERSION = "1.0"
 
@@ -56,6 +56,8 @@ def create_user(db: Session, payload: UserRegister) -> User:
         student_verified_at=student_verified_at,
         terms_accepted_at=now,
         term_version=CURRENT_TERMS_VERSION,
+        institution=payload.institution,
+        course=payload.course,
     )
     db.add(user)
     try:
@@ -63,6 +65,23 @@ def create_user(db: Session, payload: UserRegister) -> User:
     except IntegrityError:
         db.rollback()
         raise
+    db.refresh(user)
+    return user
+
+
+def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "name" in update_data and update_data["name"] is not None:
+        user.name = update_data["name"].strip()
+
+    if "institution" in update_data:
+        user.institution = update_data["institution"]
+
+    if "course" in update_data:
+        user.course = update_data["course"]
+
+    db.commit()
     db.refresh(user)
     return user
 

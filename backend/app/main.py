@@ -15,6 +15,7 @@ from app.core.middleware import (
 from app.domains.auth.router import router as auth_router
 from app.domains.health.router import router as health_router
 from app.domains.payments.router import router as payments_router
+from app.domains.users.router import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
     app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(users_router, prefix=settings.API_V1_PREFIX)
     app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 
     register_exception_handlers(app)
