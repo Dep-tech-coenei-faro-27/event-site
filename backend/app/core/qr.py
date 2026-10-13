@@ -30,9 +30,9 @@ def _sign_data(data: str) -> str:
 def generate_qr_payload(ticket_id: int) -> str:
     """Generate a unique, HMAC-signed, PII-free QR payload for a ticket.
 
-        Format: ``ENEI27.<ticket_id>.<nonce>.<signature>``
-        Uses URL-safe characters without padding to keep the QR code compact
-        and easily readable when printed in black and white.
+    Format: ``ENEI27.<ticket_id>.<nonce>.<signature>``
+    Uses URL-safe characters without padding to keep the QR code compact
+    and easily readable when printed in black and white.
     """
     if ticket_id <= 0:
         raise ValueError("Ticket ID must be a positive integer")

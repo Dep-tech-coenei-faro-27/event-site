@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ]
 
     JWT_SECRET_KEY: str
-    QR_SECRET_KEY: str
+    QR_SECRET_KEY: str = ""
     JWT_ALGORITHM: Literal["HS256", "HS384", "HS512"] = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, gt=0, le=1440)
     JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = Field(
@@ -84,15 +84,6 @@ class Settings(BaseSettings):
         if not value.strip():
             raise ValueError(
                 f"JWT_SECRET_KEY must be set. Generate one with: {SECRET_HINT}"
-            )
-        return value
-
-    @field_validator("QR_SECRET_KEY")
-    @classmethod
-    def qr_secret_must_be_set(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError(
-                f"QR_SECRET_KEY must be set. Generate one with: {SECRET_HINT}"
             )
         return value
 
@@ -150,10 +141,10 @@ class Settings(BaseSettings):
                 or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
         weak_qr_secret = (
-                len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                not self.QR_SECRET_KEY.strip()
+                or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
                 or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
         )
-
         if self.ENVIRONMENT != "prod":
             if weak_secret:
                 warnings.warn(
@@ -161,7 +152,9 @@ class Settings(BaseSettings):
                     "accepted in dev only. Generate a real one with: " + SECRET_HINT,
                     stacklevel=2,
                 )
-            if weak_qr_secret:
+            if not self.QR_SECRET_KEY.strip():
+                self.QR_SECRET_KEY = f"dev-qr-{self.JWT_SECRET_KEY}"
+            elif weak_qr_secret:
                 warnings.warn(
                     "QR_SECRET_KEY is short or a known example value. This is "
                     "accepted in dev only. Generate a real one with: " + SECRET_HINT,
@@ -176,16 +169,19 @@ class Settings(BaseSettings):
                 "characters and not be an example value. "
                 f"Generate one with: {SECRET_HINT}"
             )
-        if weak_qr_secret or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY:
+        if self.QR_SECRET_KEY and (
+                weak_qr_secret
+                or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
+                or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
+        ):
             problems.append(
                 f"QR_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
-                "characters and not be an example value. "
+                "characters, not be an example value, and differ from JWT_SECRET_KEY. "
                 f"Generate one with: {SECRET_HINT}"
             )
-        if self.JWT_SECRET_KEY == self.QR_SECRET_KEY:
-            problems.append(
-                "JWT_SECRET_KEY and QR_SECRET_KEY must not be the same."
-            )
+        elif not self.QR_SECRET_KEY.strip():
+            self.QR_SECRET_KEY = f"qr-fallback-{self.JWT_SECRET_KEY}"
+
         if self.DEBUG:
             problems.append("DEBUG must be false (it leaks tracebacks in responses).")
         if self.POSTGRES_PASSWORD == "postgres":
@@ -199,7 +195,6 @@ class Settings(BaseSettings):
         insecure = [o for o in self.CORS_ALLOW_ORIGINS if not o.startswith("https://")]
         if insecure:
             problems.append(f"CORS_ALLOW_ORIGINS must all be https:// ({insecure}).")
-
         if problems:
             raise ValueError(
                 "Unsafe settings for ENVIRONMENT=prod:\n- " + "\n- ".join(problems)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, DateTime, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,8 +10,8 @@ from app.db.base import Base
 
 class PaymentStatus(StrEnum):
     PENDING = "pending"
-    SUCCESS = "success"
-    FAILED = "failed"
+    PAID = "paid"
+    CANCELLED = "cancelled"
 
 
 class Ticket(Base):
