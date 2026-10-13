@@ -41,6 +41,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bi
 | `422` | corpo inválido (telemóvel, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
+| `503` | bilheteira fechada (essa modalidade ainda sem preço) ou pagamentos desligados (`PAYMENTS_MODE=off`) |
 
 Resposta `201`:
 
@@ -100,30 +101,48 @@ const timer = setInterval(async () => {
 }, 2000);
 ```
 
-## Pagamentos simulados (#105)
+## Modos de pagamento (`PAYMENTS_MODE`)
 
-Enquanto a conta ifthenpay não estiver contratada, `MBWAY_KEY` fica vazio e o backend usa um gateway **simulado**: cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. O frontend consegue construir o fluxo completo (espera, timeout e erro) com respostas reais da API.
+O modo é explícito e não depende do que estiver (ou não) configurado:
 
-- Para testar o ecrã de sucesso liga `MBWAY_KEY` a um gateway real; não há forma de forçar `confirmed` no gateway simulado, exatamente para não confundir testes.
-- Para testar o erro `502`, o frontend pode apontar para um `MBWAY_BASE_URL` inválido.
+| `PAYMENTS_MODE` | Comportamento |
+| --- | --- |
+| `off` (por omissão) | a bilheteira não vende: `/payment/initiate` responde `503`. |
+| `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
+| `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY` e um `MBWAY_BASE_URL` em `https`; sem eles o backend recusa arrancar. |
+
+- Para testar o ecrã de sucesso é preciso `PAYMENTS_MODE=live` com um gateway real; o gateway simulado nunca devolve `confirmed`, exatamente para não confundir testes.
+- Para testar o erro `502`, o frontend pode apontar um `MBWAY_BASE_URL` inválido em modo `live`.
+- Em `prod` com `PAYMENTS_MODE=simulated` o backend registra um aviso no arranque: os pagamentos não são reais.
+
+## Abrir a bilheteira
+
+O preço de cada modalidade vive na tabela `tickets`. Enquanto `price_cents` for `NULL` a bilheteira está fechada e `/payment/initiate` responde `503` (o servidor decide o preço, por isso nunca há uma transação de valor zero). Para abrir (preço com IVA, em cêntimos, sempre maior que zero):
+
+```bash
+# dentro de backend/ (usa a DATABASE_URL/.env do ambiente)
+python -m app.domains.payments.set_price geral 3500
+python -m app.domains.payments.set_price acesso 2500 --stock 150
+# ou
+make set-price tier=geral price=3500
+```
+
+`--stock` é opcional: define o limite de inventário (omisso = ilimitado); sem ele, o stock atual mantém-se.
 
 ## Configuração (backend)
 
 | Variável | Por omissão | Descrição |
 | --- | --- | --- |
 | `STUDENT_EMAIL_DOMAINS` | vazio | domínios de email institucional que verificam o estudante automaticamente (lista separada por vírgulas) |
-| `TICKET_PRICE_ACESSO_CENTS` | `0` | preço do bilhete `acesso`, com IVA, em cêntimos |
-| `TICKET_PRICE_REFEICOES_CENTS` | `0` | preço do bilhete `refeicoes` |
-| `TICKET_PRICE_COMPLETO_CENTS` | `0` | preço do bilhete `completo` |
-| `TICKET_PRICE_GERAL_CENTS` | `0` | preço do bilhete `geral` |
-| `MBWAY_KEY` | vazio | chave MB WAY da ifthenpay. **Sem ela, o gateway é simulado.** |
-| `MBWAY_BASE_URL` | `https://api.ifthenpay.com/spg/payment/mbway` | endpoint REST da ifthenpay |
+| `PAYMENTS_MODE` | `off` | `off`, `simulated` ou `live` (ver acima) |
+| `MBWAY_KEY` | vazio | chave MB WAY da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
+| `MBWAY_BASE_URL` | `https://api.ifthenpay.com/spg/payment/mbway` | endpoint REST da ifthenpay. Em `live` tem de ser `https`. |
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 
-Os preços ficam guardados na tabela `tickets` e são semeados a partir destas variáveis na migração. Até a organização confirmar a tabela de preços, os valores são placeholders (`0`).
+Os preços ficam guardados na tabela `tickets` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 
 ## Erros comuns
 
@@ -134,3 +153,4 @@ Os preços ficam guardados na tabela `tickets` e são semeados a partir destas v
 | `409` | `{"detail": "This ticket tier is sold out"}` |
 | `422` | `{"detail": [{"type", "loc", "msg"}]}` |
 | `502` | `{"detail": "Payment could not be initiated. Please try again."}` |
+| `503` | `{"detail": "Ticket sales are not open yet"}` ou `{"detail": "Payments are currently disabled."}` |

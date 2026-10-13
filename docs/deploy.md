@@ -64,6 +64,7 @@ e é o passo 2 acima que o apanha.
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
+- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS` e `PAYMENTS_MODE`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`, `CORS_ALLOW_CREDENTIALS`.
 
 Regras para criar os valores:
@@ -97,6 +98,7 @@ de erro diz qual.
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
+| `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY` e `MBWAY_BASE_URL` em `https` (ver "Abrir a bilheteira").                                                                 |
 
 A lista completa e os valores por omissão estão em `backend/app/core/config.py`.
 
@@ -133,6 +135,24 @@ $COMPOSE ps                       # estado dos contentores
 $COMPOSE logs --tail 50 backend   # logs do backend
 $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, sem efeito)
 ```
+
+## Abrir a bilheteira
+
+A migration cria as quatro modalidades com `price_cents` a `NULL`, o que mantém a bilheteira **fechada**: `POST
+/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `tickets` e
+mudam-se em runtime:
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price geral 3500
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500 --stock 150
+```
+
+- O preço é com IVA, em cêntimos, e tem de ser maior que zero.
+- `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
+  ilimitado).
+- `PAYMENTS_MODE` escolhe o gateway: `off` (por omissão; `/initiate` responde `503`), `simulated`
+  (dev/staging, responde sempre `pending` sem contactar ninguém) ou `live` (ifthenpay real; exige `MBWAY_KEY` e um
+  `MBWAY_BASE_URL` em `https`, senão o backend não arranca). Em `prod` com `simulated` fica um aviso no arranque.
 
 ## Promover o Primeiro Administrador
 
@@ -277,6 +297,7 @@ agendar no cron
 - [ ] Sem o aviso `FORWARDED_ALLOW_IPS` no log do arranque.
 - [ ] Base de dados sem porta pública (só `127.0.0.1`).
 - [ ] Limpeza diária no cron e confirmada.
+- [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] Muita gente na mesma rede (campus): cada IP partilhado conta como uma só pessoa. Se for preciso, sobe

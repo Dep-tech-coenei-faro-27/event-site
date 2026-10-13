@@ -123,12 +123,13 @@ Uma conta que nunca confirmou o email continua a ocupar esse email. O comando `m
 
 ## Pagamentos
 
-A bilheteira tem quatro modalidades (`acesso`, `refeicoes`, `completo`, `geral`), guardadas na tabela `tickets` e semeadas na migration a partir de `TICKET_PRICE_*_CENTS` (com IVA, em cêntimos). As três primeiras são de estudante.
+A bilheteira tem quatro modalidades (`acesso`, `refeicoes`, `completo`, `geral`), guardadas na tabela `tickets`. A migration cria-as com `price_cents` a `NULL` (bilheteira fechada); o preço passa a estar definido com `make set-price tier=geral price=3500` (`python -m app.domains.payments.set_price`, com IVA, em cêntimos, sempre maior que zero). As três primeiras são de estudante.
 
+- **Bilheteira fechada:** enquanto `price_cents` for `NULL`, `POST /api/payment/initiate` responde `503` sem criar transação (nunca há uma transação de valor zero).
 - **Preço do servidor:** `POST /api/payment/initiate` ignora qualquer preço enviado pelo cliente e usa o da base de dados, multiplicado pela quantidade.
 - **Stock atómico:** a verificação de disponibilidade e a reserva do lugar acontecem na mesma transação, com a linha do bilhete bloqueada (`SELECT ... FOR UPDATE`), por isso dois pedidos em simultâneo não podem vender mais do que o `inventory_limit`.
 - **Estudante:** quem se regista com um email cujo domínio está em `STUDENT_EMAIL_DOMAINS` fica com `student_verification_status: "verified"` automaticamente; os outros ficam `pending` e não podem comprar bilhetes de estudante (recebem `403`). O estado é exposto em `GET /api/auth/me`.
-- **MB WAY:** sem `MBWAY_KEY` o gateway é simulado (responde sempre `pending`, sem contactar nada); com `MBWAY_KEY` fala com a ifthenpay (`MBWAY_BASE_URL`). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar.
+- **MB WAY:** o modo é `PAYMENTS_MODE` (`off` por omissão, `simulated` ou `live`). Em `off` a bilheteira responde `503`; em `simulated` o gateway responde sempre `pending`, sem contactar nada; em `live` fala com a ifthenpay (`MBWAY_KEY` e `MBWAY_BASE_URL` em `https`, obrigatórios). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar.
 - O contrato detalhado está em [`docs/api-payments.md`](../docs/api-payments.md).
 
 ## Health checks
@@ -146,6 +147,7 @@ make format       # ruff format
 make db-upgrade   # aplica migrations
 make db-revision m="descrição"   # cria nova migration
 make cleanup-unverified   # apaga contas não verificadas antigas
+make set-price tier=geral price=3500   # abre a bilheteira dessa modalidade
 make help         # lista todos os comandos
 ```
 
