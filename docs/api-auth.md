@@ -83,6 +83,22 @@ Precisa de sessão.
 | `401` | qualquer problema com a sessão. O `detail` diz qual: `Not authenticated. Missing access token cookie.` (sem cookie), `Token has expired.`, `Invalid token.`, `Token has been revoked.` (sessão terminada), `User not found` (conta apagada) ou `Inactive user`. O frontend só precisa de olhar para o `401` e levar o utilizador ao login. |
 | `403` | `Please verify your email address to continue.`                                                                                                                                                                                                                                                                                            |
 
+### `GET /api/users/me`
+
+Precisa de sessão. Devolve o perfil do utilizador autenticado, igual ao `/api/auth/me` mas com o `qr_code` do bilhete
+emitido (o payload assinado `ENEI27.<id>.<nonce>.<assinatura>`, sem dados pessoais). `qr_code` é `null` enquanto não
+houver um pagamento confirmado.
+
+| | |
+| --- | --- |
+| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course", "qr_code"}` |
+| `401` | sem sessão válida (o mesmo que `/api/auth/me`) |
+| `403` | email por verificar |
+
+### `PUT /api/users/me`
+
+Precisa de sessão. Atualiza o `name`, `institution` e `course` do próprio utilizador e devolve o perfil atualizado.
+
 ### `POST /api/auth/forgot-password`
 
 |       |                                                                                                                                      |
