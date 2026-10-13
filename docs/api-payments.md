@@ -111,7 +111,7 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 | `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
 | `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY` e um `MBWAY_BASE_URL` em `https`; sem eles o backend recusa arrancar. |
 
-- Para testar o ecrã de sucesso é preciso `PAYMENTS_MODE=live` com um gateway real; o gateway simulado nunca devolve `confirmed`, exatamente para não confundir testes.
+- Para testar o ecrã de sucesso sem um gateway real, os ambientes que **não sejam `prod`** podem usar o modo de confirmação do simulador: com `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0 o pagamento passa a `confirmed` ao fim desses segundos (ver abaixo). Em `prod` o simulador nunca confirma.
 - Para testar o erro `502`, o frontend pode apontar um `MBWAY_BASE_URL` inválido em modo `live`.
 - Em `prod` com `PAYMENTS_MODE=simulated` o backend registra um aviso no arranque: os pagamentos não são reais.
 
@@ -140,6 +140,7 @@ make set-price tier=geral price=3500
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
+| `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | só em *staging*: o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Em `prod` tem de ser `0`, senão o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 
 Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
