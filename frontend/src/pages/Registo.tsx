@@ -109,6 +109,7 @@ export default function RegisterPage() {
           name: name.trim(),
           email: email.trim(),
           password,
+          accept_terms: accepted,
         }),
       });
 
