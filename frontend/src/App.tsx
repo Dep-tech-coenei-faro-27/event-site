@@ -15,7 +15,9 @@ import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 import NotFound from './pages/NotFound';
 import Bilhetes from './pages/Bilhetes';
-
+import Acessibilidade from './pages/Acessibilidade';
+import Privacidade from './pages/Privacidade';
+import Termos from './pages/TermosCondicoes';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './utils/AuthContext';
@@ -38,16 +40,15 @@ function App() {
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/parcerias" element={<Parcerias />} />
-
+              <Route path="/acessibilidade" element={<Acessibilidade/>}/>
+              <Route path="/termos" element={<Termos/>} /> 
               <Route path="/agenda" element={<Agenda />} />
-
+              <Route path="/privacidade" element={<Privacidade />}/>
               <Route path="/conta" element={<Login />} />
               <Route path="/conta/criar" element={<Registo />} />
               <Route path="/conta/verificar" element={<VerifyEmailPage />} />
               <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
               <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
-
-
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
               </Route>
