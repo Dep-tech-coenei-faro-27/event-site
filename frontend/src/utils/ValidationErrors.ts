@@ -54,3 +54,16 @@ export function validationMessages(detail: unknown): string[] {
   const all = (detail as ValidationItem[]).flatMap(messagesFor);
   return [...new Set(all)];
 }
+
+/** 422 → { campo: [mensagens] }. Erros sem campo conhecido vão para "_form". */
+export function validationErrorsByField(detail: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!Array.isArray(detail)) return out;
+  for (const item of detail as ValidationItem[]) {
+    const field = String(item.loc?.[item.loc.length - 1] ?? "_form");
+    const msgs = messagesFor(item);
+    if (!msgs.length) continue;
+    out[field] = [...new Set([...(out[field] ?? []), ...msgs])];
+  }
+  return out;
+}

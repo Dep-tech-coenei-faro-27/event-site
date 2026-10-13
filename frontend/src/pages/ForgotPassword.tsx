@@ -2,6 +2,8 @@ import { useState, type SyntheticEvent } from "react";
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import Field from "../components/Field";
+import { http, ApiError } from "../utils/http";
+import { retryAfterMessage } from "../utils/RetryAfter";
 
 const points = [
   "Introduz o email da conta.",
@@ -23,25 +25,22 @@ export default function ForgotPasswordPage() {
     setStatus("loading");
 
     try {
-      const res = await fetch("/api/auth/forgot-password", {
+      await http("/auth/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: { email: email.trim() },
       });
 
       // 200 → resposta sempre igual, exista a conta ou não
-      if (res.ok) {
-        setStatus("sent");
-        return;
-      }
-
-      if (res.status === 429) {
-        setError("Demasiados pedidos. Tenta novamente daqui a pouco.");
+      setStatus("sent");
+      return;
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        setError("Não foi possível contactar o servidor.");
+      } else if (err.status === 429) {
+        setError(retryAfterMessage(err.retryAfter, "Demasiados pedidos."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }
-    } catch {
-      setError("Não foi possível contactar o servidor.");
     }
     setStatus("error");
   };

@@ -4,8 +4,9 @@ import PrimaryButton from "../components/PrimaryButton";
 import Field from "../components/Field";
 import { usePageMeta } from "../utils/usePageMeta";
 
-import { validationMessages } from "../utils/ValidationErrors.ts";
+import { validationErrorsByField } from "../utils/ValidationErrors.ts";
 import { retryAfterMessage } from "../utils/RetryAfter.ts";
+import { http, ApiError } from "../utils/http";
 
 const points = [
   "Regista os teus dados essenciais.",
@@ -45,6 +46,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
@@ -98,41 +100,38 @@ export default function RegisterPage() {
     }
 
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
+      await http("/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
+        body: {
           name: name.trim(),
           email: email.trim(),
           password,
           accept_terms: accepted,
-        }),
+        },
       });
-
-      if (res.status === 201) {
-        setRegisteredEmail(email.trim().toLowerCase());
-        return;
-      }
-
-      if (res.status === 409) {
+      setRegisteredEmail(email.trim().toLowerCase());
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        setError("Não foi possível contactar o servidor.");
+      } else if (err.status === 409) {
         setError("Já existe uma conta com este email.");
-      } else if (res.status === 422) {
-
-            const body = await res.json().catch(() => null);
-            const msgs = validationMessages(body?.detail);
-            setError(msgs.length ? msgs.join(" ") : "Os dados enviados são inválidos. Verifica os campos.",);
-
-      } else if (res.status === 429) {
-            setError(retryAfterMessage(res, "Demasiados registos."));
+      } else if (err.status === 422) {
+        const byField = validationErrorsByField(err.detail);
+        setFieldErrors(byField);
+        if (!Object.keys(byField).length) {
+          setError("Os dados enviados são inválidos. Verifica os campos.");
+        } else if (byField._form) {
+          setError(byField._form.join(" "));
+        }
+      } else if (err.status === 429) {
+        setError(retryAfterMessage(err.retryAfter, "Demasiados registos."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }
-    } catch {
-      setError("Não foi possível contactar o servidor.");
     } finally {
       setLoading(false);
     }
@@ -219,6 +218,7 @@ export default function RegisterPage() {
                       placeholder="O teu nome completo"
                       autoComplete="name"
                       maxLength={255}
+                      error={fieldErrors.name}
                       required
                     />
                     <Field
@@ -229,6 +229,7 @@ export default function RegisterPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="nome@exemplo.pt"
                       autoComplete="email"
+                      error={fieldErrors.email}
                       required
                     />
 
@@ -242,6 +243,7 @@ export default function RegisterPage() {
                         placeholder="Cria uma palavra-passe"
                         autoComplete="new-password"
                         maxLength={200}
+                        error={fieldErrors.password}
                         required
                       />
                       <Field
