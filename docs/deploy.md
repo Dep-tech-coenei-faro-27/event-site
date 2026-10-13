@@ -212,7 +212,33 @@ sh scripts/backup.sh               # ou: sh scripts/backup.sh /outra/pasta
   nome da base original. Em caso de dúvida, restaura para um nome novo e decide depois.
 - As cópias têm dados pessoais: não as ponhas no Git nem as partilhes. Copia-as para **fora do servidor**, porque uma
   cópia no mesmo disco não protege contra a perda do disco.
-- Agendar as cópias (por exemplo com o cron, como a limpeza) e guardá-las fora do servidor ainda é trabalho por fazer.
+
+## Cópias para fora da VPS
+
+O `scripts/offsite-backup.sh` faz, por esta ordem:
+
+1. Corre o `scripts/backup.sh` (dump da base de dados e arquivo de `backend/media`).
+2. Copia os `db-*.dump` e `media-*.tar.gz` para o destino `BACKUP_REMOTE`, com o `rclone`.
+3. Apaga no destino as cópias com mais de 30 dias.
+4. Apaga na VPS as cópias com mais de 7 dias.
+
+Só mexe em `db-*.dump` e `media-*.tar.gz`
+
+`BACKUP_REMOTE` é um destino do `rclone` no formato `nome-do-remote:pasta`
+
+Instalar o rclone e configurar o destino
+
+```
+rclone config                       
+chmod 600 ~/.config/rclone/rclone.conf
+```
+
+agendar no cron
+
+```
+30 3 * * * cd /home/debian/enei/event-site && PATH=/usr/local/bin:/usr/bin:/bin BACKUP_REMOTE=nome-do-remote:enei flock -n /tmp/enei-backup.lock /bin/sh scripts/offsite-backup.sh >> /home/debian/enei/offsite-backup.log 2>&1
+
+```
 
 ## Email
 
