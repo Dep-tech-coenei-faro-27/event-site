@@ -239,3 +239,32 @@ def test_no_warning_when_a_docker_network_is_trusted(monkeypatch, caplog):
         create_app()
 
     assert "FORWARDED_ALLOW_IPS" not in caplog.text
+
+
+def test_a_warning_is_logged_in_prod_when_payments_run_simulated(monkeypatch, caplog):
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "10.0.0.5")
+
+    with caplog.at_level(logging.WARNING):
+        create_app()
+
+    assert "PAYMENTS_MODE=simulated" in caplog.text
+
+
+def test_no_simulated_warning_outside_prod_or_when_payments_are_off(
+    monkeypatch, caplog
+):
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "10.0.0.5")
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "dev")
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
+    with caplog.at_level(logging.WARNING):
+        create_app()
+    assert "PAYMENTS_MODE=simulated" not in caplog.text
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "off")
+    with caplog.at_level(logging.WARNING):
+        create_app()
+    assert "PAYMENTS_MODE=simulated" not in caplog.text

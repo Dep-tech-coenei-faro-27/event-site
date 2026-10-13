@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.domains.payments.models import (
     Ticket,
@@ -9,6 +11,36 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from tests.helpers import authenticate
+
+
+def test_ticket_price_can_be_null_while_the_ticket_office_is_closed(db_session):
+    ticket = Ticket(
+        tier=TicketTier.ACESSO,
+        name="Apenas acesso",
+        price_cents=None,
+        is_student=True,
+    )
+    db_session.add(ticket)
+    db_session.commit()
+
+    stored = db_session.scalar(select(Ticket).where(Ticket.tier == TicketTier.ACESSO))
+
+    assert stored is not None
+    assert stored.price_cents is None
+
+
+def test_ticket_price_cannot_be_zero(db_session):
+    db_session.add(
+        Ticket(
+            tier=TicketTier.GERAL,
+            name="Passe geral",
+            price_cents=0,
+            is_student=False,
+        )
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
 
 
 def test_ticket_stores_tier_price_and_inventory(db_session):

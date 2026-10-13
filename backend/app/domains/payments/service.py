@@ -14,7 +14,6 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
-from app.domains.payments.tiers import TIER_SPECS
 from app.domains.users.models import StudentVerificationStatus, User
 
 logger = logging.getLogger(__name__)
@@ -25,6 +24,10 @@ REFERENCE_LENGTH = 15
 
 class PaymentError(RuntimeError):
     status_code = 400
+
+
+class TicketOfficeClosedError(PaymentError):
+    status_code = 503
 
 
 class TicketUnavailableError(PaymentError):
@@ -89,6 +92,10 @@ def initiate_payment(
     if ticket is None:
         db.rollback()
         raise TicketUnavailableError("Ticket tier is not available")
+
+    if ticket.price_cents is None:
+        db.rollback()
+        raise TicketOfficeClosedError("Ticket sales are not open yet")
 
     if ticket.is_student and (
         user.student_verification_status is not StudentVerificationStatus.VERIFIED
@@ -213,24 +220,3 @@ def to_read(db: Session, transaction: Transaction) -> TransactionRead:
         confirmed_at=transaction.confirmed_at,
         created_at=transaction.created_at,
     )
-
-
-def seed_ticket_tiers(db: Session) -> None:
-    """Create any missing tier rows using the configured prices."""
-    existing = set(db.scalars(select(Ticket.tier)).all())
-    added = False
-    for tier, spec in TIER_SPECS.items():
-        if tier in existing:
-            continue
-        db.add(
-            Ticket(
-                tier=tier,
-                name=spec.name,
-                price_cents=int(getattr(settings, spec.price_setting)),
-                is_student=spec.is_student,
-                inventory_limit=None,
-            )
-        )
-        added = True
-    if added:
-        db.commit()

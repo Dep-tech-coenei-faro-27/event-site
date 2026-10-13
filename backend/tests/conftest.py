@@ -5,6 +5,7 @@ os.environ.setdefault(
     "JWT_SECRET_KEY",
     "test-only-jwt-secret-that-is-at-least-32-bytes-long",
 )
+os.environ.setdefault("PAYMENTS_MODE", "simulated")
 
 import pytest
 from fastapi.testclient import TestClient

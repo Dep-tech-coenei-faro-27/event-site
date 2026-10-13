@@ -5,10 +5,14 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 from urllib import error, parse, request
 
+from fastapi import HTTPException, status
+
 from app.core.config import settings
 from app.domains.payments.models import TransactionStatus
 
 logger = logging.getLogger(__name__)
+
+PAYMENTS_OFF_MESSAGE = "Payments are currently disabled."
 
 
 class PaymentGatewayError(RuntimeError):
@@ -183,11 +187,16 @@ class SimulatedMBWayGateway:
 
 
 def get_mbway_gateway() -> MBWayGateway:
-    if not settings.MBWAY_KEY:
-        return SimulatedMBWayGateway()
-    return IfThenPayMBWayGateway(
-        mbway_key=settings.MBWAY_KEY,
-        base_url=settings.MBWAY_BASE_URL,
-        timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
-        auth_token=settings.MBWAY_AUTH_TOKEN,
-    )
+    if settings.PAYMENTS_MODE == "off":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=PAYMENTS_OFF_MESSAGE,
+        )
+    if settings.PAYMENTS_MODE == "live":
+        return IfThenPayMBWayGateway(
+            mbway_key=settings.MBWAY_KEY,
+            base_url=settings.MBWAY_BASE_URL,
+            timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
+            auth_token=settings.MBWAY_AUTH_TOKEN,
+        )
+    return SimulatedMBWayGateway()

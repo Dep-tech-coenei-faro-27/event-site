@@ -179,3 +179,32 @@ def test_a_configuration_error_never_prints_the_values_it_received():
 
     assert secret not in str(error.value)
     assert "input_value" not in str(error.value)
+
+
+def test_payments_mode_defaults_to_off(monkeypatch):
+    monkeypatch.delenv("PAYMENTS_MODE", raising=False)
+    assert make().PAYMENTS_MODE == "off"
+
+
+@pytest.mark.parametrize("mode", ["off", "simulated"])
+def test_payments_modes_without_credentials_are_accepted(mode):
+    assert make(PAYMENTS_MODE=mode).PAYMENTS_MODE == mode
+
+
+def test_live_payments_require_the_provider_credentials():
+    with pytest.raises(ValidationError, match="MBWAY_KEY"):
+        make(PAYMENTS_MODE="live")
+
+    with pytest.raises(ValidationError, match="MBWAY_BASE_URL"):
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_BASE_URL="http://api.ifthenpay.com",
+        )
+
+    assert make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456").PAYMENTS_MODE == "live"
+
+
+def test_unknown_payments_mode_is_rejected():
+    with pytest.raises(ValidationError):
+        make(PAYMENTS_MODE="sandbox")

@@ -37,7 +37,10 @@ class TransactionStatus(StrEnum):
 class Ticket(Base):
     __tablename__ = "tickets"
     __table_args__ = (
-        CheckConstraint("price_cents >= 0", name="ck_tickets_price_not_negative"),
+        CheckConstraint(
+            "price_cents IS NULL OR price_cents > 0",
+            name="ck_tickets_price_positive",
+        ),
         CheckConstraint(
             "inventory_limit IS NULL OR inventory_limit >= 0",
             name="ck_tickets_inventory_not_negative",
@@ -58,7 +61,7 @@ class Ticket(Base):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(120))
-    price_cents: Mapped[int] = mapped_column(Integer)
+    price_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_student: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
@@ -84,7 +87,7 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     reference: Mapped[str] = mapped_column(String(15), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
+        ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
     ticket_id: Mapped[int] = mapped_column(
         ForeignKey("tickets.id", ondelete="RESTRICT"), index=True

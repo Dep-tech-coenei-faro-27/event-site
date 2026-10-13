@@ -73,15 +73,13 @@ class Settings(BaseSettings):
     # Institutional email domains that grant the student status automatically.
     STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
 
-    # Ticket prices, with VAT, in cents. Placeholders until the organisation
-    # confirms the final table; the server is always the source of truth.
-    TICKET_PRICE_ACESSO_CENTS: int = Field(default=0, ge=0)
-    TICKET_PRICE_REFEICOES_CENTS: int = Field(default=0, ge=0)
-    TICKET_PRICE_COMPLETO_CENTS: int = Field(default=0, ge=0)
-    TICKET_PRICE_GERAL_CENTS: int = Field(default=0, ge=0)
+    # Ticket prices live in the database (Ticket.price_cents) and are changed at
+    # runtime with `python -m app.domains.payments.set_price`. A NULL price means
+    # the ticket office is still closed and /payment/initiate answers 503.
 
-    # ifthenpay MB WAY v2. Without MBWAY_KEY the gateway answers with simulated
-    # responses so the frontend can integrate before the contract is signed.
+    # off: no payments at all (default). simulated: fake provider so the frontend
+    # can integrate. live: real ifthenpay gateway, needs the provider credentials.
+    PAYMENTS_MODE: Literal["off", "simulated", "live"] = "off"
     MBWAY_KEY: str = ""
     MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
     MBWAY_AUTH_TOKEN: str = ""
@@ -180,6 +178,14 @@ class Settings(BaseSettings):
             len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
             or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
+
+        if self.PAYMENTS_MODE == "live":
+            if not self.MBWAY_KEY:
+                raise ValueError("PAYMENTS_MODE=live requires MBWAY_KEY to be set.")
+            if not self.MBWAY_BASE_URL.startswith("https://"):
+                raise ValueError(
+                    "PAYMENTS_MODE=live requires MBWAY_BASE_URL to start with https://."
+                )
 
         if self.ENVIRONMENT != "prod":
             if weak_secret:

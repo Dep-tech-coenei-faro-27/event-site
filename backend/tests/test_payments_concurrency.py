@@ -1,8 +1,10 @@
 import os
 import threading
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import event, func, select
+from sqlalchemy import delete, event, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
@@ -183,3 +185,28 @@ def test_stock_check_and_reservation_are_atomic(db_session, test_engine):
     assert a_outcome.get("ok") is True, a_outcome.get("error")
     assert isinstance(b_outcome.get("error"), TicketSoldOutError), b_outcome
     assert _count_transactions(test_engine, ticket_id) == 1
+
+
+@requires_postgres
+def test_deleting_a_user_with_transactions_is_blocked(db_session):
+    ticket = seed_ticket_tiers(db_session)[TicketTier.GERAL]
+    user = _make_user(db_session, "ana@example.com")
+    db_session.add(
+        Transaction(
+            reference="ENEI-RESTRICT0",
+            user_id=user.id,
+            ticket_id=ticket.id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.PENDING,
+            phone="912345678",
+            provider="seed",
+            expires_at=datetime.now(UTC) + timedelta(minutes=4),
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(IntegrityError):
+        db_session.execute(delete(User).where(User.id == user.id))
+        db_session.commit()
+    db_session.rollback()

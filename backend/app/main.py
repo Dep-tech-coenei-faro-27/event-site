@@ -39,6 +39,11 @@ def create_app() -> FastAPI:
             "every visitor shares the proxy's IP, so the per-IP rate limits would "
             "apply to everyone."
         )
+    if settings.ENVIRONMENT == "prod" and settings.PAYMENTS_MODE == "simulated":
+        logger.warning(
+            "PAYMENTS_MODE=simulated in production: MB WAY payments are not real. "
+            "Set PAYMENTS_MODE=live and the provider credentials to charge users."
+        )
     docs = settings.ENVIRONMENT != "prod"
     app = FastAPI(
         title=settings.PROJECT_NAME,

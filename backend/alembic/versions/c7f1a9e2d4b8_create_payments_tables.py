@@ -20,10 +20,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 TIER_ROWS = [
-    ("acesso", "Apenas acesso", True, "TICKET_PRICE_ACESSO_CENTS"),
-    ("refeicoes", "Acesso + refeições", True, "TICKET_PRICE_REFEICOES_CENTS"),
-    ("completo", "Experiência completa", True, "TICKET_PRICE_COMPLETO_CENTS"),
-    ("geral", "Passe geral", False, "TICKET_PRICE_GERAL_CENTS"),
+    ("acesso", "Apenas acesso", True),
+    ("refeicoes", "Acesso + refeições", True),
+    ("completo", "Experiência completa", True),
+    ("geral", "Passe geral", False),
 ]
 
 
@@ -56,7 +56,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("tier", sa.String(length=20), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
-        sa.Column("price_cents", sa.Integer(), nullable=False),
+        sa.Column("price_cents", sa.Integer(), nullable=True),
         sa.Column(
             "is_student",
             sa.Boolean(),
@@ -76,7 +76,10 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.func.now(),
         ),
-        sa.CheckConstraint("price_cents >= 0", name="ck_tickets_price_not_negative"),
+        sa.CheckConstraint(
+            "price_cents IS NULL OR price_cents > 0",
+            name="ck_tickets_price_positive",
+        ),
         sa.CheckConstraint(
             "inventory_limit IS NULL OR inventory_limit >= 0",
             name="ck_tickets_inventory_not_negative",
@@ -127,7 +130,7 @@ def upgrade() -> None:
             name="ck_transactions_status",
         ),
         sa.ForeignKeyConstraint(["ticket_id"], ["tickets.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -144,8 +147,6 @@ def upgrade() -> None:
 
 
 def _seed_tickets() -> None:
-    from app.core.config import settings
-
     tickets = sa.table(
         "tickets",
         sa.column("tier", sa.String),
@@ -160,11 +161,11 @@ def _seed_tickets() -> None:
             {
                 "tier": tier,
                 "name": name,
-                "price_cents": int(getattr(settings, setting)),
+                "price_cents": None,
                 "is_student": is_student,
                 "inventory_limit": None,
             }
-            for tier, name, is_student, setting in TIER_ROWS
+            for tier, name, is_student in TIER_ROWS
         ],
     )
 

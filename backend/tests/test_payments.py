@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -88,6 +89,21 @@ def test_initiate_requires_verified_email(auth_client, email_sender, db_session)
     response = auth_client.post(INITIATE_URL, json=INITIATE)
 
     assert response.status_code == 403
+
+
+def test_initiate_returns_503_while_the_ticket_office_is_closed(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    tickets[TicketTier.GERAL].price_cents = None
+    db_session.commit()
+
+    response = auth_client.post(INITIATE_URL, json=INITIATE)
+
+    assert response.status_code == 503
+    assert db_session.scalar(select(Transaction)) is None
+    assert gateway.create_calls == []
 
 
 def test_initiate_uses_the_server_side_price(
@@ -595,14 +611,37 @@ def test_gateway_error_during_poll_keeps_the_stored_status(
     assert stored.status is TransactionStatus.PENDING
 
 
+def test_initiate_returns_503_when_payments_are_disabled(
+    auth_client, email_sender, db_session, monkeypatch
+):
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "off")
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(INITIATE_URL, json=INITIATE)
+
+    assert response.status_code == 503
+    assert db_session.scalar(select(Transaction)) is None
+
+
 def test_simulated_gateway_is_used_without_an_api_key(monkeypatch):
-    monkeypatch.setattr(settings, "MBWAY_KEY", "")
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
     assert isinstance(get_mbway_gateway(), SimulatedMBWayGateway)
 
 
 def test_real_gateway_is_used_when_a_key_is_configured(monkeypatch):
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "live")
     monkeypatch.setattr(settings, "MBWAY_KEY", "MBW-123456")
     assert isinstance(get_mbway_gateway(), IfThenPayMBWayGateway)
+
+
+def test_gateway_is_disabled_when_payments_are_off(monkeypatch):
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "off")
+
+    with pytest.raises(HTTPException) as error:
+        get_mbway_gateway()
+
+    assert error.value.status_code == 503
 
 
 def test_simulated_gateway_never_returns_confirmed():
