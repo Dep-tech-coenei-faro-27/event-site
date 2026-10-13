@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     MBWAY_KEY: str = ""
     MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
     MBWAY_AUTH_TOKEN: str = ""
+    # Anti-phishing key ifthenpay echoes back on the payment callback. Required when
+    # PAYMENTS_MODE=live: without it we cannot trust a callback.
+    MBWAY_CALLBACK_KEY: str = ""
     MBWAY_TIMEOUT_SECONDS: int = Field(default=10, gt=0, le=60)
     MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
 
@@ -191,6 +194,11 @@ class Settings(BaseSettings):
             if not self.MBWAY_BASE_URL.startswith("https://"):
                 raise ValueError(
                     "PAYMENTS_MODE=live requires MBWAY_BASE_URL to start with https://."
+                )
+            if not self.MBWAY_CALLBACK_KEY:
+                raise ValueError(
+                    "PAYMENTS_MODE=live requires MBWAY_CALLBACK_KEY to be set "
+                    "(the ifthenpay anti-phishing key)."
                 )
 
         if self.ENVIRONMENT != "prod":

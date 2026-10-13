@@ -50,6 +50,42 @@ def confirm_ticket_payment_and_issue_qr(db: Session, ticket_id: int) -> Ticket:
     return ticket
 
 
+def issue_ticket_for_paid_transaction(
+    db: Session, *, user_id: int, transaction_reference: str
+) -> Ticket:
+    """Issue the ticket for a paid transaction and sign its unique QR payload.
+
+    Idempotent by ``transaction_reference``: re-issuing for the same reference
+    returns the existing ticket and never overwrites an already signed QR, so a
+    repeated payment callback cannot duplicate a ticket.
+    """
+    ticket = db.scalar(
+        select(Ticket)
+        .where(Ticket.transaction_reference == transaction_reference)
+        .with_for_update()
+    )
+    if ticket is None:
+        ticket = Ticket(
+            user_id=user_id,
+            transaction_reference=transaction_reference,
+            payment_status=PaymentStatus.PAID,
+            paid_at=datetime.now(UTC),
+        )
+        db.add(ticket)
+        db.flush()
+    elif ticket.payment_status == PaymentStatus.CANCELLED:
+        raise PaymentNotConfirmedError("Cannot confirm a cancelled ticket")
+    elif ticket.payment_status == PaymentStatus.PAID and ticket.qr_payload:
+        return ticket
+
+    ticket.payment_status = PaymentStatus.PAID
+    ticket.paid_at = ticket.paid_at or datetime.now(UTC)
+    ticket.qr_payload = generate_qr_payload(ticket.id)
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
 def issue_qr_for_confirmed_ticket(db: Session, ticket: Ticket) -> Ticket:
     """Generate and persist a QR payload for an already confirmed ticket."""
     if ticket.payment_status != PaymentStatus.PAID:

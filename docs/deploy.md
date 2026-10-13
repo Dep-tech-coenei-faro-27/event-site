@@ -100,7 +100,8 @@ de erro diz qual.
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
-| `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY` e `MBWAY_BASE_URL` em `https` (ver "Abrir a bilheteira").                                                                 |
+| `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
+| `MBWAY_CALLBACK_KEY`                                                                  | obrigatório em `live`             | Chave anti-phishing do backoffice da ifthenpay. O backend recusa o callback sem ela e não arranca em `live` sem a ter.                                                              |
 
 A lista completa e os valores por omissão estão em `backend/app/core/config.py`.
 
@@ -152,6 +153,10 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
 - `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
   ilimitado).
+- Em `live`, no backoffice da ifthenpay configure o URL de callback como
+  `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
+  endpoint (GET) para confirmar o pagamento e emitir o bilhete; a chave nunca fica nos logs (o nginx mascara a query
+  string). Sem a chave, o callback é recusado com `403`.
 - `PAYMENTS_MODE` escolhe o gateway: `off` (por omissão; `/initiate` responde `503`), `simulated`
   (dev/staging, responde sempre `pending` sem contactar ninguém) ou `live` (ifthenpay real; exige `MBWAY_KEY` e um
   `MBWAY_BASE_URL` em `https`, senão o backend não arranca). Em `prod` com `simulated` fica um aviso no arranque.

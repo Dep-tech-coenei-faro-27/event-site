@@ -1,6 +1,8 @@
+import hmac
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -14,6 +16,7 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.tickets.service import issue_ticket_for_paid_transaction
 from app.domains.users.models import StudentVerificationStatus, User
 
 logger = logging.getLogger(__name__)
@@ -42,8 +45,37 @@ class StudentVerificationRequiredError(PaymentError):
     status_code = 403
 
 
+class InvalidCallbackKeyError(PaymentError):
+    status_code = 403
+
+
+class CallbackTransactionNotFoundError(PaymentError):
+    status_code = 404
+
+
+class CallbackAmountMismatchError(PaymentError):
+    status_code = 400
+
+
 def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _callback_key_matches(provided: str | None) -> bool:
+    """Constant-time check of the ifthenpay anti-phishing key."""
+    expected = settings.MBWAY_CALLBACK_KEY
+    if not provided or not expected:
+        return False
+    return hmac.compare_digest(provided, expected)
+
+
+def _callback_amount_matches(raw_amount: str | None, amount_cents: int) -> bool:
+    if raw_amount is None:
+        return False
+    try:
+        return Decimal(raw_amount) * 100 == amount_cents
+    except (InvalidOperation, ValueError):
+        return False
 
 
 def generate_reference(db: Session) -> str:
@@ -185,6 +217,48 @@ def _sync_provider_status(
     transaction.status = provider_status
     db.commit()
     db.refresh(transaction)
+
+
+def handle_payment_callback(
+    db: Session,
+    *,
+    key: str | None,
+    reference: str | None,
+    amount: str | None,
+) -> Transaction:
+    """Apply an ifthenpay payment callback to a transaction.
+
+    Trust only callbacks that carry our anti-phishing key, and only confirm a
+    payment whose value matches what was charged. Idempotent: a repeated callback
+    returns the same transaction and never duplicates the issued ticket.
+    """
+    if not _callback_key_matches(key):
+        raise InvalidCallbackKeyError("Invalid callback key")
+
+    if not reference:
+        raise CallbackTransactionNotFoundError("Missing transaction reference")
+
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    if transaction is None:
+        raise CallbackTransactionNotFoundError("Unknown transaction reference")
+
+    if not _callback_amount_matches(amount, transaction.amount_cents):
+        raise CallbackAmountMismatchError(
+            "Callback amount does not match the transaction"
+        )
+
+    if transaction.status is not TransactionStatus.CONFIRMED:
+        transaction.status = TransactionStatus.CONFIRMED
+        transaction.confirmed_at = datetime.now(UTC)
+        db.commit()
+        db.refresh(transaction)
+
+    issue_ticket_for_paid_transaction(
+        db, user_id=transaction.user_id, transaction_reference=transaction.reference
+    )
+    return transaction
 
 
 def get_transaction(

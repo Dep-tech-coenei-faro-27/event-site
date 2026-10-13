@@ -4,7 +4,7 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 
 ## Regras gerais
 
-- **Sessão obrigatória:** os dois endpoints precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`.
+- **Sessão obrigatória (exceto no callback):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` é público porque é o ifthenpay que o chama.
 - **O preço é sempre do servidor.** O frontend escolhe a modalidade (`ticket_tier`) e a quantidade; nunca envia o preço. Assim ninguém consegue pagar 1 cêntimo por um bilhete.
 - **Referência curta:** cada pagamento tem uma referência no formato `ENEI-XXXXXXXXXX` (15 caracteres no máximo, como no design). É esse valor que o frontend mostra e usa para consultar o estado.
 - **Dinheiro em cêntimos:** todos os valores são inteiros, em cêntimos de euro (por exemplo `4500` são `45,00 €`).
@@ -73,6 +73,27 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 
 Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at`). Só quando o fornecedor ainda responde `pending` é que o prazo local decide: se já tiver passado, a chamada devolve (e grava) o estado `expired`. Se o fornecedor estiver temporariamente inacessível, a API mantém o estado atual para o *polling* não falhar.
 
+### `GET /api/payment/callback`
+
+Endpoint público que a ifthenpay chama quando o pagamento MB WAY é concluído. Não usa sessão: a autenticidade é garantida pela **chave anti-phishing** (`MBWAY_CALLBACK_KEY`), que o ifthenpay devolve em cada chamada e que só o nosso backend conhece.
+
+| Parâmetro | Descrição |
+| --- | --- |
+| `key` ou `apk` | chave anti-phishing configurada no backoffice da ifthenpay |
+| `orderId` ou `oid` | a referência do pagamento (`ENEI-XXXXXXXXXX`) |
+| `amount` ou `val` | valor pago, em euros (por exemplo `45.00`) |
+
+O parâmetro `requestId` (ou `tid`) que a ifthenpay também envia é aceite mas ignorado. A resposta é sempre um JSON curto:
+
+| | |
+| --- | --- |
+| `200` | `{"status": "ok"}` — pagamento confirmado (ou já confirmado antes) |
+| `400` | valor em falta, não numérico ou diferente do que foi cobrado |
+| `403` | chave anti-phishing ausente ou errada |
+| `404` | referência desconhecida |
+
+O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
+
 ## Estados de uma transação
 
 | `status` | Significado |
@@ -109,7 +130,7 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 | --- | --- |
 | `off` (por omissão) | a bilheteira não vende: `/payment/initiate` responde `503`. |
 | `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
-| `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY` e um `MBWAY_BASE_URL` em `https`; sem eles o backend recusa arrancar. |
+| `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`; sem eles o backend recusa arrancar. |
 
 - Para testar o ecrã de sucesso é preciso `PAYMENTS_MODE=live` com um gateway real; o gateway simulado nunca devolve `confirmed`, exatamente para não confundir testes.
 - Para testar o erro `502`, o frontend pode apontar um `MBWAY_BASE_URL` inválido em modo `live`.
@@ -138,6 +159,7 @@ make set-price tier=geral price=3500
 | `MBWAY_KEY` | vazio | chave MB WAY da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_BASE_URL` | `https://api.ifthenpay.com/spg/payment/mbway` | endpoint REST da ifthenpay. Em `live` tem de ser `https`. |
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
+| `MBWAY_CALLBACK_KEY` | vazio | chave anti-phishing do callback da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |

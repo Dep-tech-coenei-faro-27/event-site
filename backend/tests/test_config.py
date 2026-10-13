@@ -203,7 +203,17 @@ def test_live_payments_require_the_provider_credentials():
             MBWAY_BASE_URL="http://api.ifthenpay.com",
         )
 
-    assert make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456").PAYMENTS_MODE == "live"
+    with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
+        make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456")
+
+    assert (
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_CALLBACK_KEY="anti-phishing-key",
+        ).PAYMENTS_MODE
+        == "live"
+    )
 
 
 def test_unknown_payments_mode_is_rejected():
