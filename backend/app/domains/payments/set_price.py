@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.domains.payments.models import Ticket, TicketTier
+from app.domains.payments.models import TicketTier, TicketTierPrice
 from app.domains.payments.tiers import TIER_SPECS
 
 
@@ -25,31 +25,31 @@ def set_price(
     price_cents: int,
     *,
     stock: int | None = None,
-) -> Ticket:
+) -> TicketTierPrice:
     if price_cents <= 0:
         raise ValueError("price_cents must be greater than 0")
     if stock is not None and stock < 0:
         raise ValueError("stock cannot be negative")
 
-    ticket = db.scalar(select(Ticket).where(Ticket.tier == tier))
-    if ticket is None:
+    tier_row = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier))
+    if tier_row is None:
         spec = TIER_SPECS[tier]
-        ticket = Ticket(
+        tier_row = TicketTierPrice(
             tier=tier,
             name=spec.name,
             price_cents=price_cents,
             is_student=spec.is_student,
             inventory_limit=stock,
         )
-        db.add(ticket)
+        db.add(tier_row)
     else:
-        ticket.price_cents = price_cents
+        tier_row.price_cents = price_cents
         if stock is not None:
-            ticket.inventory_limit = stock
+            tier_row.inventory_limit = stock
 
     db.commit()
-    db.refresh(ticket)
-    return ticket
+    db.refresh(tier_row)
+    return tier_row
 
 
 def main(argv: list[str] | None = None) -> None:

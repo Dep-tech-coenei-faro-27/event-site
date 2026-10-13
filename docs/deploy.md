@@ -139,7 +139,7 @@ $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, se
 ## Abrir a bilheteira
 
 A migration cria as quatro modalidades com `price_cents` a `NULL`, o que mantém a bilheteira **fechada**: `POST
-/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `tickets` e
+/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `ticket_tiers` e
 mudam-se em runtime:
 
 ```bash

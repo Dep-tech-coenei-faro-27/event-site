@@ -73,8 +73,8 @@ class Settings(BaseSettings):
     # Institutional email domains that grant the student status automatically.
     STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
 
-    # Ticket prices live in the database (Ticket.price_cents) and are changed at
-    # runtime with `python -m app.domains.payments.set_price`. A NULL price means
+    # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
+    # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
     # the ticket office is still closed and /payment/initiate answers 503.
 
     # off: no payments at all (default). simulated: fake provider so the frontend

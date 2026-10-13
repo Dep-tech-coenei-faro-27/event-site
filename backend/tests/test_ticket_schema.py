@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.domains.payments.models import (
-    Ticket,
     TicketTier,
+    TicketTierPrice,
     Transaction,
     TransactionStatus,
 )
@@ -14,7 +14,7 @@ from tests.helpers import authenticate
 
 
 def test_ticket_price_can_be_null_while_the_ticket_office_is_closed(db_session):
-    ticket = Ticket(
+    ticket = TicketTierPrice(
         tier=TicketTier.ACESSO,
         name="Apenas acesso",
         price_cents=None,
@@ -23,7 +23,9 @@ def test_ticket_price_can_be_null_while_the_ticket_office_is_closed(db_session):
     db_session.add(ticket)
     db_session.commit()
 
-    stored = db_session.scalar(select(Ticket).where(Ticket.tier == TicketTier.ACESSO))
+    stored = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.ACESSO)
+    )
 
     assert stored is not None
     assert stored.price_cents is None
@@ -31,7 +33,7 @@ def test_ticket_price_can_be_null_while_the_ticket_office_is_closed(db_session):
 
 def test_ticket_price_cannot_be_zero(db_session):
     db_session.add(
-        Ticket(
+        TicketTierPrice(
             tier=TicketTier.GERAL,
             name="Passe geral",
             price_cents=0,
@@ -44,7 +46,7 @@ def test_ticket_price_cannot_be_zero(db_session):
 
 
 def test_ticket_stores_tier_price_and_inventory(db_session):
-    ticket = Ticket(
+    ticket = TicketTierPrice(
         tier=TicketTier.COMPLETO,
         name="Experiência completa",
         price_cents=4500,
@@ -54,7 +56,9 @@ def test_ticket_stores_tier_price_and_inventory(db_session):
     db_session.add(ticket)
     db_session.commit()
 
-    stored = db_session.scalar(select(Ticket).where(Ticket.tier == TicketTier.COMPLETO))
+    stored = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.COMPLETO)
+    )
 
     assert stored is not None
     assert stored.price_cents == 4500
@@ -67,7 +71,7 @@ def test_transaction_records_user_ticket_amount_and_status(
     auth_client, email_sender, db_session
 ):
     user = authenticate(auth_client, email_sender, db_session)
-    ticket = Ticket(
+    ticket = TicketTierPrice(
         tier=TicketTier.GERAL,
         name="Passe geral",
         price_cents=5000,
@@ -79,7 +83,7 @@ def test_transaction_records_user_ticket_amount_and_status(
     transaction = Transaction(
         reference="ENEI-ABCDEFGHIJ",
         user_id=user.id,
-        ticket_id=ticket.id,
+        ticket_tier_id=ticket.id,
         amount_cents=5000,
         quantity=1,
         status=TransactionStatus.PENDING,
@@ -96,7 +100,7 @@ def test_transaction_records_user_ticket_amount_and_status(
 
     assert stored is not None
     assert stored.user_id == user.id
-    assert stored.ticket_id == ticket.id
+    assert stored.ticket_tier_id == ticket.id
     assert stored.amount_cents == 5000
     assert stored.status is TransactionStatus.PENDING
     assert stored.created_at is not None

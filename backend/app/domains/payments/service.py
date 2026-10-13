@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.domains.payments.gateway import MBWayGateway, PaymentGatewayError
 from app.domains.payments.models import (
-    Ticket,
     TicketTier,
+    TicketTierPrice,
     Transaction,
     TransactionStatus,
 )
@@ -61,10 +61,10 @@ def generate_reference(db: Session) -> str:
     raise RuntimeError("could not generate a unique payment reference")
 
 
-def _reserved_quantity(db: Session, ticket: Ticket, now: datetime) -> int:
+def _reserved_quantity(db: Session, tier: TicketTierPrice, now: datetime) -> int:
     holds = db.scalar(
         select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
-            Transaction.ticket_id == ticket.id,
+            Transaction.ticket_tier_id == tier.id,
             (
                 (Transaction.status == TransactionStatus.CONFIRMED)
                 | (
@@ -82,22 +82,24 @@ def initiate_payment(
     user: User,
     payload: PaymentInitiateRequest,
     gateway: MBWayGateway,
-) -> tuple[Transaction, Ticket]:
-    # Lock the ticket row so that the stock check and the reservation are a single
+) -> tuple[Transaction, TicketTierPrice]:
+    # Lock the tier row so that the stock check and the reservation are a single
     # atomic step. Without it, two concurrent buyers of a limited tier can both read
     # the same remaining quantity and oversell the tier.
-    ticket = db.scalar(
-        select(Ticket).where(Ticket.tier == payload.ticket_tier).with_for_update()
+    tier = db.scalar(
+        select(TicketTierPrice)
+        .where(TicketTierPrice.tier == payload.ticket_tier)
+        .with_for_update()
     )
-    if ticket is None:
+    if tier is None:
         db.rollback()
         raise TicketUnavailableError("Ticket tier is not available")
 
-    if ticket.price_cents is None:
+    if tier.price_cents is None:
         db.rollback()
         raise TicketOfficeClosedError("Ticket sales are not open yet")
 
-    if ticket.is_student and (
+    if tier.is_student and (
         user.student_verification_status is not StudentVerificationStatus.VERIFIED
     ):
         db.rollback()
@@ -106,17 +108,17 @@ def initiate_payment(
         )
 
     now = datetime.now(UTC)
-    if ticket.inventory_limit is not None:
-        remaining = ticket.inventory_limit - _reserved_quantity(db, ticket, now)
+    if tier.inventory_limit is not None:
+        remaining = tier.inventory_limit - _reserved_quantity(db, tier, now)
         if remaining < payload.quantity:
             db.rollback()
             raise TicketSoldOutError("This ticket tier is sold out")
 
-    amount_cents = ticket.price_cents * payload.quantity
+    amount_cents = tier.price_cents * payload.quantity
     transaction = Transaction(
         reference=generate_reference(db),
         user_id=user.id,
-        ticket_id=ticket.id,
+        ticket_tier_id=tier.id,
         amount_cents=amount_cents,
         quantity=payload.quantity,
         status=TransactionStatus.PENDING,
@@ -146,7 +148,7 @@ def initiate_payment(
     transaction.provider_reference = payment.provider_reference
     db.commit()
     db.refresh(transaction)
-    return transaction, ticket
+    return transaction, tier
 
 
 def _sync_provider_status(
@@ -204,7 +206,11 @@ def get_transaction(
 
 
 def ticket_tier_of(db: Session, transaction: Transaction) -> TicketTier:
-    return db.scalar(select(Ticket.tier).where(Ticket.id == transaction.ticket_id))
+    return db.scalar(
+        select(TicketTierPrice.tier).where(
+            TicketTierPrice.id == transaction.ticket_tier_id
+        )
+    )
 
 
 def to_read(db: Session, transaction: Transaction) -> TransactionRead:

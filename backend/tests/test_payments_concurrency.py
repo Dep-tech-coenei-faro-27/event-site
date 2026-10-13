@@ -67,7 +67,7 @@ def _count_transactions(test_engine, ticket_id: int) -> int:
         return session.scalar(
             select(func.count())
             .select_from(Transaction)
-            .where(Transaction.ticket_id == ticket_id)
+            .where(Transaction.ticket_tier_id == ticket_id)
         )
 
 
@@ -195,7 +195,7 @@ def test_deleting_a_user_with_transactions_is_blocked(db_session):
         Transaction(
             reference="ENEI-RESTRICT0",
             user_id=user.id,
-            ticket_id=ticket.id,
+            ticket_tier_id=ticket.id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.PENDING,
