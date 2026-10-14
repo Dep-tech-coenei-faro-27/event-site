@@ -29,11 +29,11 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bi
 
 | | |
 | --- | --- |
-| Corpo | `ticket_tier`, `phone`, `email` (opcional), `quantity` (opcional, por omissão `1`) |
+| Corpo | `ticket_tier`, `phone`, `email` (opcional), `quantity` (opcional, tem de ser `1`) |
 | `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral` |
 | `phone` | telemóvel português. Aceita espaços e o indicativo (`912 345 678`, `+351 912345678`, `00351912345678`); é normalizado e guardado como `912345678` |
 | `email` | se faltar, usa o email da conta |
-| `quantity` | inteiro entre 1 e 10 |
+| `quantity` | fixo em `1`: um bilhete por pessoa |
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |

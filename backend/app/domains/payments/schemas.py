@@ -1,7 +1,8 @@
 import re
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 from app.domains.payments.models import TicketTier, TransactionStatus
 
@@ -30,7 +31,8 @@ class PaymentInitiateRequest(BaseModel):
     ticket_tier: TicketTier
     phone: str
     email: EmailStr | None = None
-    quantity: int = Field(default=1, ge=1, le=10)
+    # One ticket per person: the field stays for compatibility but only accepts 1.
+    quantity: Literal[1] = 1
 
     @field_validator("phone")
     @classmethod

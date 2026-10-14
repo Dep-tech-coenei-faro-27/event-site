@@ -143,23 +143,13 @@ def test_client_cannot_override_the_amount(
     assert gateway.create_calls[0]["amount_cents"] == 5000
 
 
-def test_initiate_multiplies_price_by_quantity(
-    auth_client, email_sender, db_session, gateway
-):
+def test_initiate_only_accepts_a_single_ticket(auth_client, email_sender, db_session):
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    response = auth_client.post(
-        INITIATE_URL,
-        json={
-            "ticket_tier": TicketTier.GERAL.value,
-            "phone": "912345678",
-            "quantity": 3,
-        },
-    )
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, "quantity": 3})
 
-    assert response.status_code == 201
-    assert response.json()["amount_cents"] == 15000
+    assert response.status_code == 422
 
 
 def test_initiate_creates_a_pending_transaction(
