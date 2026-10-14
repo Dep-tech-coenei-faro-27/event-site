@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.security import ACCESS_COOKIE_NAME
-from app.domains.payments.models import Ticket, TicketTier
+from app.domains.payments.models import TicketTier, TicketTierPrice
 from app.domains.payments.tiers import TIER_SPECS
 from app.domains.users.models import User
 
@@ -113,11 +113,11 @@ def authenticate(
     return user
 
 
-def seed_ticket_tiers(db_session) -> dict[TicketTier, Ticket]:
+def seed_ticket_tiers(db_session) -> dict[TicketTier, TicketTierPrice]:
     """Insert the four ticket modalities with deterministic test prices."""
-    tickets: dict[TicketTier, Ticket] = {}
+    tickets: dict[TicketTier, TicketTierPrice] = {}
     for tier, spec in TIER_SPECS.items():
-        ticket = Ticket(
+        ticket = TicketTierPrice(
             tier=tier,
             name=spec.name,
             price_cents=DEFAULT_TEST_PRICES[tier],

@@ -117,7 +117,7 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 
 ## Abrir a bilheteira
 
-O preço de cada modalidade vive na tabela `tickets`. Enquanto `price_cents` for `NULL` a bilheteira está fechada e `/payment/initiate` responde `503` (o servidor decide o preço, por isso nunca há uma transação de valor zero). Para abrir (preço com IVA, em cêntimos, sempre maior que zero):
+O preço de cada modalidade vive na tabela `ticket_tiers`. Enquanto `price_cents` for `NULL` a bilheteira está fechada e `/payment/initiate` responde `503` (o servidor decide o preço, por isso nunca há uma transação de valor zero). Para abrir (preço com IVA, em cêntimos, sempre maior que zero):
 
 ```bash
 # dentro de backend/ (usa a DATABASE_URL/.env do ambiente)
@@ -142,7 +142,7 @@ make set-price tier=geral price=3500
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 
-Os preços ficam guardados na tabela `tickets` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
+Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 
 ## Erros comuns
 

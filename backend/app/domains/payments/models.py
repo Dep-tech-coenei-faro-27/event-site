@@ -34,16 +34,22 @@ class TransactionStatus(StrEnum):
     EXPIRED = "expired"
 
 
-class Ticket(Base):
-    __tablename__ = "tickets"
+class TicketTierPrice(Base):
+    """The catalog of purchasable ticket modalities and their current price.
+
+    This is the price list, not an issued ticket: a ``Transaction`` points here
+    for the modality it sells. Issued tickets live in ``domains.tickets``.
+    """
+
+    __tablename__ = "ticket_tiers"
     __table_args__ = (
         CheckConstraint(
             "price_cents IS NULL OR price_cents > 0",
-            name="ck_tickets_price_positive",
+            name="ck_ticket_tiers_price_positive",
         ),
         CheckConstraint(
             "inventory_limit IS NULL OR inventory_limit >= 0",
-            name="ck_tickets_inventory_not_negative",
+            name="ck_ticket_tiers_inventory_not_negative",
         ),
     )
 
@@ -51,7 +57,7 @@ class Ticket(Base):
     tier: Mapped[TicketTier] = mapped_column(
         SAEnum(
             TicketTier,
-            name="ck_tickets_tier",
+            name="ck_ticket_tiers_tier",
             native_enum=False,
             create_constraint=True,
             values_callable=lambda enum: [member.value for member in enum],
@@ -89,8 +95,8 @@ class Transaction(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
-    ticket_id: Mapped[int] = mapped_column(
-        ForeignKey("tickets.id", ondelete="RESTRICT"), index=True
+    ticket_tier_id: Mapped[int] = mapped_column(
+        ForeignKey("ticket_tiers.id", ondelete="RESTRICT"), index=True
     )
     amount_cents: Mapped[int] = mapped_column(Integer)
     quantity: Mapped[int] = mapped_column(

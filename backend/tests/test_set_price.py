@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import select
 
-from app.domains.payments.models import Ticket, TicketTier
+from app.domains.payments.models import TicketTier, TicketTierPrice
 from app.domains.payments.set_price import set_price
 from tests.helpers import seed_ticket_tiers
 
@@ -12,7 +12,9 @@ def test_set_price_updates_an_existing_tier(db_session):
     ticket = set_price(db_session, TicketTier.GERAL, 7500)
 
     assert ticket.price_cents == 7500
-    stored = db_session.scalar(select(Ticket).where(Ticket.tier == TicketTier.GERAL))
+    stored = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.GERAL)
+    )
     assert stored is not None
     assert stored.price_cents == 7500
 
@@ -20,7 +22,9 @@ def test_set_price_updates_an_existing_tier(db_session):
 def test_set_price_creates_a_missing_tier(db_session):
     ticket = set_price(db_session, TicketTier.ACESSO, 2500, stock=150)
 
-    stored = db_session.scalar(select(Ticket).where(Ticket.tier == TicketTier.ACESSO))
+    stored = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.ACESSO)
+    )
     assert stored is not None
     assert stored.id == ticket.id
     assert stored.price_cents == 2500

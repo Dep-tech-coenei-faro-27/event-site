@@ -45,6 +45,12 @@ class UserRead(BaseModel):
     course: Course | None = None
 
 
+class UserProfileRead(UserRead):
+    model_config = ConfigDict(from_attributes=True)
+
+    qr_code: str | None = None
+
+
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     institution: PortugueseInstitution | None = None

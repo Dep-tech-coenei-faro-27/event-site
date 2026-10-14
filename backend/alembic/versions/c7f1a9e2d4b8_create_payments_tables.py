@@ -1,4 +1,4 @@
-"""create tickets and transactions, add student verification to users
+"""create ticket tiers and transactions, add student verification to users
 
 Revision ID: c7f1a9e2d4b8
 Revises: 832692a10dc1
@@ -52,7 +52,7 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "tickets",
+        "ticket_tiers",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("tier", sa.String(length=20), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
@@ -78,26 +78,26 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "price_cents IS NULL OR price_cents > 0",
-            name="ck_tickets_price_positive",
+            name="ck_ticket_tiers_price_positive",
         ),
         sa.CheckConstraint(
             "inventory_limit IS NULL OR inventory_limit >= 0",
-            name="ck_tickets_inventory_not_negative",
+            name="ck_ticket_tiers_inventory_not_negative",
         ),
         sa.CheckConstraint(
             "tier IN ('acesso', 'refeicoes', 'completo', 'geral')",
-            name="ck_tickets_tier",
+            name="ck_ticket_tiers_tier",
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_tickets_tier"), "tickets", ["tier"], unique=True)
+    op.create_index(op.f("ix_ticket_tiers_tier"), "ticket_tiers", ["tier"], unique=True)
 
     op.create_table(
         "transactions",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("reference", sa.String(length=15), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("ticket_id", sa.Integer(), nullable=False),
+        sa.Column("ticket_tier_id", sa.Integer(), nullable=False),
         sa.Column("amount_cents", sa.Integer(), nullable=False),
         sa.Column("quantity", sa.Integer(), nullable=False, server_default="1"),
         sa.Column(
@@ -129,7 +129,9 @@ def upgrade() -> None:
             "status IN ('pending', 'confirmed', 'failed', 'expired')",
             name="ck_transactions_status",
         ),
-        sa.ForeignKeyConstraint(["ticket_id"], ["tickets.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["ticket_tier_id"], ["ticket_tiers.id"], ondelete="RESTRICT"
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -140,7 +142,9 @@ def upgrade() -> None:
         unique=True,
     )
     op.create_index(op.f("ix_transactions_user_id"), "transactions", ["user_id"])
-    op.create_index(op.f("ix_transactions_ticket_id"), "transactions", ["ticket_id"])
+    op.create_index(
+        op.f("ix_transactions_ticket_tier_id"), "transactions", ["ticket_tier_id"]
+    )
     op.create_index(op.f("ix_transactions_status"), "transactions", ["status"])
 
     _seed_tickets()
@@ -148,7 +152,7 @@ def upgrade() -> None:
 
 def _seed_tickets() -> None:
     tickets = sa.table(
-        "tickets",
+        "ticket_tiers",
         sa.column("tier", sa.String),
         sa.column("name", sa.String),
         sa.column("price_cents", sa.Integer),
@@ -172,12 +176,12 @@ def _seed_tickets() -> None:
 
 def downgrade() -> None:
     op.drop_index(op.f("ix_transactions_status"), table_name="transactions")
-    op.drop_index(op.f("ix_transactions_ticket_id"), table_name="transactions")
+    op.drop_index(op.f("ix_transactions_ticket_tier_id"), table_name="transactions")
     op.drop_index(op.f("ix_transactions_user_id"), table_name="transactions")
     op.drop_index(op.f("ix_transactions_reference"), table_name="transactions")
     op.drop_table("transactions")
-    op.drop_index(op.f("ix_tickets_tier"), table_name="tickets")
-    op.drop_table("tickets")
+    op.drop_index(op.f("ix_ticket_tiers_tier"), table_name="ticket_tiers")
+    op.drop_table("ticket_tiers")
     op.drop_constraint("ck_users_student_status", "users", type_="check")
     op.drop_column("users", "student_verified_at")
     op.drop_column("users", "student_verification_status")

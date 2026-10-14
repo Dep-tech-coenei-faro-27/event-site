@@ -17,6 +17,7 @@ PROD = {
     **BASE,
     "ENVIRONMENT": "prod",
     "JWT_SECRET_KEY": "p" * 48,
+    "QR_SECRET_KEY": "q" * 48,
     "SMTP_HOST": "smtp.example.com",
     "EMAIL_SENDER": "noreply@example.com",
     "FRONTEND_URL": "https://app.example.com",

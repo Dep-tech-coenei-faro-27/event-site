@@ -22,17 +22,56 @@ from pathlib import Path
 
 VERSIONS = "backend/alembic/versions"
 MARKER = "destructive: ok"
-ALWAYS = {"drop_table", "drop_column", "rename_table"}
+ALWAYS = {"drop_column", "drop_constraint", "drop_table", "rename_table"}
 RAW_SQL = re.compile(r"\b(DROP|RENAME|TRUNCATE|DELETE\s+FROM)\b", re.IGNORECASE)
+# SQL cru que aperta o esquema (não remove, mas pode rebentar com o código antigo a
+# escrever no meio do deploy).
+RAW_SQL_TIGHTENS = re.compile(
+    r"(SET\s+NOT\s+NULL|ALTER\s+COLUMN\s+\S+\s+(SET\s+DATA\s+)?TYPE)",
+    re.IGNORECASE,
+)
 
 
 def _is_false(node: ast.expr) -> bool:
     return isinstance(node, ast.Constant) and node.value is False
 
 
+def _is_true(node: ast.expr) -> bool:
+    return isinstance(node, ast.Constant) and node.value is True
+
+
+def _is_column_call(node: ast.expr) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "Column"
+    )
+
+
+def _required_without_default(call: ast.Call) -> bool:
+    """True for ``op.add_column`` of a NOT NULL column without a server default.
+
+    On a table that already has rows the migration itself fails, and during the
+    deploy window the old code keeps inserting without that column.
+    """
+    column = next((arg for arg in call.args if _is_column_call(arg)), None)
+    if column is None:
+        return False
+    keywords = {keyword.arg: keyword.value for keyword in column.keywords}
+    if not _is_false(keywords.get("nullable")):
+        return False
+    if "server_default" in keywords:
+        return False
+    if _is_true(keywords.get("primary_key")):
+        return False
+    return True
+
+
 def _reason(call: ast.Call, name: str, source: str) -> str | None:
     if name in ALWAYS:
         return f"op.{name}() remove ou renomeia"
+    if name == "add_column" and _required_without_default(call):
+        return "op.add_column() adiciona uma coluna obrigatória sem valor por omissão"
     if name == "alter_column":
         keywords = {keyword.arg: keyword.value for keyword in call.keywords}
         if "new_column_name" in keywords:
@@ -45,6 +84,8 @@ def _reason(call: ast.Call, name: str, source: str) -> str | None:
         text = ast.get_source_segment(source, call) or ""
         if RAW_SQL.search(text):
             return "op.execute() com SQL que remove ou apaga"
+        if RAW_SQL_TIGHTENS.search(text):
+            return "op.execute() com SQL que aperta o esquema"
     return None
 
 

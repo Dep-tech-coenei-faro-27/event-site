@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     ]
 
     JWT_SECRET_KEY: str
+    QR_SECRET_KEY: str = ""
     JWT_ALGORITHM: Literal["HS256", "HS384", "HS512"] = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, gt=0, le=1440)
     JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES: int = Field(
@@ -73,8 +74,8 @@ class Settings(BaseSettings):
     # Institutional email domains that grant the student status automatically.
     STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
 
-    # Ticket prices live in the database (Ticket.price_cents) and are changed at
-    # runtime with `python -m app.domains.payments.set_price`. A NULL price means
+    # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
+    # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
     # the ticket office is still closed and /payment/initiate answers 503.
 
     # off: no payments at all (default). simulated: fake provider so the frontend
@@ -178,6 +179,11 @@ class Settings(BaseSettings):
             len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
             or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
+        weak_qr_secret = (
+            not self.QR_SECRET_KEY.strip()
+            or len(self.QR_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+            or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
+        )
 
         if self.PAYMENTS_MODE == "live":
             if not self.MBWAY_KEY:
@@ -194,6 +200,14 @@ class Settings(BaseSettings):
                     "accepted in dev only. Generate a real one with: " + SECRET_HINT,
                     stacklevel=2,
                 )
+            if not self.QR_SECRET_KEY.strip():
+                self.QR_SECRET_KEY = f"dev-qr-{self.JWT_SECRET_KEY}"
+            elif weak_qr_secret:
+                warnings.warn(
+                    "QR_SECRET_KEY is short or a known example value. This is "
+                    "accepted in dev only. Generate a real one with: " + SECRET_HINT,
+                    stacklevel=2,
+                )
             return self
 
         problems: list[str] = []
@@ -201,6 +215,16 @@ class Settings(BaseSettings):
             problems.append(
                 f"JWT_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
                 "characters and not be an example value. "
+                f"Generate one with: {SECRET_HINT}"
+            )
+        if (
+            weak_qr_secret
+            or PLACEHOLDER_SECRET_MARKER in self.QR_SECRET_KEY
+            or self.QR_SECRET_KEY == self.JWT_SECRET_KEY
+        ):
+            problems.append(
+                f"QR_SECRET_KEY must have at least {MIN_JWT_SECRET_LENGTH} "
+                "characters, not be an example value, and differ from JWT_SECRET_KEY. "
                 f"Generate one with: {SECRET_HINT}"
             )
         if self.DEBUG:

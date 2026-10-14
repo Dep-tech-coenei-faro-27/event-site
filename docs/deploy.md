@@ -71,6 +71,7 @@ Regras para criar os valores:
 
 - `JWT_SECRET_KEY` novo, com 32 ou mais caracteres (nunca o do `.env.example`):
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- `QR_SECRET_KEY` novo e diferente da `JWT_SECRET_KEY`, com a mesma regra de 32 ou mais caracteres (assina os QR codes).
 - `POSTGRES_PASSWORD` própria (em produção não pode ser `postgres`).
 - Nunca faças commit de um `.env`. Se um segredo aparecer num commit ou num log, trata-o como roubado e troca-o.
 - O GitHub esconde nos logs qualquer texto igual ao valor de um segredo (por exemplo, todos os `1` aparecem como `***`
@@ -86,6 +87,7 @@ de erro diz qual.
 | `ENVIRONMENT`                                                                         | `prod`                            | Em `dev` escreve-se `ENVIRONMENT=dev` (o `.env.example` já o faz). Em `prod` o `/docs` e o `/openapi.json` não existem.                                                             |
 | `DEBUG`                                                                               | `false`                           | Com `true` as respostas mostram tracebacks, e o arranque em produção recusa-o.                                                                                                      |
 | `JWT_SECRET_KEY`                                                                      | obrigatório                       | Pelo menos 32 caracteres e diferente dos valores de exemplo.                                                                                                                        |
+| `QR_SECRET_KEY`                                                                       | obrigatório                       | Assina os QR codes dos bilhetes. Pelo menos 32 caracteres, diferente dos valores de exemplo e da `JWT_SECRET_KEY`.                                                                  |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | obrigatórios                      | `POSTGRES_HOST` é o nome do serviço no compose (`postgres`).                                                                                                                        |
 | `FRONTEND_URL`                                                                        | `https://...`                     | Usado nos links dos emails. Tem de ser `https`.                                                                                                                                     |
 | `CORS_ALLOW_ORIGINS`                                                                  | `https://...`                     | Lista (JSON ou separada por vírgulas) com as origens do frontend. Nunca aceita `*`, e em produção todas têm de ser `https`. Com o site e a API no mesmo endereço, quase não se usa. |
@@ -139,7 +141,7 @@ $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, se
 ## Abrir a bilheteira
 
 A migration cria as quatro modalidades com `price_cents` a `NULL`, o que mantém a bilheteira **fechada**: `POST
-/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `tickets` e
+/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `ticket_tiers` e
 mudam-se em runtime:
 
 ```bash

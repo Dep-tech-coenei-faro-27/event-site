@@ -315,7 +315,7 @@ def test_initiate_respects_inventory_limit(
         Transaction(
             reference="ENEI-0000000001",
             user_id=user.id,
-            ticket_id=ticket.id,
+            ticket_tier_id=ticket.id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.PENDING,
@@ -384,7 +384,7 @@ def test_get_status_hides_other_users_transaction(
     transaction = Transaction(
         reference="ENEI-0000000002",
         user_id=other.id,
-        ticket_id=tickets[TicketTier.GERAL].id,
+        ticket_tier_id=tickets[TicketTier.GERAL].id,
         amount_cents=5000,
         quantity=1,
         status=TransactionStatus.CONFIRMED,
@@ -409,7 +409,7 @@ def test_expired_pending_transaction_is_marked_expired(
         Transaction(
             reference="ENEI-0000000003",
             user_id=user.id,
-            ticket_id=tickets[TicketTier.GERAL].id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.PENDING,
@@ -439,7 +439,7 @@ def test_confirmed_transaction_is_returned(
         Transaction(
             reference="ENEI-0000000004",
             user_id=user.id,
-            ticket_id=tickets[TicketTier.GERAL].id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.CONFIRMED,
@@ -541,7 +541,7 @@ def test_local_expiry_applies_when_the_provider_still_says_pending(
         Transaction(
             reference="ENEI-0000000007",
             user_id=user.id,
-            ticket_id=tickets[TicketTier.GERAL].id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.PENDING,
@@ -573,7 +573,7 @@ def test_finalized_transactions_are_not_synced_with_the_provider_again(
         Transaction(
             reference="ENEI-0000000008",
             user_id=user.id,
-            ticket_id=tickets[TicketTier.GERAL].id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
             amount_cents=5000,
             quantity=1,
             status=TransactionStatus.CONFIRMED,
