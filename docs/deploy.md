@@ -217,28 +217,44 @@ sh scripts/backup.sh               # ou: sh scripts/backup.sh /outra/pasta
 
 O `scripts/offsite-backup.sh` faz, por esta ordem:
 
-1. Corre o `scripts/backup.sh` (dump da base de dados e arquivo de `backend/media`).
-2. Copia os `db-*.dump` e `media-*.tar.gz` para o destino `BACKUP_REMOTE`, com o `rclone`.
-3. Apaga no destino as cópias com mais de 30 dias.
-4. Apaga na VPS as cópias com mais de 7 dias.
+1. Recusa continuar se o destino não for um remote `crypt` (cifrado). Só `BACKUP_ALLOW_PLAINTEXT=1` o contorna, e serve apenas para testes.
+2. Corre o `scripts/backup.sh` (dump da base de dados e arquivo de `backend/media`).
+3. Copia os `db-*.dump` e `media-*.tar.gz` para o destino `BACKUP_REMOTE`, com o `rclone`.
+4. Apaga no destino as cópias com mais de 30 dias.
+5. Apaga na VPS as cópias com mais de 7 dias.
+6. Regista a hora em `offsite-last-success` (na pasta das cópias) e, se `BACKUP_HEARTBEAT_URL` estiver definido, avisa o serviço de monitorização. Se algum passo falhar, avisa que falhou.
 
-Só mexe em `db-*.dump` e `media-*.tar.gz`
+Só mexe em `db-*.dump` e `media-*.tar.gz`.
 
-`BACKUP_REMOTE` é um destino do `rclone` no formato `nome-do-remote:pasta`
+### Destino cifrado
 
-Instalar o rclone e configurar o destino
+As cópias têm emails, nomes e, com pagamentos, telemóveis: não podem ir em claro para um armazenamento de terceiros. `BACKUP_REMOTE` é um remote do `rclone` do tipo `crypt`, no formato `nome-do-remote:pasta`.
+
+Instalar o `rclone` e configurar dois remotes: o armazenamento e, por cima dele, o `crypt`:
 
 ```
-rclone config                       
+rclone config        # 1) o armazenamento (por exemplo enei-storage)
+                     # 2) um remote do tipo crypt (por exemplo enei-cifrado) que aponta para enei-storage:enei
 chmod 600 ~/.config/rclone/rclone.conf
+rclone listremotes --long   # enei-cifrado deve aparecer com o tipo crypt
 ```
 
-agendar no cron
+Guarda a password e o *salt* do remote `crypt` num gestor de palavras-passe fora da VPS. Sem eles as cópias não se abrem, e quem os tiver abre-as. Nunca os ponhas no Git, em docs ou em mensagens.
+
+### Avisar se a cópia falhar
+
+- `BACKUP_HEARTBEAT_URL` é o endereço de um serviço com a convenção do Healthchecks (o endereço, mais `/start` e `/fail`). O serviço avisa se a cópia falhar **ou se não correr**. O endereço é um segredo: vai só no `cron` do utilizador `debian`, não no Git.
+- `scripts/check-offsite-backup.sh [horas]` sai com código 1 se a última cópia externa tem mais de 26 horas (ou se nunca houve nenhuma). Corre-o na verificação final antes do evento.
+
+### Agendar no cron
 
 ```
-30 3 * * * cd /home/debian/enei/event-site && PATH=/usr/local/bin:/usr/bin:/bin BACKUP_REMOTE=nome-do-remote:enei flock -n /tmp/enei-backup.lock /bin/sh scripts/offsite-backup.sh >> /home/debian/enei/offsite-backup.log 2>&1
-
+30 3 * * * cd /home/debian/enei/event-site && PATH=/usr/local/bin:/usr/bin:/bin BACKUP_REMOTE=enei-cifrado:enei BACKUP_HEARTBEAT_URL=https://<servico>/<id> flock -n /tmp/enei-backup.lock /bin/sh scripts/offsite-backup.sh >> /home/debian/enei/offsite-backup.log 2>&1
 ```
+
+### Retenção e apagamento de contas
+
+As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta continua nas cópias até expirarem, e a política de privacidade tem de o dizer. O restauro tem de ser testado a partir do destino externo (`scripts/restore.sh`), e não só da cópia local.
 
 ## Email
 
