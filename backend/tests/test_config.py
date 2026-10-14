@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import BASE_DIR, Settings
+from app.core.config import BASE_DIR, Settings, settings
+from app.core.validators import is_student_email
 
 BASE = {
     "ENVIRONMENT": "dev",
@@ -21,6 +22,7 @@ PROD = {
     "EMAIL_SENDER": "noreply@example.com",
     "FRONTEND_URL": "https://app.example.com",
     "CORS_ALLOW_ORIGINS": ["https://app.example.com"],
+    "STUDENT_EMAIL_DOMAINS": ["alunos.example.com"],
 }
 
 
@@ -179,3 +181,40 @@ def test_a_configuration_error_never_prints_the_values_it_received():
 
     assert secret not in str(error.value)
     assert "input_value" not in str(error.value)
+
+
+def test_prod_rejects_empty_student_email_domains():
+    with pytest.raises(ValidationError, match="STUDENT_EMAIL_DOMAINS"):
+        make_prod(STUDENT_EMAIL_DOMAINS=[])
+    with pytest.raises(ValidationError, match="STUDENT_EMAIL_DOMAINS"):
+        make_prod(STUDENT_EMAIL_DOMAINS="")
+
+
+def test_student_email_domains_parsing():
+    settings = make(STUDENT_EMAIL_DOMAINS='["alunos.ulisboa.pt", "alunos.uminho.pt"]')
+    assert settings.STUDENT_EMAIL_DOMAINS == [
+        "alunos.ulisboa.pt",
+        "alunos.uminho.pt",
+    ]
+
+    settings = make(STUDENT_EMAIL_DOMAINS="alunos.ulisboa.pt, alunos.uminho.pt")
+    assert settings.STUDENT_EMAIL_DOMAINS == [
+        "alunos.ulisboa.pt",
+        "alunos.uminho.pt",
+    ]
+
+
+@pytest.mark.parametrize("domain", ["invalid/domain.pt", "nopoint"])
+def test_student_email_domains_rejects_invalid_domains(domain):
+    with pytest.raises(
+        ValidationError, match="Invalid domain in STUDENT_EMAIL_DOMAINS"
+    ):
+        make(STUDENT_EMAIL_DOMAINS=[domain])
+
+
+def test_is_student_email(monkeypatch):
+    monkeypatch.setattr(settings, "STUDENT_EMAIL_DOMAINS", ["alunos.uminho.pt"])
+
+    assert is_student_email("ana@alunos.uminho.pt") is True
+    assert is_student_email("ana@uminho.pt") is False
+    assert is_student_email("ana@x.alunos.uminho.pt") is True

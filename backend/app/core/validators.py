@@ -4,7 +4,19 @@ from typing import Annotated
 from pydantic import AfterValidator, EmailStr
 from pydantic_core import PydanticCustomError
 
+from app.core.config import settings
+
 INVISIBLE_OR_CONTROL = {"Cc", "Cf", "Cs", "Co", "Cn"}
+
+
+def is_student_email(email: str) -> bool:
+    _, _, domain = email.strip().lower().partition("@")
+    if not domain:
+        return False
+    return any(
+        domain == allowed or domain.endswith("." + allowed)
+        for allowed in settings.STUDENT_EMAIL_DOMAINS
+    )
 
 
 def validate_name(value: str) -> str:

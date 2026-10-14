@@ -2,7 +2,7 @@ name: "CD"
 
 on:
   workflow_run:
-    workflows: ["CI - Backend"]
+    workflows: [ "CI - Backend" ]
     types:
       - completed
     branches:
@@ -72,6 +72,9 @@ jobs:
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
             CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
+            STUDENT_EMAIL_DOMAINS=${{ secrets.STUDENT_EMAIL_DOMAINS }}
+            TICKET_PRICE_STUDENT_CENTS=${{ secrets.TICKET_PRICE_STUDENT_CENTS }}
+            TICKET_PRICE_GENERAL_CENTS=${{ secrets.TICKET_PRICE_GENERAL_CENTS }}
             EOF
             chmod 600 .env
             # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
@@ -79,7 +82,7 @@ jobs:
             TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
             EOF
             chmod 600 ../tunnel.env
-      
+
       - name: "Build and Run with Docker Compose"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:

@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     MEDIA_DIR: Path = BASE_DIR / "media"
     DEBUG: bool = False
     MAX_REQUEST_BYTES: int = Field(default=1_048_576, gt=0)
+    STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
 
     CORS_ALLOW_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
@@ -47,6 +48,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     FRONTEND_VERIFY_PATH: str = "/conta/verificar"
     FRONTEND_RESET_PATH: str = "/conta/redefinir"
+
+    TICKET_PRICE_STUDENT_CENTS: int = Field(default=2500, gt=0)
+    TICKET_PRICE_GENERAL_CENTS: int = Field(default=4000, gt=0)
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -76,6 +80,26 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
 
     DATABASE_URL: str = ""
+
+    @field_validator("STUDENT_EMAIL_DOMAINS", mode="before")
+    @classmethod
+    def parse_student_email_domains(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return []
+            value = json.loads(text) if text.startswith("[") else text.split(",")
+        if not isinstance(value, list):
+            return value
+        domains: list[str] = []
+        for item in value:
+            domain = str(item).strip().lower().lstrip("@.")
+            if not domain:
+                continue
+            if "/" in domain or " " in domain or "." not in domain:
+                raise ValueError(f"Invalid domain in STUDENT_EMAIL_DOMAINS: {domain!r}")
+            domains.append(domain)
+        return domains
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod
@@ -169,6 +193,8 @@ class Settings(BaseSettings):
         insecure = [o for o in self.CORS_ALLOW_ORIGINS if not o.startswith("https://")]
         if insecure:
             problems.append(f"CORS_ALLOW_ORIGINS must all be https:// ({insecure}).")
+        if not self.STUDENT_EMAIL_DOMAINS:
+            problems.append("STUDENT_EMAIL_DOMAINS must not be empty in production.")
 
         if problems:
             raise ValueError(
