@@ -1,10 +1,10 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.rate_limit import RateLimit, enforce_rate_limit
+from app.core.rate_limit import RateLimit, client_ip, enforce_rate_limit
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_verified_user
 from app.domains.payments.gateway import (
@@ -82,6 +82,7 @@ def read_transaction(
     status_code=status.HTTP_200_OK,
 )
 def payment_callback(
+    request: Request,
     db: Session = Depends(get_db),
     key: str | None = Query(default=None),
     apk: str | None = Query(default=None),
@@ -97,6 +98,13 @@ def payment_callback(
     not be swallowed. Accepts the legacy ``key/orderId/amount`` names and the
     current ``apk/oid/val`` ones.
     """
+    rule = RateLimit(
+        "payment_callback",
+        settings.RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE,
+        60,
+    )
+    enforce_rate_limit(db, (rule,), client_ip(request))
+
     try:
         handle_payment_callback(
             db,

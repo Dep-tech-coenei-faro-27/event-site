@@ -206,11 +206,18 @@ def test_live_payments_require_the_provider_credentials():
     with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
         make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456")
 
+    with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_CALLBACK_KEY="too-short",
+        )
+
     assert (
         make(
             PAYMENTS_MODE="live",
             MBWAY_KEY="MBW-123456",
-            MBWAY_CALLBACK_KEY="anti-phishing-key",
+            MBWAY_CALLBACK_KEY="a" * 32,
         ).PAYMENTS_MODE
         == "live"
     )

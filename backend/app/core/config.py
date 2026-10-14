@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES: int = Field(default=2, gt=0)
     RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
+    RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
@@ -199,6 +200,12 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "PAYMENTS_MODE=live requires MBWAY_CALLBACK_KEY to be set "
                     "(the ifthenpay anti-phishing key)."
+                )
+            if len(self.MBWAY_CALLBACK_KEY) < MIN_JWT_SECRET_LENGTH:
+                raise ValueError(
+                    "PAYMENTS_MODE=live requires MBWAY_CALLBACK_KEY to be at least "
+                    f"{MIN_JWT_SECRET_LENGTH} characters (the ifthenpay anti-phishing "
+                    "key)."
                 )
 
         if self.ENVIRONMENT != "prod":
