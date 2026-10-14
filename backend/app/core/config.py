@@ -93,7 +93,8 @@ class Settings(BaseSettings):
                     value = json.loads(text)
                 except json.JSONDecodeError as exc:
                     raise ValueError(
-                        "STUDENT_EMAIL_DOMAINS must be valid JSON or comma-separated text."
+                        "STUDENT_EMAIL_DOMAINS must be valid JSON "
+                        "or comma-separated text."
                     ) from exc
             else:
                 value = [part.strip() for part in text.split(",") if part.strip()]
@@ -171,8 +172,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def check_environment(self) -> "Settings":
         weak_secret = (
-                len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-                or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+            len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+            or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
 
         if self.ENVIRONMENT != "prod":
