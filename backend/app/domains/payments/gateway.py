@@ -169,8 +169,9 @@ class SimulatedMBWayGateway:
     By default it always answers ``pending``. With a positive
     ``confirm_after_seconds`` it reports the payment as confirmed once that many
     seconds have elapsed since it was created, so the ticket/QR/email flow can run
-    end to end without ifthenpay. That confirming mode is staging only: production
-    refuses to start with it enabled.
+    end to end without ifthenpay. That confirming mode is only allowed with
+    ``PAYMENTS_MODE=simulated``: ``live`` and ``off`` refuse to start with it
+    enabled.
     """
 
     name = "simulated"
@@ -237,10 +238,8 @@ def get_mbway_gateway() -> MBWayGateway:
             timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
             auth_token=settings.MBWAY_AUTH_TOKEN,
         )
-    # The confirming simulator is staging only; production never builds it.
-    confirm_after_seconds = (
-        0
-        if settings.ENVIRONMENT == "prod"
-        else settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS
+    # Only PAYMENTS_MODE=simulated reaches here (off raises 503, live is handled
+    # above), and the settings reject a confirm delay for any other mode.
+    return SimulatedMBWayGateway(
+        confirm_after_seconds=settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS
     )
-    return SimulatedMBWayGateway(confirm_after_seconds=confirm_after_seconds)

@@ -81,6 +81,10 @@ jobs:
             if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
               echo "PAYMENTS_MODE=${{ vars.PAYMENTS_MODE }}" >> .env
             fi
+            # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
+            if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then
+              echo "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" >> .env
+            fi
             chmod 600 .env
             # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
             cat << 'EOF' > ../tunnel.env

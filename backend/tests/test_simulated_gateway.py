@@ -101,26 +101,16 @@ def test_confirming_simulator_ignores_references_it_does_not_own(provider_refere
     assert status is TransactionStatus.PENDING
 
 
-def test_staging_builds_the_confirming_simulator(monkeypatch):
+@pytest.mark.parametrize("environment", ["dev", "prod"])
+def test_simulated_mode_builds_the_confirming_simulator(monkeypatch, environment):
     monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
-    monkeypatch.setattr(settings, "ENVIRONMENT", "dev")
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
     monkeypatch.setattr(settings, "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS", 7)
 
     gateway = get_mbway_gateway()
 
     assert isinstance(gateway, SimulatedMBWayGateway)
     assert gateway.confirm_after_seconds == 7
-
-
-def test_production_never_builds_a_confirming_simulator(monkeypatch):
-    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
-    monkeypatch.setattr(settings, "ENVIRONMENT", "prod")
-    monkeypatch.setattr(settings, "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS", 7)
-
-    gateway = get_mbway_gateway()
-
-    assert isinstance(gateway, SimulatedMBWayGateway)
-    assert gateway.confirm_after_seconds == 0
 
 
 def test_confirmed_payment_flows_through_the_api(
@@ -162,16 +152,44 @@ PROD = {
 }
 
 
-def test_staging_accepts_the_confirming_simulator():
+def test_simulated_mode_accepts_the_confirming_simulator():
     settings = Settings(
-        _env_file=None, **DEV, PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=5
+        _env_file=None,
+        **DEV,
+        PAYMENTS_MODE="simulated",
+        PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=5,
     )
 
     assert settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS == 5
 
 
-def test_production_refuses_the_confirming_simulator():
+def test_simulated_mode_accepts_no_confirm_delay():
+    settings = Settings(_env_file=None, **DEV, PAYMENTS_MODE="simulated")
+
+    assert settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS == 0
+
+
+def test_production_accepts_the_confirming_simulator_in_simulated_mode():
+    settings = Settings(
+        _env_file=None,
+        **PROD,
+        PAYMENTS_MODE="simulated",
+        PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=5,
+    )
+
+    assert settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS == 5
+
+
+@pytest.mark.parametrize("mode", ["off", "live"])
+def test_confirming_simulator_requires_simulated_mode(mode):
+    overrides = {
+        "PAYMENTS_MODE": mode,
+        "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS": 5,
+    }
+    if mode == "live":
+        overrides["MBWAY_KEY"] = "MBW-123456"
+
     with pytest.raises(
         ValidationError, match="PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS"
     ):
-        Settings(_env_file=None, **PROD, PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=5)
+        Settings(_env_file=None, **DEV, **overrides)

@@ -88,8 +88,8 @@ class Settings(BaseSettings):
     MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
-    # be exercised without ifthenpay. It must be 0 in production, which refuses to
-    # start otherwise.
+    # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the
+    # backend refuses to start with `live` or `off` and a positive value.
     PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS: int = Field(default=0, ge=0, le=3600)
 
     POSTGRES_USER: str
@@ -198,6 +198,16 @@ class Settings(BaseSettings):
                     "PAYMENTS_MODE=live requires MBWAY_BASE_URL to start with https://."
                 )
 
+        if (
+            self.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS > 0
+            and self.PAYMENTS_MODE != "simulated"
+        ):
+            raise ValueError(
+                "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS requires "
+                "PAYMENTS_MODE=simulated; the confirming simulator cannot run with "
+                "live or off payments."
+            )
+
         if self.ENVIRONMENT != "prod":
             if weak_secret:
                 warnings.warn(
@@ -234,11 +244,6 @@ class Settings(BaseSettings):
             )
         if self.DEBUG:
             problems.append("DEBUG must be false (it leaks tracebacks in responses).")
-        if self.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS > 0:
-            problems.append(
-                "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS must be 0 in production: "
-                "the confirming simulator is staging only."
-            )
         if self.POSTGRES_PASSWORD == "postgres":
             problems.append("POSTGRES_PASSWORD must not be the example value.")
         if not (self.SMTP_HOST and self.EMAIL_SENDER):

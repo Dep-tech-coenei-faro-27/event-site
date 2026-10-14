@@ -101,7 +101,7 @@ de erro diz qual.
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY` e `MBWAY_BASE_URL` em `https` (ver "Abrir a bilheteira").                                                                 |
-| `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | Só em *staging*: o gateway simulado confirma o pagamento ao fim destes segundos. Em `prod` tem de ser `0`, senão o backend recusa arrancar.                                          |
+| `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | O gateway simulado confirma o pagamento ao fim destes segundos. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.                        |
 
 A lista completa e os valores por omissão estão em `backend/app/core/config.py`.
 
@@ -156,9 +156,9 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 - `PAYMENTS_MODE` escolhe o gateway: `off` (por omissão; `/initiate` responde `503`), `simulated`
   (dev/staging, responde sempre `pending` sem contactar ninguém) ou `live` (ifthenpay real; exige `MBWAY_KEY` e um
   `MBWAY_BASE_URL` em `https`, senão o backend não arranca). Em `prod` com `simulated` fica um aviso no arranque.
-- Para testar a confirmação do pagamento em *staging* sem ifthenpay, com `simulated` define
+- Para testar a confirmação do pagamento sem ifthenpay, com `simulated` define
   `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
-  Este modo é só de *staging*; em `prod` o valor tem de ser `0` e o backend recusa arrancar com ele ligado.
+  Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
 ## Promover o Primeiro Administrador
 
