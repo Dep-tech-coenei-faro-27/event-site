@@ -1,7 +1,15 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    func,
+    text,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +28,15 @@ class Ticket(Base):
         CheckConstraint(
             "qr_payload IS NULL OR length(trim(qr_payload)) > 0",
             name="ck_tickets_qr_payload_not_blank",
+        ),
+        # Um bilhete por pessoa: só pode existir uma linha activa por utilizador. O
+        # índice é parcial para que cancelar um bilhete liberte o lugar.
+        Index(
+            "uq_tickets_user_id_active",
+            "user_id",
+            unique=True,
+            postgresql_where=text("payment_status <> 'cancelled'"),
+            sqlite_where=text("payment_status <> 'cancelled'"),
         ),
     )
 

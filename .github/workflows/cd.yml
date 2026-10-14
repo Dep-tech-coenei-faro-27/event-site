@@ -59,6 +59,7 @@ jobs:
             POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
             JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}
             JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
             JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES=${{ secrets.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES }}

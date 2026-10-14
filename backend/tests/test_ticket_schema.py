@@ -10,6 +10,8 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
+from app.domains.tickets.models import PaymentStatus, Ticket
+from app.domains.users.models import User
 from tests.helpers import authenticate
 
 
@@ -65,6 +67,50 @@ def test_ticket_stores_tier_price_and_inventory(db_session):
     assert stored.is_student is True
     assert stored.inventory_limit == 120
     assert stored.tier is TicketTier.COMPLETO
+
+
+def _make_user(db_session) -> User:
+    user = User(
+        name="Aluno Teste",
+        email="aluno@ualg.pt",
+        password_hash="hashed_pw",
+        is_verified=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
+
+
+def test_a_user_cannot_hold_two_active_tickets(db_session):
+    user = _make_user(db_session)
+    db_session.add(Ticket(user_id=user.id, transaction_reference="ENEI-ACTIVE0001"))
+    db_session.commit()
+
+    db_session.add(Ticket(user_id=user.id, transaction_reference="ENEI-ACTIVE0002"))
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
+
+def test_cancelling_a_ticket_frees_the_user_slot(db_session):
+    user = _make_user(db_session)
+    db_session.add(
+        Ticket(
+            user_id=user.id,
+            transaction_reference="ENEI-CANCEL0001",
+            payment_status=PaymentStatus.CANCELLED,
+        )
+    )
+    db_session.commit()
+
+    db_session.add(Ticket(user_id=user.id, transaction_reference="ENEI-ACTIVE0003"))
+    db_session.commit()
+
+    active = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == "ENEI-ACTIVE0003")
+    )
+    assert active is not None
+    assert active.payment_status is PaymentStatus.PENDING
 
 
 def test_transaction_records_user_ticket_amount_and_status(
