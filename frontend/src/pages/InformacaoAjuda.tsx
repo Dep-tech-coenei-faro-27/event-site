@@ -14,7 +14,7 @@ export default function InformacaoAjudaPage() {
   const [query, setQuery] = useState('');
 
   return (
-    <main id="conteudo" className="bg-[#050d21] font-[Poppins,system-ui,sans-serif] text-white pt-16">
+    <div id="conteudo" className="bg-[#050d21] font-[Poppins,system-ui,sans-serif] text-white pt-16">
       <header
         className="grid min-h-[440px] items-center border-b border-white/10 bg-cover bg-[position:center_48%] px-0 py-[78px] text-center sm:min-h-[560px]"
         style={{
@@ -56,6 +56,6 @@ export default function InformacaoAjudaPage() {
       <LocationSection />
       <FaqSection query={query} />
       <ContactSection />
-    </main>
+    </div>
   );
 }

@@ -124,7 +124,7 @@ export default function Sobre() {
     usePageMeta( "Sobre · ENEI 2027", "Conhece o ENEI, o Encontro Nacional de Estudantes de Informática, que decorre em Faro, no Algarve, de 1 a 4 de abril de 2027.",);
 
     return (
-        <main>
+        <div>
             <PageHeader backgroundImage={faroBaixa} className="pt-[220px] pb-[160px]">
                 <SectionHeading
                     title="O que é o ENEI?"
@@ -347,6 +347,6 @@ export default function Sobre() {
                     </div>
                 </div>
             </section>
-        </main>
+        </div>
     );
 }
