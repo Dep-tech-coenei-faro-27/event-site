@@ -12,6 +12,7 @@ from app.core.middleware import (
     SecurityHeadersMiddleware,
     UnhandledExceptionMiddleware,
 )
+from app.domains.admin.router import router as admin_router
 from app.domains.auth.router import router as auth_router
 from app.domains.health.router import router as health_router
 from app.domains.users.router import router as users_router
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
     app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
     app.include_router(users_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
 
     register_exception_handlers(app)
 
