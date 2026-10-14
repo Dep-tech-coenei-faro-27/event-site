@@ -46,23 +46,26 @@ class MBWayGateway(Protocol):
     ) -> TransactionStatus: ...
 
 
+# ifthenpay MB WAY v2 status codes (see the official SDK's MbwayService):
+# on creation only "000" means "accepted, pending"; on a status query "000" means
+# "paid". The codes are the same shape but come from two different endpoints.
+CREATE_OK = "000"
 _STATUS_MAP = {
-    "paid": TransactionStatus.CONFIRMED,
-    "success": TransactionStatus.CONFIRMED,
-    "confirmed": TransactionStatus.CONFIRMED,
-    "failed": TransactionStatus.FAILED,
-    "error": TransactionStatus.FAILED,
-    "canceled": TransactionStatus.FAILED,
-    "cancelled": TransactionStatus.FAILED,
-    "declined": TransactionStatus.FAILED,
-    "expired": TransactionStatus.EXPIRED,
-    "pending": TransactionStatus.PENDING,
+    "000": TransactionStatus.CONFIRMED,  # paid
+    "123": TransactionStatus.PENDING,  # pending payment
+    "020": TransactionStatus.FAILED,  # rejected by the user
+    "101": TransactionStatus.EXPIRED,  # expired (4-minute window)
+    "122": TransactionStatus.FAILED,  # declined
 }
 
 
 def _normalize_status(raw: object) -> TransactionStatus:
     if isinstance(raw, str):
-        return _STATUS_MAP.get(raw.strip().lower(), TransactionStatus.PENDING)
+        code = raw.strip()
+        status = _STATUS_MAP.get(code)
+        if status is not None:
+            return status
+        logger.warning("ifthenpay returned an unknown status code: %r", raw)
     return TransactionStatus.PENDING
 
 
@@ -141,12 +144,18 @@ class IfThenPayMBWayGateway:
             "email": email,
         }
         data = self._http_post(self.base_url, payload, self._headers(json_body=True))
-        transaction_id = data.get("transactionId") or data.get("TransactionId")
-        if not transaction_id:
-            raise PaymentGatewayError("gateway response is missing transactionId")
+        code = str(data.get("Status", "")).strip()
+        if code != CREATE_OK:
+            message = data.get("Message") or "no message"
+            raise PaymentGatewayError(
+                f"gateway refused the payment request (Status={code!r}: {message})"
+            )
+        request_id = data.get("RequestId") or data.get("requestId")
+        if not request_id:
+            raise PaymentGatewayError("gateway response is missing RequestId")
         return MBWayPayment(
-            provider_reference=str(transaction_id),
-            status=_normalize_status(data.get("status")),
+            provider_reference=str(request_id),
+            status=TransactionStatus.PENDING,
         )
 
     def get_status(
@@ -160,7 +169,7 @@ class IfThenPayMBWayGateway:
         data = self._http_get(
             f"{self.base_url}/status?{query}", self._headers(json_body=False)
         )
-        return _normalize_status(data.get("status"))
+        return _normalize_status(data.get("Status"))
 
 
 class SimulatedMBWayGateway:

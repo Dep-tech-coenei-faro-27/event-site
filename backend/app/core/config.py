@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES: int = Field(default=2, gt=0)
     RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
+    RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
@@ -84,6 +85,9 @@ class Settings(BaseSettings):
     MBWAY_KEY: str = ""
     MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
     MBWAY_AUTH_TOKEN: str = ""
+    # Anti-phishing key ifthenpay echoes back on the payment callback. Required when
+    # PAYMENTS_MODE=live: without it we cannot trust a callback.
+    MBWAY_CALLBACK_KEY: str = ""
     MBWAY_TIMEOUT_SECONDS: int = Field(default=10, gt=0, le=60)
     MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
     # Staging only: with a positive value the simulated provider starts confirming
@@ -196,6 +200,17 @@ class Settings(BaseSettings):
             if not self.MBWAY_BASE_URL.startswith("https://"):
                 raise ValueError(
                     "PAYMENTS_MODE=live requires MBWAY_BASE_URL to start with https://."
+                )
+            if not self.MBWAY_CALLBACK_KEY:
+                raise ValueError(
+                    "PAYMENTS_MODE=live requires MBWAY_CALLBACK_KEY to be set "
+                    "(the ifthenpay anti-phishing key)."
+                )
+            if len(self.MBWAY_CALLBACK_KEY) < MIN_JWT_SECRET_LENGTH:
+                raise ValueError(
+                    "PAYMENTS_MODE=live requires MBWAY_CALLBACK_KEY to be at least "
+                    f"{MIN_JWT_SECRET_LENGTH} characters (the ifthenpay anti-phishing "
+                    "key)."
                 )
 
         if (

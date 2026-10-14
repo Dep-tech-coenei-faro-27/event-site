@@ -1,14 +1,19 @@
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from app.core.config import Settings, settings
+from app.core.qr import verify_qr_payload
 from app.domains.payments.gateway import (
     SimulatedMBWayGateway,
     get_mbway_gateway,
 )
 from app.domains.payments.models import TransactionStatus
+from app.domains.tickets.models import PaymentStatus, Ticket
 from app.main import app
 from tests.helpers import INITIATE_URL, authenticate, seed_ticket_tiers, transaction_url
+
+USERS_ME_URL = "/api/users/me"
 
 INITIATE = {"ticket_tier": "geral", "phone": "912345678"}
 
@@ -130,6 +135,36 @@ def test_confirmed_payment_flows_through_the_api(
     assert body["confirmed_at"] is not None
 
 
+def test_confirmed_payment_issues_the_ticket_and_the_qr(
+    auth_client, email_sender, db_session, confirming_gateway
+):
+    _, clock = confirming_gateway
+    user = authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    assert (
+        db_session.scalar(
+            select(Ticket).where(Ticket.transaction_reference == reference)
+        )
+        is None
+    )
+
+    clock.advance(5)
+    assert auth_client.get(transaction_url(reference)).json()["status"] == "confirmed"
+
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == reference)
+    )
+    assert ticket is not None
+    assert ticket.user_id == user.id
+    assert ticket.payment_status is PaymentStatus.PAID
+
+    qr_code = auth_client.get(USERS_ME_URL).json()["qr_code"]
+    assert qr_code == ticket.qr_payload
+    assert verify_qr_payload(qr_code).ticket_id == ticket.id
+
+
 DEV = {
     "ENVIRONMENT": "dev",
     "POSTGRES_USER": "user",
@@ -188,6 +223,7 @@ def test_confirming_simulator_requires_simulated_mode(mode):
     }
     if mode == "live":
         overrides["MBWAY_KEY"] = "MBW-123456"
+        overrides["MBWAY_CALLBACK_KEY"] = "c" * 40
 
     with pytest.raises(
         ValidationError, match="PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS"

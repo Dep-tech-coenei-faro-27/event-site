@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
+from app.core.log_redaction import install_access_log_redaction
 from app.core.media import MediaFiles
 from app.core.middleware import (
     RequestSizeLimitMiddleware,
@@ -31,6 +32,7 @@ def only_loopback(trusted: str | None) -> bool:
 
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
+    install_access_log_redaction()
     if settings.ENVIRONMENT == "prod" and only_loopback(
         os.environ.get("FORWARDED_ALLOW_IPS")
     ):

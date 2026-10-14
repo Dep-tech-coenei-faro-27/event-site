@@ -660,7 +660,13 @@ def test_if_then_pay_gateway_sends_the_documented_payload():
 
     def fake_post(url, payload, headers):
         posted.append((url, payload, headers))
-        return {"transactionId": "itp-1", "status": "pending"}
+        return {
+            "Status": "000",
+            "Message": "Pending",
+            "Amount": "10.50",
+            "OrderId": "ENEI-0000000006",
+            "RequestId": "itp-1",
+        }
 
     client = IfThenPayMBWayGateway(
         mbway_key="MBW-123456",
