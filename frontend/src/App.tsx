@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -21,6 +23,14 @@ import Termos from './pages/TermosCondicoes';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './utils/AuthContext';
+
+// Um erro numa página mostra o ecrã de erro dentro do layout (com Navbar e Footer) e
+// desaparece ao navegar para outra página.
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -31,6 +41,7 @@ function App() {
           <Navbar />
 
           <main className="flex-grow bg-[#050d21]">
+            <RouteErrorBoundary>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/equipa" element={<Equipa />} />
@@ -54,6 +65,7 @@ function App() {
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </RouteErrorBoundary>
           </main>
           <Footer />
 
