@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     MEDIA_DIR: Path = BASE_DIR / "media"
     DEBUG: bool = False
     MAX_REQUEST_BYTES: int = Field(default=1_048_576, gt=0)
-    STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
+    STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     CORS_ALLOW_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
@@ -88,17 +88,28 @@ class Settings(BaseSettings):
             text = value.strip()
             if not text:
                 return []
-            value = json.loads(text) if text.startswith("[") else text.split(",")
+            if text.startswith("["):
+                try:
+                    value = json.loads(text)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        "STUDENT_EMAIL_DOMAINS must be valid JSON or comma-separated text."
+                    ) from exc
+            else:
+                value = [part.strip() for part in text.split(",") if part.strip()]
         if not isinstance(value, list):
             return value
         domains: list[str] = []
+        seen: set[str] = set()
         for item in value:
-            domain = str(item).strip().lower().lstrip("@.")
+            domain = str(item).strip().lower().lstrip("@").strip(".")
             if not domain:
                 continue
             if "/" in domain or " " in domain or "." not in domain:
                 raise ValueError(f"Invalid domain in STUDENT_EMAIL_DOMAINS: {domain!r}")
-            domains.append(domain)
+            if domain not in seen:
+                seen.add(domain)
+                domains.append(domain)
         return domains
 
     @field_validator("JWT_SECRET_KEY")
@@ -160,8 +171,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def check_environment(self) -> "Settings":
         weak_secret = (
-            len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
-            or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
+                len(self.JWT_SECRET_KEY) < MIN_JWT_SECRET_LENGTH
+                or self.JWT_SECRET_KEY in INSECURE_JWT_SECRETS
         )
 
         if self.ENVIRONMENT != "prod":
