@@ -215,20 +215,27 @@ def _sync_provider_status(
     keeps working instead of failing the request.
     """
     now = datetime.now(UTC)
+    reference = transaction.reference
+    provider_reference = transaction.provider_reference
+    expires_at = _as_utc(transaction.expires_at)
+    # Release the pooled database connection before the network call: a slow
+    # provider must not keep a connection busy while we wait for its answer.
+    db.commit()
+
     try:
         provider_status = gateway.get_status(
-            reference=transaction.reference,
-            provider_reference=transaction.provider_reference,
+            reference=reference,
+            provider_reference=provider_reference,
         )
     except PaymentGatewayError:
         logger.warning(
             "MB WAY status poll failed for %s; keeping stored status",
-            transaction.reference,
+            reference,
         )
         provider_status = TransactionStatus.PENDING
 
     if provider_status is TransactionStatus.PENDING:
-        if _as_utc(transaction.expires_at) > now:
+        if expires_at > now:
             return
         provider_status = TransactionStatus.EXPIRED
     elif provider_status is TransactionStatus.CONFIRMED:

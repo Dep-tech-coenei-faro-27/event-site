@@ -358,6 +358,19 @@ def test_get_status_requires_authentication(auth_client):
     assert response.status_code == 401
 
 
+def test_get_status_is_rate_limited_per_user(
+    auth_client, email_sender, db_session, gateway, monkeypatch
+):
+    monkeypatch.setattr(settings, "RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE", 2)
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+
+    assert auth_client.get(transaction_url(reference)).status_code == 200
+    assert auth_client.get(transaction_url(reference)).status_code == 200
+    assert auth_client.get(transaction_url(reference)).status_code == 429
+
+
 def test_get_status_hides_other_users_transaction(
     auth_client, email_sender, db_session, gateway
 ):

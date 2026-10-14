@@ -68,6 +68,13 @@ def read_transaction(
     db: Session = Depends(get_db),
     gateway: MBWayGateway = Depends(get_mbway_gateway),
 ) -> TransactionRead:
+    rule = RateLimit(
+        "payment_status",
+        settings.RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE,
+        60,
+    )
+    enforce_rate_limit(db, (rule,), str(current_user.id))
+
     transaction = get_transaction(db, current_user, reference, gateway)
     if transaction is None:
         raise HTTPException(
