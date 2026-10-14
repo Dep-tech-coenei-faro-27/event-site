@@ -183,6 +183,26 @@ def initiate_payment(
     return transaction, tier
 
 
+def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
+    """Record a successful payment and issue its ticket.
+
+    Single source of truth for "the payment went through": both the provider
+    callback and the status poll go through here, so the ticket is issued no
+    matter how the confirmation arrives. Idempotent: a repeated call returns the
+    same transaction and never duplicates the ticket.
+    """
+    if transaction.status is not TransactionStatus.CONFIRMED:
+        transaction.status = TransactionStatus.CONFIRMED
+        transaction.confirmed_at = datetime.now(UTC)
+        db.commit()
+        db.refresh(transaction)
+
+    issue_ticket_for_paid_transaction(
+        db, user_id=transaction.user_id, transaction_reference=transaction.reference
+    )
+    return transaction
+
+
 def _sync_provider_status(
     db: Session, transaction: Transaction, gateway: MBWayGateway
 ) -> None:
@@ -212,7 +232,8 @@ def _sync_provider_status(
             return
         provider_status = TransactionStatus.EXPIRED
     elif provider_status is TransactionStatus.CONFIRMED:
-        transaction.confirmed_at = now
+        confirm_transaction(db, transaction)
+        return
 
     transaction.status = provider_status
     db.commit()
@@ -229,8 +250,12 @@ def handle_payment_callback(
     """Apply an ifthenpay payment callback to a transaction.
 
     Trust only callbacks that carry our anti-phishing key, and only confirm a
-    payment whose value matches what was charged. Idempotent: a repeated callback
-    returns the same transaction and never duplicates the issued ticket.
+    payment whose value matches what was charged. A callback only confirms a
+    transaction that is still ``pending``: one that already ``failed`` or
+    ``expired`` is answered 200 (so ifthenpay stops retrying) but left untouched
+    and logged, because an unexpected late payment needs a manual look. Idempotent:
+    a repeated callback returns the same transaction and never duplicates the
+    ticket.
     """
     if not _callback_key_matches(key):
         raise InvalidCallbackKeyError("Invalid callback key")
@@ -249,16 +274,15 @@ def handle_payment_callback(
             "Callback amount does not match the transaction"
         )
 
-    if transaction.status is not TransactionStatus.CONFIRMED:
-        transaction.status = TransactionStatus.CONFIRMED
-        transaction.confirmed_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(transaction)
+    if transaction.status in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+        logger.warning(
+            "MB WAY callback for %s ignored: transaction is %s",
+            transaction.reference,
+            transaction.status.value,
+        )
+        return transaction
 
-    issue_ticket_for_paid_transaction(
-        db, user_id=transaction.user_id, transaction_reference=transaction.reference
-    )
-    return transaction
+    return confirm_transaction(db, transaction)
 
 
 def get_transaction(

@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from sqlalchemy import func, select
 
@@ -7,7 +9,7 @@ from app.domains.payments.gateway import MBWayPayment, get_mbway_gateway
 from app.domains.payments.models import TicketTier, Transaction, TransactionStatus
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.main import app
-from tests.helpers import INITIATE_URL, authenticate, seed_ticket_tiers
+from tests.helpers import INITIATE_URL, authenticate, seed_ticket_tiers, transaction_url
 
 CALLBACK_URL = "/api/payment/callback"
 CALLBACK_KEY = "if-then-pay-anti-phishing-key"
@@ -89,6 +91,83 @@ def test_callback_confirms_the_transaction_and_issues_the_ticket(
     assert ticket.payment_status is PaymentStatus.PAID
     assert ticket.paid_at is not None
     assert verify_qr_payload(ticket.qr_payload).ticket_id == ticket.id
+
+
+def test_polling_confirms_the_transaction_and_issues_the_ticket(
+    auth_client, email_sender, db_session, gateway
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    gateway.status = TransactionStatus.CONFIRMED
+
+    response = auth_client.get(transaction_url(payment["reference"]))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "confirmed"
+
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    db_session.refresh(transaction)
+    assert transaction.confirmed_at is not None
+
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    assert ticket is not None
+    assert ticket.payment_status is PaymentStatus.PAID
+    assert verify_qr_payload(ticket.qr_payload).ticket_id == ticket.id
+
+
+@pytest.mark.parametrize(
+    "terminal_status", [TransactionStatus.FAILED, TransactionStatus.EXPIRED]
+)
+def test_callback_ignores_failed_or_expired_transactions(
+    auth_client,
+    email_sender,
+    db_session,
+    gateway,
+    callback_key,
+    caplog,
+    terminal_status,
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = terminal_status
+    db_session.commit()
+
+    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
+        response = auth_client.get(
+            CALLBACK_URL,
+            params={
+                "key": callback_key,
+                "orderId": payment["reference"],
+                "amount": "50.00",
+            },
+        )
+
+    assert response.status_code == 200
+    db_session.refresh(transaction)
+    assert transaction.status is terminal_status
+    assert transaction.confirmed_at is None
+    assert count_tickets(db_session, payment["reference"]) == 0
+    assert payment["reference"] in caplog.text
+
+
+def test_callback_is_rate_limited_per_ip(
+    auth_client, email_sender, db_session, gateway, monkeypatch
+):
+    monkeypatch.setattr(settings, "RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE", 2)
+    params = {"key": "wrong", "orderId": "ENEI-DOES-NOT-EXIST", "amount": "1.00"}
+
+    first = auth_client.get(CALLBACK_URL, params=params)
+    second = auth_client.get(CALLBACK_URL, params=params)
+    third = auth_client.get(CALLBACK_URL, params=params)
+
+    assert first.status_code == 403
+    assert second.status_code == 403
+    assert third.status_code == 429
 
 
 def test_callback_accepts_the_current_ifthenpay_parameter_names(

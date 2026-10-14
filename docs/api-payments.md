@@ -71,7 +71,7 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 | `403` | email por verificar |
 | `404` | referência inexistente ou de outro utilizador |
 
-Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at`). Só quando o fornecedor ainda responde `pending` é que o prazo local decide: se já tiver passado, a chamada devolve (e grava) o estado `expired`. Se o fornecedor estiver temporariamente inacessível, a API mantém o estado atual para o *polling* não falhar.
+Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Só quando o fornecedor ainda responde `pending` é que o prazo local decide: se já tiver passado, a chamada devolve (e grava) o estado `expired`. Se o fornecedor estiver temporariamente inacessível, a API mantém o estado atual para o *polling* não falhar.
 
 ### `GET /api/payment/callback`
 
@@ -91,8 +91,11 @@ O parâmetro `requestId` (ou `tid`) que a ifthenpay também envia é aceite mas 
 | `400` | valor em falta, não numérico ou diferente do que foi cobrado |
 | `403` | chave anti-phishing ausente ou errada |
 | `404` | referência desconhecida |
+| `429` | mais de 60 pedidos por minuto do mesmo IP (`RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE`) |
 
-O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
+O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. Só confirma transações ainda `pending`: se a transação já estiver `failed` ou `expired`, responde `200` (para a ifthenpay parar de repetir) mas **não** altera o estado nem emite bilhete — deixa um aviso com a referência nos logs para tratamento manual. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
+
+A chave anti-phishing transita no *query string* do pedido; o backend remove-a dos logs de acesso do uvicorn e o nginx já esconde o caminho `/api/payment/callback`.
 
 ## Estados de uma transação
 
