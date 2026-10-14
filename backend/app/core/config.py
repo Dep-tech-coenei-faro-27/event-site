@@ -195,6 +195,11 @@ class Settings(BaseSettings):
             problems.append(f"CORS_ALLOW_ORIGINS must all be https:// ({insecure}).")
         if not self.STUDENT_EMAIL_DOMAINS:
             problems.append("STUDENT_EMAIL_DOMAINS must not be empty in production.")
+        if self.TICKET_PRICE_STUDENT_CENTS >= self.TICKET_PRICE_GENERAL_CENTS:
+            problems.append(
+                "TICKET_PRICE_STUDENT_CENTS must be less than "
+                "TICKET_PRICE_GENERAL_CENTS."
+            )
 
         if problems:
             raise ValueError(
