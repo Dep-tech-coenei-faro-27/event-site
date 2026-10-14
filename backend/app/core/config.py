@@ -90,6 +90,11 @@ class Settings(BaseSettings):
     MBWAY_CALLBACK_KEY: str = ""
     MBWAY_TIMEOUT_SECONDS: int = Field(default=10, gt=0, le=60)
     MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
+    # Staging only: with a positive value the simulated provider starts confirming
+    # payments a few seconds after they are created, so the ticket/QR/email flow can
+    # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the
+    # backend refuses to start with `live` or `off` and a positive value.
+    PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS: int = Field(default=0, ge=0, le=3600)
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -207,6 +212,16 @@ class Settings(BaseSettings):
                     f"{MIN_JWT_SECRET_LENGTH} characters (the ifthenpay anti-phishing "
                     "key)."
                 )
+
+        if (
+            self.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS > 0
+            and self.PAYMENTS_MODE != "simulated"
+        ):
+            raise ValueError(
+                "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS requires "
+                "PAYMENTS_MODE=simulated; the confirming simulator cannot run with "
+                "live or off payments."
+            )
 
         if self.ENVIRONMENT != "prod":
             if weak_secret:

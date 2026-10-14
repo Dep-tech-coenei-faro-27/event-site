@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
@@ -172,9 +173,27 @@ class IfThenPayMBWayGateway:
 
 
 class SimulatedMBWayGateway:
-    """Answers like ifthenpay without contacting it, for local/dev/frontend work."""
+    """Answers like ifthenpay without contacting it, for local/dev/frontend work.
+
+    By default it always answers ``pending``. With a positive
+    ``confirm_after_seconds`` it reports the payment as confirmed once that many
+    seconds have elapsed since it was created, so the ticket/QR/email flow can run
+    end to end without ifthenpay. That confirming mode is only allowed with
+    ``PAYMENTS_MODE=simulated``: ``live`` and ``off`` refuse to start with it
+    enabled.
+    """
 
     name = "simulated"
+    _REFERENCE_PREFIX = "SIM"
+
+    def __init__(
+        self,
+        *,
+        confirm_after_seconds: int = 0,
+        now: Callable[[], float] = time.time,
+    ) -> None:
+        self.confirm_after_seconds = confirm_after_seconds
+        self._now = now
 
     def create_payment(
         self,
@@ -184,14 +203,34 @@ class SimulatedMBWayGateway:
         phone: str,
         email: str,
     ) -> MBWayPayment:
+        # The creation instant travels inside the provider reference so the gateway
+        # stays stateless and ``get_status`` can measure the elapsed time.
+        created_at = int(self._now())
         return MBWayPayment(
-            provider_reference=f"SIM-{reference}",
+            provider_reference=f"{self._REFERENCE_PREFIX}-{created_at}-{reference}",
             status=TransactionStatus.PENDING,
         )
+
+    def _created_at(self, provider_reference: str | None) -> int | None:
+        if not provider_reference:
+            return None
+        parts = provider_reference.split("-", 2)
+        if len(parts) != 3 or parts[0] != self._REFERENCE_PREFIX:
+            return None
+        if not parts[1].isdigit():
+            return None
+        return int(parts[1])
 
     def get_status(
         self, *, reference: str, provider_reference: str | None
     ) -> TransactionStatus:
+        if self.confirm_after_seconds <= 0:
+            return TransactionStatus.PENDING
+        created_at = self._created_at(provider_reference)
+        if created_at is None:
+            return TransactionStatus.PENDING
+        if self._now() - created_at >= self.confirm_after_seconds:
+            return TransactionStatus.CONFIRMED
         return TransactionStatus.PENDING
 
 
@@ -208,4 +247,8 @@ def get_mbway_gateway() -> MBWayGateway:
             timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
             auth_token=settings.MBWAY_AUTH_TOKEN,
         )
-    return SimulatedMBWayGateway()
+    # Only PAYMENTS_MODE=simulated reaches here (off raises 503, live is handled
+    # above), and the settings reject a confirm delay for any other mode.
+    return SimulatedMBWayGateway(
+        confirm_after_seconds=settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS
+    )
