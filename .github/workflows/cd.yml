@@ -76,6 +76,7 @@ jobs:
             STUDENT_EMAIL_DOMAINS=${{ vars.STUDENT_EMAIL_DOMAINS }}
             MBWAY_KEY=${{ secrets.MBWAY_KEY }}
             MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
+            MBWAY_CALLBACK_KEY=${{ secrets.MBWAY_CALLBACK_KEY }}
             EOF
             # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
             # e o default do código é "off".
