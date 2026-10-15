@@ -72,7 +72,7 @@ export default function LegalPageLayout({
     sections,
 }: LegalPageLayoutProps) {
     return (
-        <main id="conteudo" className="bg-azul-base font-poppins text-branco">
+        <div id="conteudo" className="bg-azul-base font-poppins text-branco">
             {/* HERO */}
             <header className="relative overflow-hidden border-b border-acento-principal/[0.42] bg-azul-base bg-[radial-gradient(circle_at_78%_12%,rgba(26,178,255,0.2),transparent_36%)] pt-28">
                 <span aria-hidden="true" className="pointer-events-none absolute inset-0" style={gridLines} />
@@ -211,6 +211,6 @@ export default function LegalPageLayout({
                     </article>
                 </div>
             </section>
-        </main>
+        </div>
     );
 }

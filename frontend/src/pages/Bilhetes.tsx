@@ -180,7 +180,7 @@ const TicketCard = ({ category, title, price, features, featured = false }: Tick
 
 export default function Bilhetes() {
     return (
-        <main className="leading-[1.65]">
+        <div className="leading-[1.65]">
             {/* HERO */}
             <header className="relative grid min-h-[560px] items-center overflow-hidden border-b border-gelo/10 bg-azul-base bg-[radial-gradient(circle_at_78%_12%,rgba(26,178,255,0.2),transparent_36%)] pb-[clamp(70px,8vw,110px)] pt-[calc(64px+clamp(84px,10vw,140px))] md:pt-[calc(76px+clamp(84px,10vw,140px))]">
                 <span aria-hidden="true" className="pointer-events-none absolute inset-0" style={gridLines} />
@@ -301,6 +301,6 @@ export default function Bilhetes() {
                     </Link>
                 </div>
             </Section>
-        </main>
+        </div>
     );
 }
