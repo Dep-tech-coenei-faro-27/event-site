@@ -128,7 +128,7 @@ export default function Footer() {
           <div className="flex flex-wrap justify-start gap-3 md:justify-center md:gap-7">
             <Link to="/termos" className="transition-colors hover:text-branco">Termos e condições</Link>
             <Link to="/privacidade" className="transition-colors hover:text-branco">Política de privacidade</Link>
-            <Link to="/acessibilidade" className="transition-colors hover:text-branco">Acessibilidade</Link>
+            <Link to="/acessibilidade" className="transition-colors hover:text-branco">Declaração de Acessibilidade</Link>
           </div>
         </div>
       </div>

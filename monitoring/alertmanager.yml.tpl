@@ -15,5 +15,5 @@ receivers:
     discord_configs:
       - webhook_url_file: ${ALERT_DISCORD_WEBHOOK}
     email_configs:
-      - to: ${ALERT_EMAIL_TO}"
+      - to: ${ALERT_EMAIL_TO}
         send_resolved: true

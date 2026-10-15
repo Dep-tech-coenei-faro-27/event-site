@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar'; 
-import Footer from './components/Footer'; 
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registo from './pages/Registo';
@@ -9,44 +9,56 @@ import InformacaoAjuda from './pages/InformacaoAjuda';
 import Sobre from './pages/Sobre';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
-
-
-
+import NotFound from './pages/NotFound';
 import Bilhetes from './pages/Bilhetes';
-
+import Acessibilidade from './pages/Acessibilidade';
+import Privacidade from './pages/Privacidade';
+import Termos from './pages/TermosCondicoes';
 import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './utils/AuthContext';
 function App() {
   return (
     <BrowserRouter>
-    <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-[#050d21]">
-        
-        <Navbar />
+      <AuthProvider>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen bg-[#050d21]">
 
-        <main className="flex-grow bg-[#050d21]">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/equipa" element={<Equipa />} />
-            <Route path="/bilhetes" element ={<Bilhetes/>} />
-            <Route path="/sobre" element ={<Sobre/>} />
-            <Route path="/parcerias" element ={<Parcerias/>} />
-            <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/agenda" element={<Agenda/>} />
+          <Navbar />
 
-            <Route path="/conta" element={<Login />} />
-            <Route path="/conta/criar" element={<Registo />} />
-            <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+          <main className="flex-grow bg-[#050d21]">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/equipa" element={<Equipa />} />
+              <Route path="/bilhetes" element={<Bilhetes />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/parcerias" element={<Parcerias />} />
+              <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/parcerias" element={<Parcerias />} />
+              <Route path="/acessibilidade" element={<Acessibilidade/>}/>
+              <Route path="/termos" element={<Termos/>} /> 
+              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/privacidade" element={<Privacidade />}/>
+              <Route path="/conta" element={<Login />} />
+              <Route path="/conta/criar" element={<Registo />} />
+              <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+              <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+              <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/perfil" element={<ProfilePage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+          <Footer />
 
-            <Route path="/perfil" element={<ProfilePage />} />
-          </Routes>
-        </main>
-
-        <Footer />
-        
-      </div>
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
