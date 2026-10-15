@@ -17,7 +17,7 @@ const helpLink =
 
 /**
  * Ecrã de erro do servidor do protótipo (`ui-ux/erros/servidor`), usado quando uma página
- * falha ao ser desenhada. Sem ele um erro deixava o site em branco (G-45).
+ * falha ao ser desenhada. Sem ele um erro deixava o site em branco.
  */
 export default function ServerError({ onRetry, standalone = false }: ServerErrorProps) {
   const content = (
@@ -43,7 +43,7 @@ export default function ServerError({ onRetry, standalone = false }: ServerError
     </div>
   );
 
-  // Dentro da aplicação o `<main>` já existe (App.tsx): não se aninha outro (G-50).
+  // Dentro da aplicação o `<main>` já existe (App.tsx): não se aninha outro.
   return standalone ? (
     <main className={wrapper}>{content}</main>
   ) : (
