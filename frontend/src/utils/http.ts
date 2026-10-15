@@ -40,17 +40,20 @@ export async function http<T = unknown>(path: string, options: HttpOptions = {})
       body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
     });
   } catch {
-    throw new NetworkError(); // nunca chama onUnauthorized (G-48)
+    throw new NetworkError(); // nunca chama onUnauthorized
   }
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     const message = typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`;
 
-    
+    // 401 que não significa «sessão terminada»: erro do próprio formulário (login, palavra-passe
+    // atual errada), visitante sem sessão (sem cookie) ou a verificação inicial da sessão em
+    // `/auth/me`, que não deve atirar para o login quem só está a ver páginas públicas.
     const isFormError401 =
-    path === '/auth/login' ||
-    (path === '/auth/password' && data?.detail === 'Current password is incorrect');
+      path === '/auth/login' ||
+      path === '/auth/me' ||
+      (path === '/auth/password' && data?.detail === 'Current password is incorrect');
     const noSession = data?.detail === 'Not authenticated. Missing access token cookie.';
     if (res.status === 401 && !isFormError401 && !noSession) onUnauthorized();
 

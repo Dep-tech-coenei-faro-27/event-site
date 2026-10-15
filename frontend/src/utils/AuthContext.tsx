@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setUser(null);
-      navigate('/conta', { replace: true });
+      navigate('/conta?sessao=terminada', { replace: true });
     });
     return () => {
       setUnauthorizedHandler(() => { });
