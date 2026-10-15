@@ -2,7 +2,7 @@
 
 Backend da API do event-site, construído com **FastAPI**, **SQLAlchemy 2** e **PostgreSQL**, gerido com **uv**.
 
-Para quem desenvolve o frontend, o contrato dos endpoints está em [`docs/api-auth.md`](../docs/api-auth.md). Para pôr no ar e operar o servidor, ver [`docs/deploy.md`](../docs/deploy.md).
+Para quem desenvolve o frontend, o contrato dos endpoints está em [`docs/api-auth.md`](../docs/api-auth.md) e [`docs/api-payments.md`](../docs/api-payments.md). Para pôr no ar e operar o servidor, ver [`docs/deploy.md`](../docs/deploy.md).
 
 ## Estrutura
 
@@ -14,6 +14,7 @@ backend/
 │   └── domains/       # Separação por domínio
 │       ├── auth/      # registo, login, verificação de email, recuperação de password
 │       ├── health/    # router.py, schemas.py, models.py, service.py
+│       ├── payments/  # bilhetes, transações e gateway MB WAY
 │       └── users/
 ├── alembic/           # Migrations
 └── pyproject.toml
@@ -98,6 +99,7 @@ Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_li
 | `POST /auth/forgot-password` | 1 por minuto e 5 por hora por email, e 10 por minuto por IP |
 | `PUT /auth/password` | 2 por 15 minutos por utilizador |
 | `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP |
+| `POST /payment/initiate` | 10 por minuto por utilizador |
 
 O limite de login conta o par email e IP, por isso alguém que falhe a password de outra pessoa não a bloqueia: só se bloqueia a si próprio.
 
@@ -119,6 +121,18 @@ Se alguém regista um email que nunca foi verificado, a conta passa para quem se
 
 Uma conta que nunca confirmou o email continua a ocupar esse email. O comando `make cleanup-unverified` (`python -m app.domains.users.cleanup`) apaga as contas não verificadas com mais de `UNVERIFIED_ACCOUNT_TTL_DAYS` dias (7 por omissão) e os tokens de recuperação de password que expiraram há mais de um dia (e os tokens de sessão revogados que já expiraram). Tem de correr uma vez por dia no servidor (ver `docs/deploy.md`, "Limpeza de contas não verificadas").
 
+## Pagamentos
+
+A bilheteira tem quatro modalidades (`acesso`, `refeicoes`, `completo`, `geral`), guardadas na tabela `ticket_tiers`. A migration cria-as com `price_cents` a `NULL` (bilheteira fechada); o preço passa a estar definido com `make set-price tier=geral price=3500` (`python -m app.domains.payments.set_price`, com IVA, em cêntimos, sempre maior que zero). As três primeiras são de estudante.
+
+- **Bilheteira fechada:** enquanto `price_cents` for `NULL`, `POST /api/payment/initiate` responde `503` sem criar transação (nunca há uma transação de valor zero).
+- **Preço do servidor:** `POST /api/payment/initiate` ignora qualquer preço enviado pelo cliente e usa o da base de dados, multiplicado pela quantidade.
+- **Stock atómico:** a verificação de disponibilidade e a reserva do lugar acontecem na mesma transação, com a linha do bilhete bloqueada (`SELECT ... FOR UPDATE`), por isso dois pedidos em simultâneo não podem vender mais do que o `inventory_limit`.
+- **Estudante:** quem se regista com um email cujo domínio está em `STUDENT_EMAIL_DOMAINS` fica com `student_verification_status: "verified"` automaticamente; os outros ficam `pending` e não podem comprar bilhetes de estudante (recebem `403`). O estado é exposto em `GET /api/auth/me`.
+- **MB WAY:** o modo é `PAYMENTS_MODE` (`off` por omissão, `simulated` ou `live`). Em `off` a bilheteira responde `503`; em `simulated` o gateway responde sempre `pending`, sem contactar nada; em `live` fala com a ifthenpay (`MBWAY_KEY` e `MBWAY_BASE_URL` em `https`, obrigatórios). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar. Com `simulated`, `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0 faz o gateway simulado confirmar o pagamento ao fim desses segundos, para testar a confirmação sem ifthenpay. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
+- **Callback do pagamento:** em `live` a ifthenpay confirma o pagamento chamando `GET /api/payment/callback` com a chave anti-phishing (`MBWAY_CALLBACK_KEY`, pelo menos 32 caracteres) e a referência. O endpoint é público, limita os pedidos por IP, compara a chave em tempo constante, valida o valor e é idempotente; só confirma transações `pending` (uma `failed` ou `expired` responde `200` mas fica intocada e com um aviso nos logs). A mesma função de confirmação é usada pelo *polling* (`GET /api/payment/transactions/{reference}`), por isso o bilhete com o QR assinado é emitido quer o pagamento chegue pelo callback quer pela consulta. Sem a chave configurada (ou em `live` sem `MBWAY_CALLBACK_KEY`) o callback é recusado com `403`. A chave é removida dos logs de acesso do uvicorn.
+- O contrato detalhado está em [`docs/api-payments.md`](../docs/api-payments.md).
+
 ## Health checks
 
 - `GET /api/health`: o processo responde, `{"status": "OK"}` (não toca na base de dados). É o que o `HEALTHCHECK` da imagem e o deploy usam.
@@ -134,6 +148,7 @@ make format       # ruff format
 make db-upgrade   # aplica migrations
 make db-revision m="descrição"   # cria nova migration
 make cleanup-unverified   # apaga contas não verificadas antigas
+make set-price tier=geral price=3500   # abre a bilheteira dessa modalidade
 make help         # lista todos os comandos
 ```
 
