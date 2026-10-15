@@ -57,6 +57,7 @@ services:
       - frontend
 
   node-exporter:
+    profiles: ["monitoring"]
     image: prom/node-exporter:v1.8.2
     pid: "host"
     restart: unless-stopped
@@ -67,6 +68,7 @@ services:
     logging: *default-logging
 
   prometheus:
+    profiles: ["monitoring"]
     image: prom/prometheus:v2.55.1
     restart: unless-stopped
     command:
@@ -81,6 +83,7 @@ services:
     logging: *default-logging
 
   alertmanager:
+    profiles: ["monitoring"]
     image: prom/alertmanager:v0.28.1
     restart: unless-stopped
     volumes:
