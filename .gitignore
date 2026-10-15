@@ -8,3 +8,8 @@ tunnel.env
 # Python (os testes importam scripts/)
 __pycache__/
 *.py[cod]
+
+# Cópias de segurança da base de dados e dos ficheiros (têm dados pessoais). Nunca fazer commit.
+backups/
+*.dump
+media-*.tar.gz
