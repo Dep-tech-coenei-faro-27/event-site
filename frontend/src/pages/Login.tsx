@@ -5,6 +5,7 @@ import SecondaryButton from "../components/SecundaryButton";
 import Field from "../components/Field";
 import { usePageMeta } from "../utils/usePageMeta";
 import { retryAfterMessage } from "../utils/RetryAfter";
+import { http, ApiError } from "../utils/http";
 
 
 const points = [
@@ -23,40 +24,65 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [info, setInfo] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get("sessao") === "terminada"
+      ? "A tua sessão terminou. Entra novamente."
+      : null,
+  );
+  const [resending, setResending] = useState(false);
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (loading) return;
     setError(null);
+    setInfo(null);
+    setUnverified(false);
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      await http("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // necessário para o cookie de sessão
-        body: JSON.stringify({ email, password, remember_me: rememberMe }),
+        body: { email, password, remember_me: rememberMe },
       });
-
-      if (res.ok) {
-        // 200 → cookie de sessão já guardado pelo browser
-        window.location.href = "/perfil"; // TODO: alterar para a url correta
-        return;
-      }
-
-      if (res.status === 401) {
+      // 200 → cookie de sessão já guardado pelo browser
+      window.location.href = "/perfil"; // TODO: alterar para a url correta
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        setError("Não foi possível contactar o servidor.");
+      } else if (err.status === 401) {
         setError("Email ou palavra-passe inválidos.");
-      } else if (res.status === 403) {
-        setError("Verifica o teu email antes de continuar.");
-      } else if (res.status === 429) {
-        setError(retryAfterMessage(res, "Demasiados registos."));
+      } else if (err.status === 403) {
+        setError("A tua conta ainda não foi verificada. Confirma o teu email para entrares.");
+        setUnverified(true);
+      } else if (err.status === 429) {
+        setError(retryAfterMessage(err.retryAfter, "Demasiadas tentativas de login."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }
-    } catch {
-      setError("Não foi possível contactar o servidor.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resending) return;
+    setResending(true);
+    setInfo(null);
+    try {
+      await http("/auth/resend-verification-email", { method: "POST", body: { email } });
+      setError(null);
+      setInfo("Se a conta estiver por verificar, enviámos um novo email de verificação.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setError(retryAfterMessage(err.retryAfter, "Pediste demasiados reenvios."));
+      } else if (err instanceof ApiError) {
+        setError("Ocorreu um erro. Tenta novamente.");
+      } else {
+        setError("Não foi possível contactar o servidor.");
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -159,6 +185,23 @@ export default function LoginPage() {
                 {error && (
                   <p role="alert" className="text-[13px] text-red-400">
                     {error}
+                  </p>
+                )}
+
+                {unverified && (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="text-left text-[13px] font-semibold text-acento-forte underline disabled:opacity-60"
+                  >
+                    {resending ? "A enviar..." : "Reenviar email de verificação"}
+                  </button>
+                )}
+
+                {info && (
+                  <p role="status" className="text-[13px] text-acento-forte">
+                    {info}
                   </p>
                 )}
                 <PrimaryButton type="submit" text={loading ? "A entrar..." : "Entrar na conta"} disabled={loading} className="w-full"/>

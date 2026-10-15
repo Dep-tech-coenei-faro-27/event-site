@@ -14,6 +14,13 @@ export class ApiError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  constructor() {
+    super('network');
+    this.name = 'NetworkError';
+  }
+}
+
 type HttpOptions = Omit<RequestInit, 'body'> & { body?: unknown };
 
 let onUnauthorized: () => void = () => {};
@@ -24,19 +31,31 @@ export const setUnauthorizedHandler = (fn: () => void) => {
 export async function http<T = unknown>(path: string, options: HttpOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options;
 
-  const res = await fetch(`${BASE}${path}`, {
-    credentials: 'include', // envia sempre o cookie de sessão
-    ...rest,
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      credentials: 'include', // envia sempre o cookie de sessão
+      ...rest,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
+    });
+  } catch {
+    throw new NetworkError(); // nunca chama onUnauthorized
+  }
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     const message = typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`;
 
-    // 401 fora das rotas de auth = sessão terminada
-    if (res.status === 401 && !path.startsWith('/auth/')) onUnauthorized();
+    // 401 que não significa «sessão terminada»: erro do próprio formulário (login, palavra-passe
+    // atual errada), visitante sem sessão (sem cookie) ou a verificação inicial da sessão em
+    // `/auth/me`, que não deve atirar para o login quem só está a ver páginas públicas.
+    const isFormError401 =
+      path === '/auth/login' ||
+      path === '/auth/me' ||
+      (path === '/auth/password' && data?.detail === 'Current password is incorrect');
+    const noSession = data?.detail === 'Not authenticated. Missing access token cookie.';
+    if (res.status === 401 && !isFormError401 && !noSession) onUnauthorized();
 
     throw new ApiError(res.status, message, data?.detail, res.headers.get('Retry-After'));
   }

@@ -3,7 +3,10 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
+import Field from "../components/Field";
 import { usePageMeta } from "../utils/usePageMeta";
+import { http, ApiError } from "../utils/http";
+import { retryAfterMessage } from "../utils/RetryAfter";
 
 type Status =
   | "pending" // sem token: "Verifica o teu email" (texto do mockup)
@@ -68,7 +71,12 @@ export default function VerifyEmailPage() {
   const email = (location.state as { email?: string } | null)?.email;
 
   const [status, setStatus] = useState<Status>(token ? "loading" : "pending");
-  const [showResendNote, setShowResendNote] = useState(false);
+  // Texto do 429 com o tempo de espera (Retry-After), quando a API o envia
+  const [rateLimitText, setRateLimitText] = useState<string | null>(null);
+  // Reenvio do email de verificação
+  const [emailInput, setEmailInput] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Evita enviar o pedido duas vezes (React StrictMode corre o efeito 2x em dev)
   const requested = useRef(false);
 
@@ -78,21 +86,64 @@ export default function VerifyEmailPage() {
 
     (async () => {
       try {
-        const res = await fetch("/api/auth/verify-email", {
+        await http("/auth/verify-email", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: { token },
         });
-
-        if (res.ok) setStatus("success");
-        else if (res.status === 400) setStatus("invalid");
-        else if (res.status === 429) setStatus("rate_limited");
-        else setStatus("error");
-      } catch {
-        setStatus("error");
+        setStatus("success");
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 400) {
+          setStatus("invalid");
+        } else if (err instanceof ApiError && err.status === 429) {
+          setRateLimitText(
+            retryAfterMessage(
+              err.retryAfter,
+              "Foram feitas demasiadas tentativas a partir desta ligação.",
+            ),
+          );
+          setStatus("rate_limited");
+        } else {
+          setStatus("error");
+        }
       }
     })();
   }, [token]);
+
+  const handleResend = async () => {
+    if (resending) return;
+    const target = (email ?? emailInput).trim();
+    if (!target) {
+      setResendMsg({ ok: false, text: "Indica o email da conta." });
+      return;
+    }
+
+    setResending(true);
+    setResendMsg(null);
+    try {
+      await http("/auth/resend-verification-email", {
+        method: "POST",
+        body: { email: target },
+      });
+      // 200 → resposta sempre igual, exista a conta ou não
+      setResendMsg({
+        ok: true,
+        text: "Se a conta estiver por verificar, enviámos um novo email de verificação.",
+      });
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        setResendMsg({ ok: false, text: "Não foi possível contactar o servidor." });
+      } else if (err.status === 429) {
+        setResendMsg({
+          ok: false,
+          text: retryAfterMessage(err.retryAfter, "Pediste demasiados reenvios."),
+        });
+      } else {
+        setResendMsg({ ok: false, text: "Ocorreu um erro. Tenta novamente." });
+      }
+    } finally {
+      setResending(false);
+    }
+  };
 
   const content: Record<
     Status,
@@ -134,7 +185,9 @@ export default function VerifyEmailPage() {
       icon: <AlertIcon />,
       eyebrow: "DEMASIADAS_TENTATIVAS",
       title: "Tenta novamente mais tarde.",
-      text: "Foram feitas demasiadas tentativas a partir desta ligação. Aguarda uns minutos e volta a abrir o link do email.",
+      text:
+        rateLimitText ??
+        "Foram feitas demasiadas tentativas a partir desta ligação. Aguarda uns minutos e volta a abrir o link do email.",
     },
     error: {
       icon: <AlertIcon />,
@@ -220,15 +273,26 @@ export default function VerifyEmailPage() {
                 <div className="mt-7 grid gap-2.5">
                   {status === "pending" && (
                     <>
+                      {!email && (
+                        <Field
+                          label="Email da conta"
+                          name="email"
+                          type="email"
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="nome@exemplo.pt"
+                          autoComplete="email"
+                        />
+                      )}
                       <PrimaryButton
                         text="Abrir a minha conta"
                         className={actionClass}
                         onClick={() => navigate("/conta")}
                       />
                       <SecondaryButton
-                        text="Reenviar email"
+                        text={resending ? "A enviar..." : "Reenviar email"}
                         className={actionClass}
-                        onClick={() => setShowResendNote(true)}
+                        onClick={handleResend}
                       />
                     </>
                   )}
@@ -237,7 +301,7 @@ export default function VerifyEmailPage() {
                     <PrimaryButton
                       text="Entrar na conta"
                       className={actionClass}
-                      onClick={() => navigate("/conta/entrar")}
+                      onClick={() => navigate("/perfil")}
                     />
                   )}
 
@@ -251,7 +315,7 @@ export default function VerifyEmailPage() {
                       <SecondaryButton
                         text="Entrar"
                         className={actionClass}
-                        onClick={() => navigate("/conta/entrar")}
+                        onClick={() => navigate("/perfil")}
                       />
                     </>
                   )}
@@ -266,18 +330,23 @@ export default function VerifyEmailPage() {
                 </div>
               )}
 
-              {status === "pending" && showResendNote && (
-                <p className="mt-[18px] border-l-[3px] border-acento-principal bg-[rgba(26,178,255,0.07)] px-3.5 py-3 text-xs text-gelo">
-                  Ainda não é possível reenviar o email a partir daqui. Se não o
-                  recebeste, volta a criar a conta com o mesmo email para
-                  receberes uma nova ligação.
+              {status === "pending" && resendMsg && (
+                <p
+                  role={resendMsg.ok ? "status" : "alert"}
+                  className={
+                    resendMsg.ok
+                      ? "mt-[18px] border-l-[3px] border-acento-principal bg-[rgba(26,178,255,0.07)] px-3.5 py-3 text-xs text-gelo"
+                      : "mt-[18px] text-[13px] text-red-400"
+                  }
+                >
+                  {resendMsg.text}
                 </p>
               )}
 
               {status !== "success" && (
                 <p className="mt-6 text-center text-sm text-cinza-texto">
                   <Link
-                    to="/conta/entrar"
+                    to="/conta"
                     className="font-semibold text-acento-forte"
                   >
                     ← Voltar ao início de sessão

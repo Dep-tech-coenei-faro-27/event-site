@@ -3,10 +3,9 @@
  * (segundos ou data HTTP). Sem header válido, usa uma mensagem genérica.
  */
 export function retryAfterMessage(
-  res: Response,
+  raw: string | null,
   base = "Demasiadas tentativas.",
 ): string {
-  const raw = res.headers.get("Retry-After");
   if (!raw) return `${base} Tenta novamente mais tarde.`;
 
   let secs = Number(raw);

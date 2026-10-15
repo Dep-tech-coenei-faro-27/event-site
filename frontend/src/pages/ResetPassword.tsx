@@ -3,6 +3,9 @@ import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
 import Field from "../components/Field";
+import { http, ApiError } from "../utils/http";
+import { retryAfterMessage } from "../utils/RetryAfter";
+import { validationMessages } from "../utils/ValidationErrors";
 
 const points = [
   "Evita palavras-passe reutilizadas.",
@@ -62,34 +65,33 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/reset-password", {
+      await http("/auth/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, new_password: password }),
+        body: { token, new_password: password },
       });
 
-      if (res.ok) {
-        // Não inicia sessão: o utilizador tem de fazer login a seguir.
-        setDone(true);
-        return;
-      }
-
-      if (res.status === 400) {
-        const body = await res.json().catch(() => null);
-        const detail = String(body?.message ?? body?.detail ?? "");
-        setError(messageFor400(detail));
-        if (!detail.toLowerCase().includes("different from your current")) {
+      // Não inicia sessão: o utilizador tem de fazer login a seguir.
+      setDone(true);
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        setError("Não foi possível contactar o servidor.");
+      } else if (err.status === 400) {
+        setError(messageFor400(err.message));
+        if (!err.message.toLowerCase().includes("different from your current")) {
           setNeedsNewLink(true);
         }
-      } else if (res.status === 422) {
-        setError("A palavra-passe não cumpre os requisitos de segurança.");
-      } else if (res.status === 429) {
-        setError("Demasiadas tentativas. Tenta novamente daqui a pouco.");
+      } else if (err.status === 422) {
+        const msgs = validationMessages(err.detail);
+        setError(
+          msgs.length
+            ? msgs.join(" ")
+            : "A palavra-passe não cumpre os requisitos de segurança.",
+        );
+      } else if (err.status === 429) {
+        setError(retryAfterMessage(err.retryAfter, "Demasiadas tentativas."));
       } else {
         setError("Ocorreu um erro. Tenta novamente.");
       }
-    } catch {
-      setError("Não foi possível contactar o servidor.");
     } finally {
       setLoading(false);
     }

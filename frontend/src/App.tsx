@@ -60,6 +60,7 @@ function App() {
               <Route path="/conta/verificar" element={<VerifyEmailPage />} />
               <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
               <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
               </Route>
