@@ -186,7 +186,7 @@ export default function Parcerias() {
     usePageMeta("Parcerias · ENEI 2027", "Conhece as empresas e instituições parceiras do ENEI 2027 e descobre como fazer parte do maior encontro de estudantes de informática do país.",);
 
     return (
-        <main>
+        <div>
             <PageHeader backgroundImage={faroOldTown} className="pt-[220px] pb-[160px]">
                 <SectionHeading
                     title="Contacta com as melhores empresas de tecnologia."
@@ -292,6 +292,6 @@ export default function Parcerias() {
                     </div>
                 </div>
             </section>
-        </main>
+        </div>
     );
 }

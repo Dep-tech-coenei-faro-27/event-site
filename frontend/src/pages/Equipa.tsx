@@ -12,7 +12,7 @@ export default function Equipa() {
 
   return (
     <>
-      <main id="conteudo" className="pt-16">
+      <div id="conteudo" className="pt-16">
         <TeamHero />
 
         <TeamIntro/>
@@ -22,7 +22,7 @@ export default function Equipa() {
         ))}
 
         <TeamCta />
-      </main>
+      </div>
     </>
   );
 }

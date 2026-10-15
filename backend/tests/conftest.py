@@ -5,6 +5,7 @@ os.environ.setdefault(
     "JWT_SECRET_KEY",
     "test-only-jwt-secret-that-is-at-least-32-bytes-long",
 )
+os.environ.setdefault("PAYMENTS_MODE", "simulated")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -67,6 +68,9 @@ def test_engine():
 @pytest.fixture
 def db_session(test_engine):
     with test_engine.begin() as conn:
+        conn.execute(text("DELETE FROM transactions"))
+        conn.execute(text("DELETE FROM tickets"))
+        conn.execute(text("DELETE FROM ticket_tiers"))
         conn.execute(text("DELETE FROM reset_password_tokens"))
         conn.execute(text("DELETE FROM revoked_tokens"))
         conn.execute(text("DELETE FROM users"))

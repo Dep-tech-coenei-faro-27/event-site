@@ -514,7 +514,7 @@ export default function Agenda() {
     const [activeDay, setActiveDay] = useState<DayId>('quinta');
 
     return (
-        <main className="leading-[1.65]">
+        <div className="leading-[1.65]">
             {/* HERO */}
             <PageHeader
                 backgroundImage={agendaAuditorio}
@@ -691,6 +691,6 @@ export default function Agenda() {
     ))}
 </div>
             </Section>
-        </main>
+        </div>
     );
 }
