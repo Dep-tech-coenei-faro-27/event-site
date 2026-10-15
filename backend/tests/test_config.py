@@ -1,8 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import BASE_DIR, Settings, settings
-from app.core.validators import is_student_email
+from app.core.config import BASE_DIR, Settings
 
 BASE = {
     "ENVIRONMENT": "dev",
@@ -18,11 +17,11 @@ PROD = {
     **BASE,
     "ENVIRONMENT": "prod",
     "JWT_SECRET_KEY": "p" * 48,
+    "QR_SECRET_KEY": "q" * 48,
     "SMTP_HOST": "smtp.example.com",
     "EMAIL_SENDER": "noreply@example.com",
     "FRONTEND_URL": "https://app.example.com",
     "CORS_ALLOW_ORIGINS": ["https://app.example.com"],
-    "STUDENT_EMAIL_DOMAINS": ["alunos.example.com"],
 }
 
 
@@ -183,38 +182,47 @@ def test_a_configuration_error_never_prints_the_values_it_received():
     assert "input_value" not in str(error.value)
 
 
-def test_prod_rejects_empty_student_email_domains():
-    with pytest.raises(ValidationError, match="STUDENT_EMAIL_DOMAINS"):
-        make_prod(STUDENT_EMAIL_DOMAINS=[])
-    with pytest.raises(ValidationError, match="STUDENT_EMAIL_DOMAINS"):
-        make_prod(STUDENT_EMAIL_DOMAINS="")
+def test_payments_mode_defaults_to_off(monkeypatch):
+    monkeypatch.delenv("PAYMENTS_MODE", raising=False)
+    assert make().PAYMENTS_MODE == "off"
 
 
-def test_student_email_domains_parsing():
-    settings = make(STUDENT_EMAIL_DOMAINS='["alunos.ulisboa.pt", "alunos.uminho.pt"]')
-    assert settings.STUDENT_EMAIL_DOMAINS == [
-        "alunos.ulisboa.pt",
-        "alunos.uminho.pt",
-    ]
-
-    settings = make(STUDENT_EMAIL_DOMAINS="alunos.ulisboa.pt, alunos.uminho.pt")
-    assert settings.STUDENT_EMAIL_DOMAINS == [
-        "alunos.ulisboa.pt",
-        "alunos.uminho.pt",
-    ]
+@pytest.mark.parametrize("mode", ["off", "simulated"])
+def test_payments_modes_without_credentials_are_accepted(mode):
+    assert make(PAYMENTS_MODE=mode).PAYMENTS_MODE == mode
 
 
-@pytest.mark.parametrize("domain", ["invalid/domain.pt", "nopoint"])
-def test_student_email_domains_rejects_invalid_domains(domain):
-    with pytest.raises(
-        ValidationError, match="Invalid domain in STUDENT_EMAIL_DOMAINS"
-    ):
-        make(STUDENT_EMAIL_DOMAINS=[domain])
+def test_live_payments_require_the_provider_credentials():
+    with pytest.raises(ValidationError, match="MBWAY_KEY"):
+        make(PAYMENTS_MODE="live")
+
+    with pytest.raises(ValidationError, match="MBWAY_BASE_URL"):
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_BASE_URL="http://api.ifthenpay.com",
+        )
+
+    with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
+        make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456")
+
+    with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_CALLBACK_KEY="too-short",
+        )
+
+    assert (
+        make(
+            PAYMENTS_MODE="live",
+            MBWAY_KEY="MBW-123456",
+            MBWAY_CALLBACK_KEY="a" * 32,
+        ).PAYMENTS_MODE
+        == "live"
+    )
 
 
-def test_is_student_email(monkeypatch):
-    monkeypatch.setattr(settings, "STUDENT_EMAIL_DOMAINS", ["alunos.uminho.pt"])
-
-    assert is_student_email("ana@alunos.uminho.pt") is True
-    assert is_student_email("ana@uminho.pt") is False
-    assert is_student_email("ana@x.alunos.uminho.pt") is True
+def test_unknown_payments_mode_is_rejected():
+    with pytest.raises(ValidationError):
+        make(PAYMENTS_MODE="sandbox")

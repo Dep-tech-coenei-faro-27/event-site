@@ -2,7 +2,7 @@ name: "CD"
 
 on:
   workflow_run:
-    workflows: [ "CI - Backend" ]
+    workflows: ["CI - Backend"]
     types:
       - completed
     branches:
@@ -59,6 +59,7 @@ jobs:
             POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
             JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}
             JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
             JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES=${{ secrets.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES }}
@@ -72,17 +73,27 @@ jobs:
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
             CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
-            STUDENT_EMAIL_DOMAINS=${{ secrets.STUDENT_EMAIL_DOMAINS }}
-            TICKET_PRICE_STUDENT_CENTS=${{ secrets.TICKET_PRICE_STUDENT_CENTS }}
-            TICKET_PRICE_GENERAL_CENTS=${{ secrets.TICKET_PRICE_GENERAL_CENTS }}
+            STUDENT_EMAIL_DOMAINS=${{ vars.STUDENT_EMAIL_DOMAINS }}
+            MBWAY_KEY=${{ secrets.MBWAY_KEY }}
+            MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
+            MBWAY_CALLBACK_KEY=${{ secrets.MBWAY_CALLBACK_KEY }}
             EOF
+            # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
+            # e o default do código é "off".
+            if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
+              echo "PAYMENTS_MODE=${{ vars.PAYMENTS_MODE }}" >> .env
+            fi
+            # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
+            if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then
+              echo "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" >> .env
+            fi
             chmod 600 .env
             # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
             cat << 'EOF' > ../tunnel.env
             TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
             EOF
             chmod 600 ../tunnel.env
-
+      
       - name: "Build and Run with Docker Compose"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:

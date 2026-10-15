@@ -24,8 +24,10 @@ def test_adding_tables_columns_and_indexes_is_safe():
         '    op.create_table("t", sa.Column("id", sa.Integer()))\n'
         '    op.add_column("t", sa.Column("x", sa.Integer(), nullable=False,'
         ' server_default="0"))\n'
+        '    op.add_column("t", sa.Column("y", sa.Integer(), nullable=True))\n'
         '    op.create_index("ix_t_x", "t", ["x"])\n'
-        '    op.alter_column("t", "x", nullable=True)'
+        '    op.alter_column("t", "x", nullable=True)\n'
+        '    op.execute("UPDATE t SET y = 0")'
     )
 
     assert lines_for(body) == []
@@ -36,12 +38,20 @@ def test_adding_tables_columns_and_indexes_is_safe():
     [
         ('op.drop_column("t", "x")', "remove"),
         ('op.drop_table("t")', "remove"),
+        ('op.drop_constraint("ck_t", "t", type_="check")', "remove"),
         ('op.rename_table("t", "u")', "remove"),
         ('op.alter_column("t", "x", new_column_name="y")', "renomeia"),
         ('op.alter_column("t", "x", type_=sa.String(5))', "tipo"),
         ('op.alter_column("t", "x", nullable=False)', "obrigatória"),
+        (
+            'op.add_column("t", sa.Column("x", sa.Integer(), nullable=False))',
+            "obrigatória",
+        ),
         ('op.execute("DROP TABLE t")', "SQL"),
         ('op.execute("delete from t")', "SQL"),
+        ('op.execute("ALTER TABLE t ALTER COLUMN x SET NOT NULL")', "aperta"),
+        ('op.execute("ALTER TABLE t ALTER COLUMN x TYPE bigint")', "aperta"),
+        ('op.execute("ALTER TABLE t ALTER COLUMN x SET DATA TYPE bigint")', "aperta"),
     ],
 )
 def test_destructive_operations_are_flagged(operation, reason):
@@ -70,7 +80,11 @@ def test_a_marker_far_away_does_not_count():
 
 
 def test_only_upgrade_is_checked_because_downgrade_is_supposed_to_undo_things():
-    downgrade = '    op.drop_column("t", "x")\n    op.drop_table("t")'
+    downgrade = (
+        '    op.drop_column("t", "x")\n'
+        '    op.drop_table("t")\n'
+        '    op.drop_constraint("ck_t", "t", type_="check")'
+    )
 
     assert (
         lines_for('    op.add_column("t", sa.Column("x", sa.Integer()))', downgrade)

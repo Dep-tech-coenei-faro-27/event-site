@@ -3,8 +3,8 @@ map $request_uri $safe_request_uri {
     # Máscara para os tokens de verificação e recuperação de password (/conta/*)
     ~^(?<path>/conta/[^\?]+)\?.*$            "$path?[FILTRADO]";
 
-    # Máscara para a chave anti-phishing do callback de pagamento
-    ~^(?<path>/api/pagamentos/callback)\?.*$ "$path?[FILTRADO]";
+    # Máscara para a chave anti-phishing do callback de pagamento (MB WAY / ifthenpay)
+    ~^(?<path>/api/payment/callback)\?.*$ "$path?[FILTRADO]";
 
     # Mantém as restantes rotas intactas
     default $request_uri;
@@ -91,6 +91,10 @@ server {
     listen 8080;
     server_name _;
     server_tokens off;
+
+    # O formato seguro (com a máscara da chave anti-phishing) tem de ser aplicado a
+    # todos os server blocks; caso contrário este registaria a query string inteira.
+    access_log /var/log/nginx/access.log secure_log;
 
     root /usr/share/nginx/html;
     index index.html;

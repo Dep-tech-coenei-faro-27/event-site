@@ -7,18 +7,6 @@ from pydantic_core import PydanticCustomError
 INVISIBLE_OR_CONTROL = {"Cc", "Cf", "Cs", "Co", "Cn"}
 
 
-def is_student_email(email: str) -> bool:
-    from app.core.config import settings
-
-    _, _, domain = email.strip().lower().partition("@")
-    if not domain:
-        return False
-    return any(
-        domain == allowed or domain.endswith("." + allowed)
-        for allowed in settings.STUDENT_EMAIL_DOMAINS
-    )
-
-
 def validate_name(value: str) -> str:
     """Trim a name and refuse blank, invisible or markup-like values."""
     name = value.strip()

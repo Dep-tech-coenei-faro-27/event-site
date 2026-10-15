@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
 from app.domains.users.enums import Course, PortugueseInstitution, Role
+from app.domains.users.models import StudentVerificationStatus
 
 
 class UserRegister(BaseModel):
@@ -39,8 +40,15 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     is_verified: bool
+    student_verification_status: StudentVerificationStatus
     institution: PortugueseInstitution | None = None
     course: Course | None = None
+
+
+class UserProfileRead(UserRead):
+    model_config = ConfigDict(from_attributes=True)
+
+    qr_code: str | None = None
 
 
 class UserUpdate(BaseModel):
