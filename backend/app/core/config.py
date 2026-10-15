@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     EMAIL_SENDER: str = ""
     SMTP_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
     SMTP_TIMEOUT_SECONDS: int = Field(default=5, gt=0, le=60)
+    # Emails go to the email_outbox table and a worker sends them (and retries).
+    EMAIL_OUTBOX_WORKER: bool = True
+    EMAIL_OUTBOX_POLL_SECONDS: int = Field(default=5, gt=0, le=300)
+    EMAIL_OUTBOX_MAX_ATTEMPTS: int = Field(default=10, gt=0, le=30)
 
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)

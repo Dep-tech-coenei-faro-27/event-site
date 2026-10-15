@@ -1,3 +1,4 @@
+from app.core.email.models import EmailOutbox  # noqa: F401
 from app.core.rate_limit import RateLimitCounter  # noqa: F401
 from app.domains.auth.models import ResetPasswordToken, RevokedToken  # noqa: F401
 from app.domains.payments.models import TicketTierPrice, Transaction  # noqa: F401

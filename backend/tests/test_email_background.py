@@ -9,7 +9,8 @@ from app.core.email import (
     get_email_sender,
 )
 from app.core.email.base import EmailDeliveryError
-from app.core.email.factory import _build_sender
+from app.core.email.factory import _build_sender, _build_worker
+from app.core.email.outbox import OutboxEmailSender
 from app.core.email.smtp import SmtpEmailSender
 
 
@@ -69,26 +70,27 @@ def test_emails_are_dropped_and_logged_when_the_queue_is_full(caplog):
     assert [subject for _, subject in sender.sent] == ["First", "Second"]
 
 
-def test_get_email_sender_delivers_in_the_background_with_one_shared_sender(
-    monkeypatch,
-):
+def test_get_email_sender_queues_in_the_outbox_with_one_shared_sender(monkeypatch):
     monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example.com")
+    _build_worker.cache_clear()
     _build_sender.cache_clear()
     sender = get_email_sender()
 
-    assert isinstance(sender, BackgroundEmailSender)
+    assert isinstance(sender, OutboxEmailSender)
     assert get_email_sender() is sender
-    assert isinstance(sender.sender, SmtpEmailSender)
-    assert sender.sender.timeout == float(settings.SMTP_TIMEOUT_SECONDS)
+    transport = _build_worker().transport
+    assert isinstance(transport, SmtpEmailSender)
+    assert transport.timeout == float(settings.SMTP_TIMEOUT_SECONDS)
+    _build_worker.cache_clear()
     _build_sender.cache_clear()
 
 
 def test_without_an_smtp_host_emails_go_to_the_console_sender(monkeypatch):
     monkeypatch.setattr(settings, "SMTP_HOST", "")
+    _build_worker.cache_clear()
     _build_sender.cache_clear()
 
-    sender = get_email_sender()
-
-    assert isinstance(sender, BackgroundEmailSender)
-    assert isinstance(sender.sender, ConsoleEmailSender)
+    assert isinstance(get_email_sender(), OutboxEmailSender)
+    assert isinstance(_build_worker().transport, ConsoleEmailSender)
+    _build_worker.cache_clear()
     _build_sender.cache_clear()
