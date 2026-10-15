@@ -67,6 +67,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
+      - name: A single migration head
+        env:
+          ENVIRONMENT: dev
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+        run: |
+          heads="$(uv run alembic heads | grep -c '(head)')"
+          if [ "$heads" -ne 1 ]; then
+            echo "Expected exactly one migration head, found $heads:"
+            uv run alembic heads
+            exit 1
+          fi
+
       - name: Format check (ruff)
         run: uv run ruff format --check .
 

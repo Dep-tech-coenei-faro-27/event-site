@@ -64,12 +64,14 @@ e é o passo 2 acima que o apanha.
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
+- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS` e `PAYMENTS_MODE`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`, `CORS_ALLOW_CREDENTIALS`.
 
 Regras para criar os valores:
 
 - `JWT_SECRET_KEY` novo, com 32 ou mais caracteres (nunca o do `.env.example`):
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- `QR_SECRET_KEY` novo e diferente da `JWT_SECRET_KEY`, com a mesma regra de 32 ou mais caracteres (assina os QR codes).
 - `POSTGRES_PASSWORD` própria (em produção não pode ser `postgres`).
 - Nunca faças commit de um `.env`. Se um segredo aparecer num commit ou num log, trata-o como roubado e troca-o.
 - O GitHub esconde nos logs qualquer texto igual ao valor de um segredo (por exemplo, todos os `1` aparecem como `***`
@@ -85,6 +87,7 @@ de erro diz qual.
 | `ENVIRONMENT`                                                                         | `prod`                            | Em `dev` escreve-se `ENVIRONMENT=dev` (o `.env.example` já o faz). Em `prod` o `/docs` e o `/openapi.json` não existem.                                                             |
 | `DEBUG`                                                                               | `false`                           | Com `true` as respostas mostram tracebacks, e o arranque em produção recusa-o.                                                                                                      |
 | `JWT_SECRET_KEY`                                                                      | obrigatório                       | Pelo menos 32 caracteres e diferente dos valores de exemplo.                                                                                                                        |
+| `QR_SECRET_KEY`                                                                       | obrigatório                       | Assina os QR codes dos bilhetes. Pelo menos 32 caracteres, diferente dos valores de exemplo e da `JWT_SECRET_KEY`.                                                                  |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` | obrigatórios                      | `POSTGRES_HOST` é o nome do serviço no compose (`postgres`).                                                                                                                        |
 | `FRONTEND_URL`                                                                        | `https://...`                     | Usado nos links dos emails. Tem de ser `https`.                                                                                                                                     |
 | `CORS_ALLOW_ORIGINS`                                                                  | `https://...`                     | Lista (JSON ou separada por vírgulas) com as origens do frontend. Nunca aceita `*`, e em produção todas têm de ser `https`. Com o site e a API no mesmo endereço, quase não se usa. |
@@ -97,6 +100,9 @@ de erro diz qual.
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
+| `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
+| `MBWAY_CALLBACK_KEY`                                                                  | obrigatório em `live`             | Chave anti-phishing do backoffice da ifthenpay. O backend recusa o callback sem ela e não arranca em `live` sem a ter.                                                              |
+| `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | O gateway simulado confirma o pagamento ao fim destes segundos. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.                        |
 
 A lista completa e os valores por omissão estão em `backend/app/core/config.py`.
 
@@ -133,6 +139,31 @@ $COMPOSE ps                       # estado dos contentores
 $COMPOSE logs --tail 50 backend   # logs do backend
 $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, sem efeito)
 ```
+
+## Abrir a bilheteira
+
+A migration cria as quatro modalidades com `price_cents` a `NULL`, o que mantém a bilheteira **fechada**: `POST
+/api/payment/initiate` responde `503` sem criar transação. Os preços não vivem no `.env`; ficam na tabela `ticket_tiers` e
+mudam-se em runtime:
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price geral 3500
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500 --stock 150
+```
+
+- O preço é com IVA, em cêntimos, e tem de ser maior que zero.
+- `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
+  ilimitado).
+- Em `live`, no backoffice da ifthenpay configure o URL de callback como
+  `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
+  endpoint (GET) para confirmar o pagamento e emitir o bilhete; a chave nunca fica nos logs (o nginx mascara a query
+  string). Sem a chave, o callback é recusado com `403`.
+- `PAYMENTS_MODE` escolhe o gateway: `off` (por omissão; `/initiate` responde `503`), `simulated`
+  (dev/staging, responde sempre `pending` sem contactar ninguém) ou `live` (ifthenpay real; exige `MBWAY_KEY` e um
+  `MBWAY_BASE_URL` em `https`, senão o backend não arranca). Em `prod` com `simulated` fica um aviso no arranque.
+- Para testar a confirmação do pagamento sem ifthenpay, com `simulated` define
+  `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
+  Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
 ## Promover o Primeiro Administrador
 
@@ -277,6 +308,7 @@ agendar no cron
 - [ ] Sem o aviso `FORWARDED_ALLOW_IPS` no log do arranque.
 - [ ] Base de dados sem porta pública (só `127.0.0.1`).
 - [ ] Limpeza diária no cron e confirmada.
+- [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] Muita gente na mesma rede (campus): cada IP partilhado conta como uma só pessoa. Se for preciso, sobe
