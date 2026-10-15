@@ -51,3 +51,20 @@ scripts/restore.sh backups/db-....dump nome_novo   # restaura para uma base nova
 ```
 
 As cópias têm dados pessoais: ficam só legíveis por quem as criou, e não devem ser enviadas para o Git nem partilhadas.
+
+## Frontend
+
+React 19, Vite e Tailwind, em `frontend/`. Precisa de Node 24 (é o do CI).
+
+```bash
+cd frontend
+npm ci            # instala as dependências a partir do package-lock.json
+npm run dev       # servidor de desenvolvimento em http://localhost:5173
+npm test          # testes (vitest, a correr uma vez)
+npm run lint      # eslint
+npm run build     # verificação de tipos e build de produção, para frontend/dist
+```
+
+- O `npm run dev` encaminha `/api` e `/media` para o backend em `http://localhost:8000` (ver `frontend/vite.config.ts`), por isso a API tem de estar a correr: `docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file backend/.env up -d --build postgres backend mailpit` (ver acima). Os emails de verificação e de recuperação aparecem no Mailpit, em http://localhost:8025.
+- O CI corre `npm run lint`, os testes e `npm run build` em cada PR; corre-os antes de fazer push.
+- Os links dos emails apontam para `FRONTEND_URL` (no `backend/.env`); em desenvolvimento, ponha `FRONTEND_URL=http://localhost:5173` para que abram no servidor do Vite.
