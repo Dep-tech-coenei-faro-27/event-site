@@ -16,6 +16,7 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import issue_ticket_for_paid_transaction
 from app.domains.users.models import StudentVerificationStatus, User
 
@@ -43,6 +44,10 @@ class TicketSoldOutError(PaymentError):
 
 class StudentVerificationRequiredError(PaymentError):
     status_code = 403
+
+
+class AlreadyHasTicketError(PaymentError):
+    status_code = 409
 
 
 class InvalidCallbackKeyError(PaymentError):
@@ -109,12 +114,48 @@ def _reserved_quantity(db: Session, tier: TicketTierPrice, now: datetime) -> int
     return int(holds or 0)
 
 
+def _refuse_if_user_already_buying(db: Session, user: User, now: datetime) -> None:
+    """Refuse a second purchase: a ticket already exists, or a payment is in flight.
+
+    Without this, a person who starts two payments and pays both is charged twice
+    but can only hold one ticket (the unique index on ``tickets``), and the second
+    confirmation fails after the money has moved.
+    """
+    has_ticket = db.scalar(
+        select(Ticket.id)
+        .where(
+            Ticket.user_id == user.id, Ticket.payment_status != PaymentStatus.CANCELLED
+        )
+        .limit(1)
+    )
+    has_open_payment = db.scalar(
+        select(Transaction.id)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.expires_at > now,
+        )
+        .limit(1)
+    )
+    if has_ticket is not None or has_open_payment is not None:
+        db.rollback()
+        raise AlreadyHasTicketError(
+            "You already have a ticket or a payment in progress"
+        )
+
+
 def initiate_payment(
     db: Session,
     user: User,
     payload: PaymentInitiateRequest,
     gateway: MBWayGateway,
 ) -> tuple[Transaction, TicketTierPrice]:
+    # One ticket per person. The user row is locked first so two simultaneous requests
+    # from the same person cannot both pass the check below; the order (user, then
+    # tier) is the same everywhere, so it cannot deadlock.
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
+    _refuse_if_user_already_buying(db, user, datetime.now(UTC))
+
     # Lock the tier row so that the stock check and the reservation are a single
     # atomic step. Without it, two concurrent buyers of a limited tier can both read
     # the same remaining quantity and oversell the tier.

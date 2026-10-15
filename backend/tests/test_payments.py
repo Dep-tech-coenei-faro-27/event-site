@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.core.security import ACCESS_COOKIE_NAME, hash_password
@@ -18,6 +18,7 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
+from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.users.models import User
 from app.main import app
 from tests.helpers import (
@@ -197,6 +198,7 @@ def test_references_are_unique(auth_client, email_sender, db_session, gateway):
     seed_ticket_tiers(db_session)
 
     first = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    authenticate(auth_client, email_sender, db_session, email="rui@example.com")
     second = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
 
     assert first != second
@@ -693,3 +695,103 @@ def test_if_then_pay_gateway_sends_the_documented_payload():
     assert payload["mobileNumber"] == "351#912345678"
     assert payload["email"] == "ana@example.com"
     assert payment.provider_reference == "itp-1"
+
+
+# --- one ticket per person -------------------------------------------------
+
+
+def _initiate(auth_client):
+    return auth_client.post(INITIATE_URL, json=INITIATE)
+
+
+def test_a_second_payment_is_refused_while_the_first_is_pending(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    assert _initiate(auth_client).status_code == 201
+
+    response = _initiate(auth_client)
+
+    assert response.status_code == 409
+    assert len(gateway.create_calls) == 1
+    assert db_session.scalar(select(func.count(Transaction.id))) == 1
+
+
+def test_a_new_payment_is_allowed_after_the_pending_one_expired(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    first = _initiate(auth_client).json()
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == first["reference"])
+    )
+    transaction.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    db_session.commit()
+
+    assert _initiate(auth_client).status_code == 201
+
+
+def test_a_new_payment_is_allowed_after_the_previous_one_failed(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    first = _initiate(auth_client).json()
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == first["reference"])
+    )
+    transaction.status = TransactionStatus.FAILED
+    db_session.commit()
+
+    assert _initiate(auth_client).status_code == 201
+
+
+def test_payment_is_refused_to_someone_who_already_has_a_ticket(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    db_session.add(
+        Ticket(
+            user_id=user.id,
+            transaction_reference="ENEI-0000000001",
+            payment_status=PaymentStatus.PAID,
+        )
+    )
+    db_session.commit()
+
+    response = _initiate(auth_client)
+
+    assert response.status_code == 409
+    assert gateway.create_calls == []
+
+
+def test_a_cancelled_ticket_does_not_block_a_new_purchase(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    db_session.add(
+        Ticket(
+            user_id=user.id,
+            transaction_reference="ENEI-0000000001",
+            payment_status=PaymentStatus.CANCELLED,
+        )
+    )
+    db_session.commit()
+
+    assert _initiate(auth_client).status_code == 201
+
+
+def test_other_people_are_not_blocked_by_someone_elses_payment(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    assert _initiate(auth_client).status_code == 201
+
+    authenticate(auth_client, email_sender, db_session, email="rui@example.com")
+
+    assert _initiate(auth_client).status_code == 201
