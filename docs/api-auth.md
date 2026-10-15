@@ -31,14 +31,14 @@ nova. Uma conta já verificada nunca é substituída.
 |          |                                                                                                                                                                                                                           |
 |----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Corpo    | `name`, `email`, `password`, `accept_terms`                                                                                                                                                                               |
+| Termos   | `accept_terms` tem de ser `true`; caso contrário a API responde `422`. O registo guarda `terms_accepted_at` (data/hora) e `term_version` da versão aceita. |
 | Nome     | 1 a 255 caracteres, cortado nas pontas, com pelo menos uma letra. Sem caracteres de controlo, invisíveis (por exemplo zero-width), `<` ou `>`.                                                                            |
 | Email    | só caracteres ASCII. É guardado em minúsculas (`Ana@Example.com` e `ana@example.com` são a mesma conta).                                                                                                                  |
 | Password | 8 a 200 caracteres, com pelo menos uma maiúscula, um dígito e um símbolo, e no máximo 72 bytes. Um símbolo é **qualquer carácter que não seja `A-Z`, `a-z` ou `0-9`**: o espaço e as letras com acento (`é`, `ç`) contam. |
-| Termos   | `accept_terms`: booleano obrigatório. Tem de ser explicitamente `true`. Rejeita com `422` se for `false` ou omitido.                                                                                                      |
-| `201`    | `{"id", "name", "email", "role", "is_verified"}` (`role` é `user` ou `admin`)                                                                                                                                             |
-| `409`    | `A user with this email already exists` (só se a conta já está verificada). Revela que o email já tem conta.                                                                                                              |
-| `422`    | corpo inválido (ver os códigos abaixo)                                                                                                                                                                                    |
-| `429`    | demasiados registos deste IP                                                                                                                                                                                              |
+| `201` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` (`role` é `user` ou `admin`; `student_verification_status` é `pending`, `verified` ou `rejected` e fica `verified` quando o domínio do email está em `STUDENT_EMAIL_DOMAINS`) |
+| `409` | `A user with this email already exists` (só se a conta já está verificada). Revela que o email já tem conta. |
+| `422` | corpo inválido (ver os códigos abaixo) |
+| `429` | demasiados registos deste IP |
 
 ### `POST /api/auth/verify-email`
 
@@ -77,11 +77,27 @@ nova. Uma conta já verificada nunca é substituída.
 
 Precisa de sessão.
 
-|       |                                                                                                                                                                                                                                                                                                                                            |
-|-------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `200` | `{"id", "name", "email", "role", "is_verified"}`                                                                                                                                                                                                                                                                                           |
+| | |
+| --- | --- |
+| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` |
 | `401` | qualquer problema com a sessão. O `detail` diz qual: `Not authenticated. Missing access token cookie.` (sem cookie), `Token has expired.`, `Invalid token.`, `Token has been revoked.` (sessão terminada), `User not found` (conta apagada) ou `Inactive user`. O frontend só precisa de olhar para o `401` e levar o utilizador ao login. |
 | `403` | `Please verify your email address to continue.`                                                                                                                                                                                                                                                                                            |
+
+### `GET /api/users/me`
+
+Precisa de sessão. Devolve o perfil do utilizador autenticado, igual ao `/api/auth/me` mas com o `qr_code` do bilhete
+emitido (o payload assinado `ENEI27.<id>.<nonce>.<assinatura>`, sem dados pessoais). `qr_code` é `null` enquanto não
+houver um pagamento confirmado.
+
+| | |
+| --- | --- |
+| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course", "qr_code"}` |
+| `401` | sem sessão válida (o mesmo que `/api/auth/me`) |
+| `403` | email por verificar |
+
+### `PUT /api/users/me`
+
+Precisa de sessão. Atualiza o `name`, `institution` e `course` do próprio utilizador e devolve o perfil atualizado.
 
 ### `POST /api/auth/forgot-password`
 

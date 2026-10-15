@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
+from app.core.log_redaction import install_access_log_redaction
 from app.core.media import MediaFiles
 from app.core.middleware import (
     RequestSizeLimitMiddleware,
@@ -14,6 +15,7 @@ from app.core.middleware import (
 )
 from app.domains.auth.router import router as auth_router
 from app.domains.health.router import router as health_router
+from app.domains.payments.router import router as payments_router
 from app.domains.users.router import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ def only_loopback(trusted: str | None) -> bool:
 
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
+    install_access_log_redaction()
     if settings.ENVIRONMENT == "prod" and only_loopback(
         os.environ.get("FORWARDED_ALLOW_IPS")
     ):
@@ -37,6 +40,11 @@ def create_app() -> FastAPI:
             "FORWARDED_ALLOW_IPS is not set or only trusts localhost. Behind a proxy "
             "every visitor shares the proxy's IP, so the per-IP rate limits would "
             "apply to everyone."
+        )
+    if settings.ENVIRONMENT == "prod" and settings.PAYMENTS_MODE == "simulated":
+        logger.warning(
+            "PAYMENTS_MODE=simulated in production: MB WAY payments are not real. "
+            "Set PAYMENTS_MODE=live and the provider credentials to charge users."
         )
     docs = settings.ENVIRONMENT != "prod"
     app = FastAPI(
@@ -54,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
     app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
     app.include_router(users_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 
     register_exception_handlers(app)
 

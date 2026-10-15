@@ -5,7 +5,7 @@ VENV := .venv
 HOST ?= 0.0.0.0
 PORT ?= 8000
 
-.PHONY: help install sync dev run test lint format db-upgrade db-downgrade db-revision cleanup-unverified deploy
+.PHONY: help install sync dev run test lint format db-upgrade db-downgrade db-revision cleanup-unverified set-price deploy
 
 help: ## Lista os comandos disponíveis
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -44,6 +44,9 @@ db-revision: ## Cria uma nova migration autogerada (uso: make db-revision m="des
 
 cleanup-unverified: ## Apaga contas não verificadas antigas (UNVERIFIED_ACCOUNT_TTL_DAYS)
 	$(PYTHON) -m app.domains.users.cleanup
+
+set-price: ## Abre a bilheteira (uso: make set-price tier=geral price=3500 [stock=100])
+	$(PYTHON) -m app.domains.payments.set_price $(tier) $(price) $(if $(stock),--stock $(stock),)
 
 deploy: ## Faz deploy da aplicação em produção
 	$(VENV)/bin/alembic upgrade head

@@ -15,7 +15,7 @@ function Home() {
 
     return (
         <>
-            <main className="min-h-screen bg-[#050d21] overflow-x-hidden selection:bg-[#00AAFF]/30 pt-16">
+            <div className="min-h-screen bg-[#050d21] overflow-x-hidden selection:bg-[#00AAFF]/30 pt-16">
                 <Hero />
 
                 <QuickInfo />
@@ -25,7 +25,7 @@ function Home() {
                 <LocationSection />
                 <ExperienceSection />
                 <CtaBanner />
-            </main>
+            </div>
         </>
     )
 }

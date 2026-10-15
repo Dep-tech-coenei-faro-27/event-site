@@ -4,7 +4,7 @@ import SectionHeading from '../components/SectionHeading';
 
 export default function NotFound() {
   return (
-    <main className="grid min-h-[70vh] place-items-center bg-azul-base px-5 pb-20 pt-[calc(76px+64px)]">
+    <div className="grid min-h-[70vh] place-items-center bg-azul-base px-5 pb-20 pt-[calc(76px+64px)]">
       <div className="mx-auto w-full max-w-[720px] text-center">
         <SectionHeading
           align="center"
@@ -22,6 +22,6 @@ export default function NotFound() {
           Voltar ao início
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

@@ -201,7 +201,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
-      <main
+      <div
         id="conteudo"
         className="relative overflow-hidden min-[621px]:min-h-[calc(100vh-76px)]"
       >
@@ -356,7 +356,7 @@ export default function VerifyEmailPage() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }
