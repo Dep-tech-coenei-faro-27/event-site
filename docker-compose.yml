@@ -56,5 +56,44 @@ services:
     depends_on:
       - frontend
 
+  node-exporter:
+    profiles: ["monitoring"]
+    image: prom/node-exporter:v1.8.2
+    pid: "host"
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    logging: *default-logging
+
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    logging: *default-logging
+
+  alertmanager:
+    profiles: ["monitoring"]
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    volumes:
+      - ${ALERTMANAGER_CONFIG:-./monitoring/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERT_WEBHOOK_FILE:-/home/debian/enei/alerts/discord_webhook}:/etc/alertmanager/discord_webhook:ro
+      - ${ALERT_SMTP_PASSWORD_FILE:-/home/debian/enei/alerts/smtp_password}:/etc/alertmanager/smtp_password:ro
+    ports:
+      - "127.0.0.1:9093:9093"
+    logging: *default-logging
+
 volumes:
   pgdata:
+  prometheus_data:

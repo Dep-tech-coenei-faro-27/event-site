@@ -8,6 +8,7 @@ tunnel.env
 # Python (os testes importam scripts/)
 __pycache__/
 *.py[cod]
+monitoring/.discord_webhook.test
 
 # Cópias de segurança da base de dados e dos ficheiros (têm dados pessoais). Nunca fazer commit.
 backups/
