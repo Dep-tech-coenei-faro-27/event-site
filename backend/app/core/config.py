@@ -99,6 +99,10 @@ class Settings(BaseSettings):
     # cannot say (it answers something we do not understand, or we never saved its
     # reference), the seat is released this long after the payment deadline.
     MBWAY_UNRESOLVED_MAX_WAIT_SECONDS: int = Field(default=1800, gt=0, le=86400)
+    # The status poll asks the provider about a payment at most this often (0 = every
+    # time). Many people polling every 2 seconds must not become as many calls to the
+    # provider; the callback still confirms a payment at once.
+    PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS: int = Field(default=5, ge=0, le=300)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the

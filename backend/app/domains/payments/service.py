@@ -1,6 +1,8 @@
 import hmac
 import logging
 import secrets
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -421,6 +423,35 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     return transaction
 
 
+_asked_at: dict[str, float] = {}
+_asked_lock = threading.Lock()
+_clock = time.monotonic  # replaced in tests
+
+
+def _should_ask_provider(key: str) -> bool:
+    """Whether the provider may be asked about ``key`` now.
+
+    At most one question per payment every ``PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS``.
+    The memory is per process (the backend runs one), so with more processes each
+    would ask on its own. Skipping a question never changes a payment: it stays as it
+    is until the next one, or until the callback arrives.
+    """
+    interval = settings.PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS
+    if interval <= 0:
+        return True
+    now = _clock()
+    with _asked_lock:
+        last = _asked_at.get(key)
+        if last is not None and now - last < interval:
+            return False
+        _asked_at[key] = now
+        if len(_asked_at) > 4096:  # forget what is long past
+            for old_key, asked in list(_asked_at.items()):
+                if now - asked > 10 * interval:
+                    del _asked_at[old_key]
+    return True
+
+
 def _sync_provider_status(
     db: Session, transaction: Transaction, gateway: MBWayGateway
 ) -> None:
@@ -442,6 +473,9 @@ def _sync_provider_status(
     # Release the pooled database connection before the network call: a slow
     # provider must not keep a connection busy while we wait for its answer.
     db.commit()
+
+    if provider_reference and not _should_ask_provider(reference):
+        return  # asked a moment ago: nothing can have changed that the callback misses
 
     # "Unresolved" means the provider could not tell us: we never saved its reference,
     # or it answered something we cannot read. (An unreachable provider is not
