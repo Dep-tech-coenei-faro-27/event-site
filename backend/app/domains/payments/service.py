@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -231,16 +232,39 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     callback and the status poll go through here, so the ticket is issued no
     matter how the confirmation arrives. Idempotent: a repeated call returns the
     same transaction and never duplicates the ticket.
+
+    The transaction row stays locked until the ticket is committed, so two
+    confirmations of the same payment (poll and poll, or poll and callback) run one
+    after the other. The status and the ticket are saved together, so a failure
+    cannot leave a confirmed payment without its ticket.
     """
+    db.refresh(transaction, with_for_update=True)
     if transaction.status is not TransactionStatus.CONFIRMED:
         transaction.status = TransactionStatus.CONFIRMED
         transaction.confirmed_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(transaction)
 
-    issue_ticket_for_paid_transaction(
-        db, user_id=transaction.user_id, transaction_reference=transaction.reference
-    )
+    try:
+        issue_ticket_for_paid_transaction(
+            db,
+            user_id=transaction.user_id,
+            transaction_reference=transaction.reference,
+        )
+    except IntegrityError:
+        # Lost a race on the ticket: if this very payment already has its ticket,
+        # someone else confirmed it a moment ago and there is nothing left to do.
+        db.rollback()
+        db.refresh(transaction)
+        issued = db.scalar(
+            select(Ticket.id).where(
+                Ticket.transaction_reference == transaction.reference
+            )
+        )
+        if issued is not None:
+            return transaction
+        raise
+    # Saves the status when the ticket already existed and nothing else committed.
+    db.commit()
+    db.refresh(transaction)
     return transaction
 
 
