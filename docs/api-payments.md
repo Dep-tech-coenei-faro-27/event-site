@@ -150,7 +150,7 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 | `PAYMENTS_MODE` | Comportamento |
 | --- | --- |
 | `off` (por omissão) | a bilheteira não vende: `/payment/initiate` responde `503`. |
-| `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
+| `simulated` | cria a transação e responde `pending` (e `expired` ao fim de `MBWAY_PAYMENT_TIMEOUT_SECONDS`, como o MB WAY), sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
 | `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`; sem eles o backend recusa arrancar. |
 
 - Para testar o ecrã de sucesso sem um gateway real, usa-se `PAYMENTS_MODE=simulated` com `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0: o pagamento passa a `confirmed` ao fim desses segundos (ver abaixo). O modo de confirmação só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
@@ -182,7 +182,7 @@ make set-price tier=geral price=3500
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
 | `MBWAY_CALLBACK_KEY` | vazio | chave anti-phishing do callback da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
-| `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
+| `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos). No modo `simulated` é também quando o simulador dá o pagamento por expirado |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |

@@ -175,12 +175,14 @@ class IfThenPayMBWayGateway:
 class SimulatedMBWayGateway:
     """Answers like ifthenpay without contacting it, for local/dev/frontend work.
 
-    By default it always answers ``pending``. With a positive
-    ``confirm_after_seconds`` it reports the payment as confirmed once that many
-    seconds have elapsed since it was created, so the ticket/QR/email flow can run
-    end to end without ifthenpay. That confirming mode is only allowed with
-    ``PAYMENTS_MODE=simulated``: ``live`` and ``off`` refuse to start with it
-    enabled.
+    It answers ``pending``. With a positive ``confirm_after_seconds`` it reports the
+    payment as confirmed once that many seconds have elapsed since it was created,
+    so the ticket/QR/email flow can run end to end without ifthenpay. With a
+    positive ``expire_after_seconds`` it reports ``expired`` after that time (like
+    ifthenpay's 4-minute window), because a seat is held until the provider ends the
+    payment and a payment that never ends would hold it for ever. The confirming
+    mode is only allowed with ``PAYMENTS_MODE=simulated``: ``live`` and ``off``
+    refuse to start with it enabled.
     """
 
     name = "simulated"
@@ -190,9 +192,11 @@ class SimulatedMBWayGateway:
         self,
         *,
         confirm_after_seconds: int = 0,
+        expire_after_seconds: int = 0,
         now: Callable[[], float] = time.time,
     ) -> None:
         self.confirm_after_seconds = confirm_after_seconds
+        self.expire_after_seconds = expire_after_seconds
         self._now = now
 
     def create_payment(
@@ -224,13 +228,20 @@ class SimulatedMBWayGateway:
     def get_status(
         self, *, reference: str, provider_reference: str | None
     ) -> TransactionStatus:
-        if self.confirm_after_seconds <= 0:
-            return TransactionStatus.PENDING
         created_at = self._created_at(provider_reference)
         if created_at is None:
             return TransactionStatus.PENDING
-        if self._now() - created_at >= self.confirm_after_seconds:
+        elapsed = self._now() - created_at
+        expires = self.expire_after_seconds
+        confirms = self.confirm_after_seconds
+        if (
+            confirms > 0
+            and elapsed >= confirms
+            and (expires <= 0 or confirms < expires)
+        ):
             return TransactionStatus.CONFIRMED
+        if expires > 0 and elapsed >= expires:
+            return TransactionStatus.EXPIRED
         return TransactionStatus.PENDING
 
 
@@ -250,5 +261,6 @@ def get_mbway_gateway() -> MBWayGateway:
     # Only PAYMENTS_MODE=simulated reaches here (off raises 503, live is handled
     # above), and the settings reject a confirm delay for any other mode.
     return SimulatedMBWayGateway(
-        confirm_after_seconds=settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS
+        confirm_after_seconds=settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS,
+        expire_after_seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS,
     )
