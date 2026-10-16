@@ -5,7 +5,7 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 ## Regras gerais
 
 - **Sessão obrigatória (exceto no callback):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` é público porque é o ifthenpay que o chama.
-- **O preço é sempre do servidor.** O frontend escolhe a modalidade (`ticket_tier`) e a quantidade; nunca envia o preço. Assim ninguém consegue pagar 1 cêntimo por um bilhete.
+- **O preço é sempre do servidor.** O frontend escolhe a modalidade (`ticket_tier`); nunca envia o preço. A quantidade é sempre `1` (um bilhete por pessoa): pode ser omitida no pedido e vem sempre como `1` na resposta. Assim ninguém consegue pagar 1 cêntimo por um bilhete.
 - **Referência curta:** cada pagamento tem uma referência no formato `ENEI-XXXXXXXXXX` (15 caracteres no máximo, como no design). É esse valor que o frontend mostra e usa para consultar o estado.
 - **Dinheiro em cêntimos:** todos os valores são inteiros, em cêntimos de euro (por exemplo `4500` são `45,00 €`).
 - **Acesso aos próprios pagamentos:** só o dono do pagamento o consegue consultar; para qualquer outro utilizador a referência não existe (`404`).
@@ -18,6 +18,8 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 | `refeicoes` | Acesso + refeições | sim |
 | `completo` | Experiência completa | sim |
 | `geral` | Passe geral | não |
+
+> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo variantes **não estudante** com refeições e com a experiência completa (hoje só o passe geral é aberto a não estudantes). O frontend **não deve assumir que são sempre quatro**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. Hoje não há endpoint que liste as modalidades; se o frontend precisar de uma lista dinâmica, pede-se um (por exemplo `GET /api/payment/tiers`).
 
 O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
 
@@ -125,6 +127,19 @@ const timer = setInterval(async () => {
 }, 2000);
 ```
 
+## Se a pessoa fecha o browser antes da confirmação
+
+O pagamento não depende do browser: depois de `POST /payment/initiate` o pedido está no MB WAY e a pessoa aprova no telemóvel. O que acontece em cada caso:
+
+| Situação | O que acontece | O que o frontend faz |
+| --- | --- | --- |
+| Fecha o browser e **aprova** no MB WAY | O ifthenpay chama o callback, a transação passa a `confirmed` e o bilhete é emitido, tenha ou não o site aberto. | Ao voltar a entrar, `GET /api/users/me` devolve o `qr_code` (deixa de ser `null`): mostrar o bilhete. |
+| Fecha o browser e **não aprova** | A transação continua `pending` até passar o prazo (4 minutos); a primeira consulta depois disso devolve (e grava) `expired`. | Pode comprar outra vez. |
+| Volta antes de o prazo acabar e tenta comprar outra vez | `POST /payment/initiate` responde `409` com `You already have a ticket or a payment in progress`: o pagamento em curso conta como a compra dessa pessoa até confirmar, falhar ou expirar. | Ir para o ecrã de espera com a referência guardada (ver abaixo); se não houver referência, mostrar «Tens um pagamento em curso, tenta daqui a uns minutos» e consultar `/users/me`. |
+| Aprova depois de a transação já estar `expired` ou `failed` | O callback responde `200` mas **não** emite bilhete (fica um aviso nos logs para tratamento manual, normalmente reembolso). O ifthenpay não deixa aprovar depois dos 4 minutos, por isso é raro. | — |
+
+Hoje não existe um endpoint que devolva a referência do pagamento em curso. Até haver (está planeado), o frontend deve **guardar a `reference` no `sessionStorage`** logo que recebe o `201` e, ao abrir o ecrã de espera, consultar `GET /payment/transactions/{reference}` com ela. Sem a referência (outro dispositivo, armazenamento limpo), resta o `409` acima e esperar que o prazo passe.
+
 ## Modos de pagamento (`PAYMENTS_MODE`)
 
 O modo é explícito e não depende do que estiver (ou não) configurado:
@@ -181,3 +196,23 @@ Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime 
 | `422` | `{"detail": [{"type", "loc", "msg"}]}` |
 | `502` | `{"detail": "Payment could not be initiated. Please try again."}` |
 | `503` | `{"detail": "Ticket sales are not open yet"}` ou `{"detail": "Payments are currently disabled."}` |
+
+## O que o frontend mostra em cada erro do `/payment/initiate`
+
+Os textos de `detail` estão em inglês e são para os logs e para distinguir casos; **o frontend mostra o seu próprio texto em português**. Os textos abaixo são a proposta.
+
+| Código | Quando | O que mostrar | O que fazer |
+| --- | --- | --- | --- |
+| `401` | sem sessão ou sessão expirada | «A tua sessão terminou. Entra outra vez para continuar.» | Levar ao login e voltar ao checkout |
+| `403` com `Please verify your email address to continue.` | email por verificar | «Confirma o teu email para poderes comprar.» | Oferecer reenviar o email de verificação |
+| `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é para estudantes com a conta verificada.» | Sugerir o passe geral ou o contacto da organização |
+| `409` com `This ticket tier is sold out` | modalidade esgotada | «Esta modalidade esgotou.» | Voltar à escolha de modalidade |
+| `409` com `You already have a ticket or a payment in progress` | já tem bilhete ou pagamento em curso | «Já tens um bilhete ou um pagamento em curso.» (**não** dizer «esgotado») | Se `/users/me` tem `qr_code`, mostrar o bilhete; senão, ir para o ecrã de espera com a referência guardada |
+| `422` | telemóvel, modalidade ou quantidade inválidos | Erro junto ao campo (normalmente o telemóvel) | Deixar corrigir e reenviar |
+| `429` | mais de 10 pedidos por minuto | «Demasiadas tentativas. Tenta daqui a alguns segundos.» | Desativar o botão durante `Retry-After` segundos (cabeçalho da resposta) |
+| `502` | o MB WAY falhou; a transação fica `failed` | «Não conseguimos iniciar o pagamento. Tenta outra vez.» | Deixar tentar logo: uma transação `failed` não conta como pagamento em curso |
+| `503` com `Ticket sales are not open yet` | modalidade ainda sem preço | «A bilheteira ainda não abriu.» | Sem repetição automática |
+| `503` com `Payments are currently disabled.` | `PAYMENTS_MODE=off` | «Os pagamentos estão temporariamente indisponíveis.» | Sem repetição automática |
+| Sem resposta (rede ou 5xx) | falha de ligação | «Sem ligação. Verifica a rede e tenta outra vez.» | **Não** repetir sozinho: o pedido pode ter chegado e há um pagamento em curso; deixar a pessoa tentar, e um `409` leva ao ecrã de espera |
+
+O `409` tem o mesmo código nos dois casos: distingue-se pelo `detail`, que é exatamente um dos dois textos da tabela.
