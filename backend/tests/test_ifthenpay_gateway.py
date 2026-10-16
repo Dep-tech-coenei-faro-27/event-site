@@ -5,6 +5,7 @@ import pytest
 from app.domains.payments.gateway import (
     IfThenPayMBWayGateway,
     PaymentGatewayError,
+    UnrecognisedStatusError,
 )
 from app.domains.payments.models import TransactionStatus
 
@@ -100,16 +101,47 @@ def test_status_query_maps_the_documented_codes(code, expected):
     assert "requestId=itp-42" in fetched[0][0]
 
 
-def test_status_query_treats_an_unknown_code_as_pending(caplog):
-    gateway, _, _ = build_gateway(get_response={"Status": "777"})
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (101, TransactionStatus.EXPIRED),
+        (" 101 ", TransactionStatus.EXPIRED),
+        (123, TransactionStatus.PENDING),
+        ("000 ", TransactionStatus.CONFIRMED),
+    ],
+)
+def test_status_query_reads_the_code_as_text_or_as_a_number(code, expected):
+    gateway, _, _ = build_gateway(get_response={"Status": code})
 
-    with caplog.at_level(logging.WARNING):
-        status = gateway.get_status(
-            reference="ENEI-0000000001", provider_reference="itp-42"
-        )
+    status = gateway.get_status(
+        reference="ENEI-0000000001", provider_reference="itp-42"
+    )
 
-    assert status is TransactionStatus.PENDING
-    assert "unknown status code" in caplog.text
+    assert status is expected
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        {"Status": "777"},
+        {"Status": "0101"},
+        {"Status": "EXPIRED"},
+        {"Status": ""},
+        {"Status": None},
+        {"Status": True},
+        {"Message": "no status here"},
+        {},
+    ],
+)
+def test_status_query_does_not_mistake_an_unreadable_answer_for_waiting(answer, caplog):
+    """A waiting payment keeps its seat, so an unreadable answer is an error."""
+    gateway, _, _ = build_gateway(get_response=answer)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(UnrecognisedStatusError):
+            gateway.get_status(reference="ENEI-0000000001", provider_reference="itp-42")
+
+    assert "unrecognised status" in caplog.text
 
 
 def test_status_query_without_a_request_id_stays_pending_and_does_not_call_out():

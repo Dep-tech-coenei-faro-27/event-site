@@ -132,123 +132,6 @@ def pay(auth_client, reference: str):
     )
 
 
-def test_a_repeated_callback_saves_the_status_of_a_payment_that_has_its_ticket(
-    auth_client, email_sender, db_session, gateway, callback_key
-):
-    payment = start_payment(auth_client, email_sender, db_session, gateway)
-    assert pay(auth_client, payment["reference"]).status_code == 200
-    transaction = db_session.scalar(
-        select(Transaction).where(Transaction.reference == payment["reference"])
-    )
-    transaction.status = TransactionStatus.PENDING  # status lost, ticket kept
-    db_session.commit()
-
-    assert pay(auth_client, payment["reference"]).status_code == 200
-
-    db_session.rollback()  # whatever was not committed is gone
-    db_session.refresh(transaction)
-    assert transaction.status is TransactionStatus.CONFIRMED
-    assert count_tickets(db_session, payment["reference"]) == 1
-
-
-def test_a_repeated_callback_does_not_bring_back_a_cancelled_ticket(
-    auth_client, email_sender, db_session, gateway, callback_key, caplog
-):
-    payment = start_payment(auth_client, email_sender, db_session, gateway)
-    assert pay(auth_client, payment["reference"]).status_code == 200
-    ticket = db_session.scalar(select(Ticket))
-    ticket.payment_status = PaymentStatus.CANCELLED
-    db_session.commit()
-
-    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
-        response = pay(auth_client, payment["reference"])
-
-    assert response.status_code == 200
-    db_session.refresh(ticket)
-    assert ticket.payment_status is PaymentStatus.CANCELLED
-    assert count_tickets(db_session, payment["reference"]) == 1
-    assert "its ticket is cancelled" in caplog.text
-
-
-def test_a_payment_for_someone_who_already_has_a_ticket_is_kept_for_a_refund(
-    auth_client, email_sender, db_session, gateway, callback_key, caplog
-):
-    first = start_payment(auth_client, email_sender, db_session, gateway)
-    assert pay(auth_client, first["reference"]).status_code == 200
-    original = db_session.scalar(select(Ticket))
-    signed_payload = original.qr_payload
-    paid = db_session.scalar(
-        select(Transaction).where(Transaction.reference == first["reference"])
-    )
-    second = Transaction(
-        reference="ENEI-LATE000001",
-        user_id=paid.user_id,
-        ticket_tier_id=paid.ticket_tier_id,
-        amount_cents=paid.amount_cents,
-        quantity=1,
-        status=TransactionStatus.PENDING,
-        phone=paid.phone,
-        provider=paid.provider,
-        expires_at=paid.expires_at,
-    )
-    db_session.add(second)
-    db_session.commit()
-
-    with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
-        response = pay(auth_client, "ENEI-LATE000001")
-
-    assert response.status_code == 200
-    db_session.refresh(second)
-    assert second.status is TransactionStatus.REFUND_DUE
-    assert count_tickets(db_session, "ENEI-LATE000001") == 0
-    assert db_session.scalar(select(func.count()).select_from(Ticket)) == 1
-    db_session.refresh(original)
-    assert original.qr_payload == signed_payload
-    assert "Payment ENEI-LATE000001 needs a refund" in caplog.text
-
-    # A repeated callback changes nothing: the decision was already taken.
-    assert pay(auth_client, "ENEI-LATE000001").status_code == 200
-    db_session.refresh(second)
-    assert second.status is TransactionStatus.REFUND_DUE
-
-
-def test_two_payments_of_one_person_never_crash_the_callback(
-    auth_client, email_sender, db_session, test_engine, gateway, callback_key, caplog
-):
-    """The first attempt ran out, a second one was started and paid, and then the
-    first one is paid too: it used to fail with a 500 and be retried for ever."""
-    first = start_payment(auth_client, email_sender, db_session, gateway)
-    stale = db_session.scalar(
-        select(Transaction).where(Transaction.reference == first["reference"])
-    )
-    stale.expires_at = datetime.now(UTC) - timedelta(minutes=1)
-    db_session.commit()
-    second = auth_client.post(INITIATE_URL, json=INITIATE)
-    assert second.status_code == 201
-    assert pay(auth_client, second.json()["reference"]).status_code == 200
-
-    database_errors: list[object] = []
-
-    def remember(context) -> None:
-        database_errors.append(context.original_exception)
-
-    event.listen(test_engine, "handle_error", remember)
-    try:
-        with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
-            response = pay(auth_client, first["reference"])
-    finally:
-        event.remove(test_engine, "handle_error", remember)
-
-    assert response.status_code == 200
-    # Found by looking before inserting, not by colliding with the unique index.
-    assert database_errors == []
-    db_session.refresh(stale)
-    assert stale.status is TransactionStatus.REFUND_DUE
-    assert count_tickets(db_session, first["reference"]) == 0
-    assert count_tickets(db_session, second.json()["reference"]) == 1
-    assert f"Payment {first['reference']} needs a refund" in caplog.text
-
-
 @pytest.mark.parametrize(
     "terminal_status", [TransactionStatus.FAILED, TransactionStatus.EXPIRED]
 )
@@ -279,6 +162,81 @@ def test_a_late_callback_still_issues_the_ticket(
     assert count_tickets(db_session, payment["reference"]) == 1
     assert "Late MB WAY payment" in caplog.text
     assert payment["reference"] in caplog.text
+
+
+def test_a_late_payment_for_someone_who_already_has_a_ticket_is_kept_for_a_refund(
+    auth_client, email_sender, db_session, gateway, callback_key, caplog
+):
+    first = start_payment(auth_client, email_sender, db_session, gateway)
+    assert pay(auth_client, first["reference"]).status_code == 200
+    original = db_session.scalar(select(Ticket))
+    signed_payload = original.qr_payload
+    paid = db_session.scalar(
+        select(Transaction).where(Transaction.reference == first["reference"])
+    )
+    second = Transaction(
+        reference="ENEI-LATE000001",
+        user_id=paid.user_id,
+        ticket_tier_id=paid.ticket_tier_id,
+        amount_cents=paid.amount_cents,
+        quantity=1,
+        status=TransactionStatus.EXPIRED,
+        phone=paid.phone,
+        provider=paid.provider,
+        expires_at=paid.expires_at,
+    )
+    db_session.add(second)
+    db_session.commit()
+
+    with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
+        response = pay(auth_client, "ENEI-LATE000001")
+
+    assert response.status_code == 200
+    db_session.refresh(second)
+    assert second.status is TransactionStatus.REFUND_DUE
+    assert count_tickets(db_session, "ENEI-LATE000001") == 0
+    assert db_session.scalar(select(func.count()).select_from(Ticket)) == 1
+    db_session.refresh(original)
+    assert original.qr_payload == signed_payload
+    assert "Payment ENEI-LATE000001 needs a refund" in caplog.text
+
+
+def test_two_payments_of_one_person_never_crash_the_callback(
+    auth_client, email_sender, db_session, test_engine, gateway, callback_key, caplog
+):
+    """The provider closed the first attempt, a second one was started and paid, and
+    then the first one is paid too (it should not happen): it used to fail with a
+    500 and be retried for ever."""
+    first = start_payment(auth_client, email_sender, db_session, gateway)
+    stale = db_session.scalar(
+        select(Transaction).where(Transaction.reference == first["reference"])
+    )
+    stale.status = TransactionStatus.EXPIRED
+    db_session.commit()
+    second = auth_client.post(INITIATE_URL, json=INITIATE)
+    assert second.status_code == 201
+    assert pay(auth_client, second.json()["reference"]).status_code == 200
+
+    database_errors: list[object] = []
+
+    def remember(context) -> None:
+        database_errors.append(context.original_exception)
+
+    event.listen(test_engine, "handle_error", remember)
+    try:
+        with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
+            response = pay(auth_client, first["reference"])
+    finally:
+        event.remove(test_engine, "handle_error", remember)
+
+    assert response.status_code == 200
+    # Found by looking before inserting, not by colliding with the unique index.
+    assert database_errors == []
+    db_session.refresh(stale)
+    assert stale.status is TransactionStatus.REFUND_DUE
+    assert count_tickets(db_session, first["reference"]) == 0
+    assert count_tickets(db_session, second.json()["reference"]) == 1
+    assert f"Payment {first['reference']} needs a refund" in caplog.text
 
 
 def _sell_out_the_modality(db_session, payment: dict) -> None:
@@ -330,6 +288,27 @@ def test_a_late_payment_is_not_sold_when_the_modality_sold_out(
     assert transaction.status is TransactionStatus.REFUND_DUE
     assert count_tickets(db_session, payment["reference"]) == 0
     assert "the modality sold out" in caplog.text
+
+
+def test_a_payment_still_waiting_past_its_deadline_is_sold_even_at_the_limit(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    """Waiting payments hold their seat: when the modality is at its limit, that
+    seat is this one, so a callback after the deadline gets the ticket."""
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
+    tier.inventory_limit = 1
+    db_session.commit()
+
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert count_tickets(db_session, payment["reference"]) == 1
 
 
 def test_a_payment_inside_its_window_always_keeps_its_seat(
@@ -391,23 +370,42 @@ def test_a_refund_due_payment_stays_that_way_when_the_callback_is_repeated(
     assert count_tickets(db_session, payment["reference"]) == 0
 
 
-def test_a_payment_still_pending_but_past_its_deadline_is_not_sold_either(
+def test_a_repeated_callback_repairs_a_transaction_that_already_has_its_ticket(
     auth_client, email_sender, db_session, gateway, callback_key
 ):
-    """Nobody polled, so it is still ``pending``, but its seat was released."""
     payment = start_payment(auth_client, email_sender, db_session, gateway)
+    assert pay(auth_client, payment["reference"]).status_code == 200
     transaction = db_session.scalar(
         select(Transaction).where(Transaction.reference == payment["reference"])
     )
-    transaction.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    transaction.status = TransactionStatus.EXPIRED
     db_session.commit()
-    _sell_out_the_modality(db_session, payment)
 
     assert pay(auth_client, payment["reference"]).status_code == 200
 
+    db_session.rollback()  # whatever was not committed is gone
     db_session.refresh(transaction)
-    assert transaction.status is TransactionStatus.REFUND_DUE
-    assert count_tickets(db_session, payment["reference"]) == 0
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert count_tickets(db_session, payment["reference"]) == 1
+
+
+def test_a_repeated_callback_does_not_bring_back_a_cancelled_ticket(
+    auth_client, email_sender, db_session, gateway, callback_key, caplog
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    assert pay(auth_client, payment["reference"]).status_code == 200
+    ticket = db_session.scalar(select(Ticket))
+    ticket.payment_status = PaymentStatus.CANCELLED
+    db_session.commit()
+
+    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
+        response = pay(auth_client, payment["reference"])
+
+    assert response.status_code == 200
+    db_session.refresh(ticket)
+    assert ticket.payment_status is PaymentStatus.CANCELLED
+    assert count_tickets(db_session, payment["reference"]) == 1
+    assert "its ticket is cancelled" in caplog.text
 
 
 def test_callback_is_rate_limited_per_ip(
