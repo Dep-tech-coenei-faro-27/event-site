@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -12,12 +12,17 @@ from app.domains.payments.gateway import (
     PaymentGatewayError,
     get_mbway_gateway,
 )
-from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.payments.schemas import (
+    PaymentInitiateRequest,
+    TicketTierRead,
+    TransactionRead,
+)
 from app.domains.payments.service import (
     PaymentError,
     get_transaction,
     handle_payment_callback,
     initiate_payment,
+    list_ticket_tiers,
     to_read,
 )
 from app.domains.users.models import User
@@ -27,6 +32,23 @@ router = APIRouter(prefix="/payment", tags=["payment"])
 logger = logging.getLogger(__name__)
 
 PAYMENT_INITIATE_FAILED_MESSAGE = "Payment could not be initiated. Please try again."
+
+
+@router.get(
+    "/tiers", response_model=list[TicketTierRead], status_code=status.HTTP_200_OK
+)
+def read_tiers(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> list[TicketTierRead]:
+    """Public: the modalities, their price and whether each can be bought now."""
+    rule = RateLimit(
+        "payment_tiers", settings.RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE, 60
+    )
+    enforce_rate_limit(db, (rule,), client_ip(request))
+    response.headers["Cache-Control"] = "no-store"
+    return list_ticket_tiers(db)
 
 
 @router.post(

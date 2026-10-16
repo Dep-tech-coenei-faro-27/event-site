@@ -22,7 +22,11 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
-from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.payments.schemas import (
+    PaymentInitiateRequest,
+    TicketTierRead,
+    TransactionRead,
+)
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import (
     PaymentNotConfirmedError,
@@ -611,6 +615,35 @@ def get_transaction(
         _sync_provider_status(db, transaction, gateway)
 
     return transaction
+
+
+def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
+    """The modalities with their price and whether each can be bought right now.
+
+    ``sale_open`` is false while payments are off or the modality has no price.
+    ``available`` is also false when every seat is taken or reserved for a payment
+    that is waiting. Read-only: it does not ask the provider about anything.
+    """
+    order = {tier: index for index, tier in enumerate(TicketTier)}
+    rows = sorted(db.scalars(select(TicketTierPrice)), key=lambda r: order[r.tier])
+    payments_on = settings.PAYMENTS_MODE != "off"
+    result = []
+    for row in rows:
+        sale_open = payments_on and row.price_cents is not None
+        has_room = row.inventory_limit is None or (
+            row.inventory_limit - _reserved_quantity(db, row) >= 1
+        )
+        result.append(
+            TicketTierRead(
+                tier=row.tier,
+                name=row.name,
+                price_cents=row.price_cents,
+                is_student=row.is_student,
+                sale_open=sale_open,
+                available=sale_open and has_room,
+            )
+        )
+    return result
 
 
 def ticket_tier_of(db: Session, transaction: Transaction) -> TicketTier:
