@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_verified_user
+from app.domains.payments.service import account_payment_overview
 from app.domains.tickets.models import PaymentStatus
 from app.domains.tickets.service import get_ticket_for_user
 from app.domains.users.models import User
@@ -23,6 +24,7 @@ def get_current_user_info(
     return UserProfileRead(
         **UserRead.model_validate(current_user).model_dump(),
         qr_code=qr_code,
+        **account_payment_overview(db, current_user),
     )
 
 

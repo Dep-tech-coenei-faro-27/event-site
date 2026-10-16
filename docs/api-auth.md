@@ -91,9 +91,17 @@ houver um pagamento confirmado.
 
 | | |
 | --- | --- |
-| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course", "qr_code"}` |
+| `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course", "qr_code", "ticket", "pending_payment", "refund_due"}` (ver abaixo) |
 | `401` | sem sessão válida (o mesmo que `/api/auth/me`) |
 | `403` | email por verificar |
+
+Os três campos novos descrevem a compra da pessoa e são `null` quando não se aplicam:
+
+| Campo | Conteúdo |
+| --- | --- |
+| `ticket` | o bilhete ativo: `reference`, `tier`, `tier_name` (a modalidade comprada, tal como estava no pagamento), `holder_name`, `paid_at`. Nunca um bilhete cancelado |
+| `pending_payment` | o pagamento à espera (ainda não terminado pelo MB WAY, mesmo depois do prazo): `reference`, `tier`, `tier_name`, `amount_cents`, `expires_at`. Serve para **retomar** o ecrã de espera depois de um refresh ou de uma sessão nova, sem guardar a referência no browser |
+| `refund_due` | um pagamento recebido a que não se pôde dar bilhete e que vai ser reembolsado: `reference`, `amount_cents` |
 
 ### `PUT /api/users/me`
 

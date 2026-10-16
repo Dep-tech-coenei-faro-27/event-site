@@ -617,6 +617,67 @@ def get_transaction(
     return transaction
 
 
+def account_payment_overview(db: Session, user: User) -> dict:
+    """What the account page needs to know about the person's purchase.
+
+    The active ticket (with its modality), the payment that is waiting, and a payment
+    that arrived without a ticket and will be refunded. Each is ``None`` if absent.
+    """
+    ticket = db.execute(
+        select(Ticket, TicketTierPrice)
+        .join(Transaction, Transaction.reference == Ticket.transaction_reference)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Ticket.user_id == user.id,
+            Ticket.payment_status == PaymentStatus.PAID,
+        )
+        .order_by(Ticket.id.desc())
+        .limit(1)
+    ).first()
+    waiting = db.execute(
+        select(Transaction, TicketTierPrice)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    ).first()
+    refund = db.scalar(
+        select(Transaction)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.REFUND_DUE,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    )
+    return {
+        "ticket": None
+        if ticket is None
+        else {
+            "reference": ticket[0].transaction_reference,
+            "tier": ticket[1].tier.value,
+            "tier_name": ticket[1].name,
+            "holder_name": user.name,
+            "paid_at": ticket[0].paid_at,
+        },
+        "pending_payment": None
+        if waiting is None
+        else {
+            "reference": waiting[0].reference,
+            "tier": waiting[1].tier.value,
+            "tier_name": waiting[1].name,
+            "amount_cents": waiting[0].amount_cents,
+            "expires_at": waiting[0].expires_at,
+        },
+        "refund_due": None
+        if refund is None
+        else {"reference": refund.reference, "amount_cents": refund.amount_cents},
+    }
+
+
 def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
     """The modalities with their price and whether each can be bought right now.
 
