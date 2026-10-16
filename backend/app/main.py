@@ -1,10 +1,13 @@
 import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.email.factory import start_email_worker, stop_email_worker
 from app.core.errors import register_exception_handlers
 from app.core.log_redaction import install_access_log_redaction
 from app.core.media import MediaFiles
@@ -31,6 +34,16 @@ def only_loopback(trusted: str | None) -> bool:
     return hosts <= LOOPBACK
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Sends the queued emails, including any left over from before a restart.
+    start_email_worker()
+    try:
+        yield
+    finally:
+        stop_email_worker()
+
+
 def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
     install_access_log_redaction()
@@ -54,6 +67,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if docs else None,
         redoc_url="/redoc" if docs else None,
         openapi_url="/openapi.json" if docs else None,
+        lifespan=lifespan,
     )
 
     settings.MEDIA_DIR.mkdir(parents=True, exist_ok=True)

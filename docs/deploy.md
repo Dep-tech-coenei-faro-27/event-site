@@ -289,10 +289,25 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 
 ## Email
 
-- O envio é assíncrono: o pedido responde logo e o email segue em segundo plano (4 *threads* e uma fila de 200 emails).
-  **Não há repetição automática**: se o servidor SMTP estiver em baixo, ou a fila encher, ou o backend reiniciar com
-  emails na fila, esses emails perdem-se. O erro fica nos logs (`Failed to send email`, ou `Email queue is full`) e o
-  utilizador pode pedir um novo email.
+- O envio usa uma **fila na base de dados** (tabela `email_outbox`). O pedido grava o email e responde logo; um *worker*
+  (uma *thread* que arranca com o backend) envia o que está pendente a cada 5 segundos, sem esperar entre lotes enquanto
+  houver fila, e **repete o que falhar** com espera crescente (30 s, 2 min, 10 min, 30 min, 2 h e depois de 6 em 6 h). Por
+  omissão tenta 10 vezes (cerca de 27 horas, o que cobre uma quota diária esgotada, como o limite do plano gratuito do
+  Resend). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
+  na fila **sobrevive a um reinício** do backend ou a uma falha do servidor SMTP. A entrega é *pelo menos uma vez*: se o
+  backend cair entre enviar e registar, o email pode seguir duas vezes.
+- O corpo do email (que pode ter links de verificação ou de recuperação) é **apagado logo que o email é enviado**. As linhas
+  enviadas apagam-se ao fim de 7 dias; as que falharam perdem o corpo ao fim de 1 dia (os links já expiraram) e a linha ao
+  fim de 30. Tudo isto corre no comando diário da limpeza de contas.
+- Ver o estado da fila (quantos pendentes, enviados e falhados, e há quanto tempo espera o pendente mais antigo):
+  `docker compose --env-file backend/.env --env-file tunnel.env exec -T backend /app/.venv/bin/python -m app.core.email --status`.
+  Pendentes há muito tempo, ou `failed` a crescer, são o sinal de que o envio não está a funcionar.
+- Enviar à mão o que estiver pendente (por exemplo depois de corrigir o SMTP): o mesmo comando sem argumentos.
+- Tentar outra vez os que desistiram (por exemplo depois de a quota do Resend voltar), no primeiro dia, enquanto ainda têm
+  corpo: o mesmo comando com `--requeue-failed`.
+- Configuração (opcional): `EMAIL_OUTBOX_WORKER` (`1` por omissão; `0` desliga o *worker*), `EMAIL_OUTBOX_POLL_SECONDS`
+  (5) e `EMAIL_OUTBOX_MAX_ATTEMPTS` (10).
+- Ao fazer `alembic downgrade` desta migration apaga-se a tabela, e com ela os emails que estivessem pendentes.
 - O certificado do servidor SMTP é verificado. Um servidor com certificado autoassinado vai falhar.
 - Está configurado o **Resend** (`SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`, `SMTP_USER=resend`, `SMTP_PASSWORD` a
   chave de API). O remetente (`EMAIL_SENDER`) tem de ser de um domínio verificado no Resend
