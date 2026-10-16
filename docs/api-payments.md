@@ -108,6 +108,7 @@ A chave anti-phishing transita no *query string* do pedido; o backend remove-a d
 | `failed` | o gateway recusou ou falhou |
 | `expired` | o MB WAY deu o pagamento por terminado sem ser pago (normalmente aos 4 minutos) |
 | `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado): vai ser reembolsado. Não ocupa stock. Não devia acontecer |
+| `refunded` | o bilhete foi cancelado e o dinheiro devolvido. **Liberta o lugar** e a pessoa pode comprar outra vez. Um callback repetido não o altera |
 
 `failed` e `expired` quase nunca mudam, mas se o dinheiro chegar depois o callback confirma a transação e emite o bilhete (havendo lugar). Por isso, quando o polling devolve `expired` ou `failed`, antes de dizer à pessoa para tentar outra vez o frontend deve consultar `GET /api/users/me` (se `qr_code` já não for `null`, mostra o bilhete). Se mesmo assim tentar pagar outra vez, o `POST /payment/initiate` responde `409` («já tens bilhete») e a pessoa é levada ao bilhete. Com `refund_due`, mostra-se: «Recebemos o teu pagamento, mas já não há bilhetes (ou já tens um). Vamos reembolsar-te» e o contacto da organização.
 
