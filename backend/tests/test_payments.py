@@ -15,10 +15,11 @@ from app.domains.payments.gateway import (
 )
 from app.domains.payments.models import (
     TicketTier,
-    TicketTierPrice,
     Transaction,
     TransactionStatus,
 )
+from app.domains.payments.schemas import PaymentInitiateRequest
+from app.domains.payments.service import TicketSoldOutError, initiate_payment
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.users.models import User
 from app.main import app
@@ -406,9 +407,11 @@ def test_get_status_hides_other_users_transaction(
     assert response.status_code == 404
 
 
-def test_expired_pending_transaction_is_marked_expired(
+def test_a_pending_transaction_past_its_deadline_stays_pending_while_the_provider_waits(
     auth_client, email_sender, db_session, gateway
 ):
+    """The deadline is the time the person has to approve; the seat is released only
+    when the provider ends the payment."""
     user = authenticate(auth_client, email_sender, db_session)
     tickets = seed_ticket_tiers(db_session)
     db_session.add(
@@ -429,11 +432,11 @@ def test_expired_pending_transaction_is_marked_expired(
     response = auth_client.get(transaction_url("ENEI-0000000003"))
 
     assert response.status_code == 200
-    assert response.json()["status"] == "expired"
+    assert response.json()["status"] == "pending"
     stored = db_session.scalar(
         select(Transaction).where(Transaction.reference == "ENEI-0000000003")
     )
-    assert stored.status is TransactionStatus.EXPIRED
+    assert stored.status is TransactionStatus.PENDING
 
 
 def test_confirmed_transaction_is_returned(
@@ -484,46 +487,6 @@ def test_get_status_polls_the_provider_and_persists_confirmed(
     assert stored.confirmed_at is not None
 
 
-def test_get_status_does_not_sell_a_released_seat_that_sold_out(
-    auth_client, email_sender, db_session, gateway
-):
-    """The provider says paid, but the deadline passed and the last seat went to
-    someone else: the payment is kept for a refund and no ticket is issued."""
-    authenticate(auth_client, email_sender, db_session)
-    seed_ticket_tiers(db_session)
-    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
-    stored = db_session.scalar(
-        select(Transaction).where(Transaction.reference == reference)
-    )
-    stored.expires_at = datetime.now(UTC) - timedelta(minutes=1)
-    tier = db_session.get(TicketTierPrice, stored.ticket_tier_id)
-    tier.inventory_limit = 1
-    other = User(name="Rui Costa", email="rui@example.com", password_hash="x")
-    db_session.add(other)
-    db_session.flush()
-    db_session.add(
-        Transaction(
-            reference="ENEI-OTHER00001",
-            user_id=other.id,
-            ticket_tier_id=tier.id,
-            amount_cents=stored.amount_cents,
-            quantity=1,
-            status=TransactionStatus.CONFIRMED,
-            phone="912345678",
-            provider="fake",
-            expires_at=stored.expires_at,
-        )
-    )
-    db_session.commit()
-    gateway.status = TransactionStatus.CONFIRMED
-
-    response = auth_client.get(transaction_url(reference))
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "refund_due"
-    assert db_session.scalar(select(func.count()).select_from(Ticket)) == 0
-
-
 def _let_the_deadline_pass(db_session, reference: str) -> Transaction:
     stored = db_session.scalar(
         select(Transaction).where(Transaction.reference == reference)
@@ -531,6 +494,68 @@ def _let_the_deadline_pass(db_session, reference: str) -> Transaction:
     stored.expires_at = datetime.now(UTC) - timedelta(minutes=1)
     db_session.commit()
     return stored
+
+
+def test_a_waiting_payment_keeps_its_seat_after_its_deadline_until_the_provider_answers(
+    auth_client, email_sender, db_session, gateway
+):
+    """Like a shop: what is reserved for a waiting payment is not sold to anyone."""
+    authenticate(auth_client, email_sender, db_session)
+    tiers = seed_ticket_tiers(db_session)
+    tiers[TicketTier.GERAL].inventory_limit = 1
+    db_session.commit()
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    _let_the_deadline_pass(db_session, reference)
+    other = User(
+        name="Rui Costa",
+        email="rui@example.com",
+        password_hash=hash_password("Password123!"),
+    )
+    db_session.add(other)
+    db_session.commit()
+    payload = PaymentInitiateRequest(ticket_tier=TicketTier.GERAL, phone="912345678")
+
+    # The provider still says it is waiting: the seat is not for sale.
+    with pytest.raises(TicketSoldOutError):
+        initiate_payment(db_session, other, payload, gateway)
+
+    # The provider closes the payment: the seat is free again.
+    gateway.status = TransactionStatus.EXPIRED
+    assert auth_client.get(transaction_url(reference)).json()["status"] == "expired"
+    initiate_payment(db_session, other, payload, gateway)
+
+
+def test_get_status_keeps_a_waiting_payment_pending_after_its_deadline(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    _let_the_deadline_pass(db_session, reference)
+
+    assert auth_client.get(transaction_url(reference)).json()["status"] == "pending"
+
+
+def test_a_new_payment_asks_the_provider_about_the_one_that_ran_out(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    first = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    _let_the_deadline_pass(db_session, first)
+
+    # Still waiting at the provider: one payment at a time.
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 409
+
+    # The provider closed it: a new one is allowed.
+    gateway.status = TransactionStatus.EXPIRED
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
+    assert (
+        db_session.scalar(
+            select(Transaction.status).where(Transaction.reference == first)
+        )
+        is TransactionStatus.EXPIRED
+    )
 
 
 def test_a_new_payment_finds_out_that_the_old_one_was_paid(
@@ -547,26 +572,6 @@ def test_a_new_payment_finds_out_that_the_old_one_was_paid(
     assert response.status_code == 409
     assert "already have a ticket" in response.json()["detail"]
     assert db_session.scalar(select(func.count()).select_from(Ticket)) == 1
-
-
-def test_a_new_payment_asks_the_provider_about_the_one_that_ran_out(
-    auth_client, email_sender, db_session, gateway
-):
-    authenticate(auth_client, email_sender, db_session)
-    seed_ticket_tiers(db_session)
-    first = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
-    _let_the_deadline_pass(db_session, first)
-    gateway.status = TransactionStatus.EXPIRED
-
-    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
-
-    assert gateway.status_calls[0][0] == first
-    assert (
-        db_session.scalar(
-            select(Transaction.status).where(Transaction.reference == first)
-        )
-        is TransactionStatus.EXPIRED
-    )
 
 
 def test_get_status_persists_provider_failed(
@@ -623,7 +628,7 @@ def test_pending_status_is_kept_until_the_window_passes(
     assert stored.status is TransactionStatus.PENDING
 
 
-def test_local_expiry_applies_when_the_provider_still_says_pending(
+def test_a_pending_transaction_stays_pending_when_the_gateway_is_unreachable(
     auth_client, email_sender, db_session, gateway
 ):
     user = authenticate(auth_client, email_sender, db_session)
@@ -643,16 +648,13 @@ def test_local_expiry_applies_when_the_provider_still_says_pending(
         )
     )
     db_session.commit()
+    gateway.status_error = PaymentGatewayError("provider down")
 
     response = auth_client.get(transaction_url("ENEI-0000000007"))
 
     assert response.status_code == 200
-    assert response.json()["status"] == "expired"
+    assert response.json()["status"] == "pending"
     assert gateway.status_calls == [("ENEI-0000000007", "TX-7")]
-    stored = db_session.scalar(
-        select(Transaction).where(Transaction.reference == "ENEI-0000000007")
-    )
-    assert stored.status is TransactionStatus.EXPIRED
 
 
 def test_finalized_transactions_are_not_synced_with_the_provider_again(
@@ -804,7 +806,7 @@ def test_a_second_payment_is_refused_while_the_first_is_pending(
     assert db_session.scalar(select(func.count(Transaction.id))) == 1
 
 
-def test_a_new_payment_is_allowed_after_the_pending_one_expired(
+def test_a_new_payment_is_allowed_after_the_previous_one_expired(
     auth_client, email_sender, db_session, gateway
 ):
     authenticate(auth_client, email_sender, db_session)
@@ -813,7 +815,7 @@ def test_a_new_payment_is_allowed_after_the_pending_one_expired(
     transaction = db_session.scalar(
         select(Transaction).where(Transaction.reference == first["reference"])
     )
-    transaction.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    transaction.status = TransactionStatus.EXPIRED
     db_session.commit()
 
     assert _initiate(auth_client).status_code == 201
@@ -881,55 +883,3 @@ def test_other_people_are_not_blocked_by_someone_elses_payment(
     authenticate(auth_client, email_sender, db_session, email="rui@example.com")
 
     assert _initiate(auth_client).status_code == 201
-
-
-def test_a_refund_due_transaction_is_stored_and_read_by_its_owner(
-    auth_client, email_sender, db_session, gateway
-):
-    """The new status exists in the database constraint and in the API."""
-    user = authenticate(auth_client, email_sender, db_session)
-    tickets = seed_ticket_tiers(db_session)
-    db_session.add(
-        Transaction(
-            reference="ENEI-REFUND0001",
-            user_id=user.id,
-            ticket_tier_id=tickets[TicketTier.GERAL].id,
-            amount_cents=5000,
-            quantity=1,
-            status=TransactionStatus.REFUND_DUE,
-            phone="910000000",
-            provider="fake",
-            expires_at=datetime.now(UTC) - timedelta(minutes=10),
-        )
-    )
-    db_session.commit()
-
-    response = auth_client.get(transaction_url("ENEI-REFUND0001"))
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "refund_due"
-    assert gateway.status_calls == []  # a finished payment is not asked about again
-
-
-def test_a_refund_due_payment_holds_no_stock(
-    auth_client, email_sender, db_session, gateway
-):
-    user = authenticate(auth_client, email_sender, db_session)
-    tickets = seed_ticket_tiers(db_session)
-    tickets[TicketTier.GERAL].inventory_limit = 1
-    db_session.add(
-        Transaction(
-            reference="ENEI-REFUND0001",
-            user_id=user.id,
-            ticket_tier_id=tickets[TicketTier.GERAL].id,
-            amount_cents=5000,
-            quantity=1,
-            status=TransactionStatus.REFUND_DUE,
-            phone="910000000",
-            provider="fake",
-            expires_at=datetime.now(UTC) - timedelta(minutes=10),
-        )
-    )
-    db_session.commit()
-
-    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201

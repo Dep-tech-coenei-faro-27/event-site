@@ -167,7 +167,7 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 
 ## Pagamentos a reembolsar
 
-Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um (pagou duas vezes, por exemplo) ou a modalidade esgotou antes de o pagamento chegar. Não ocupa stock. O backend regista um erro `Payment ENEI-... needs a refund` e estes pagamentos têm de ser reembolsados à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
+Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado. **Não devia acontecer**: um lugar fica reservado enquanto o pagamento espera (só o MB WAY o termina) e uma pessoa só pode ter um pagamento à espera. Se acontecer, não ocupa stock e o backend regista um erro `Payment ENEI-... needs a refund`, que deve ser investigado e reembolsado à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
 
 ```bash
 $COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
@@ -179,6 +179,19 @@ SQL
 ```
 
 Depois do reembolso a pessoa é avisada por fora do sistema.
+
+Para ver se há lugares presos por pagamentos que ninguém acompanha (pendentes há mais de 15 minutos, quando o MB WAY dá o pagamento por expirado aos 4):
+
+```bash
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SELECT reference, user_id, created_at, expires_at
+FROM transactions
+WHERE status = 'pending' AND expires_at < now() - interval '15 minutes'
+ORDER BY expires_at;
+SQL
+```
+
+Cada uma destas linhas é libertada quando alguém consulta a transação ou quando a pessoa tenta comprar outra vez. A reconciliação periódica (#128) vai libertá-las sem esperar por ninguém.
 
 ## Promover o Primeiro Administrador
 

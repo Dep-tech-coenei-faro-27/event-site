@@ -102,23 +102,26 @@ def generate_reference(db: Session) -> str:
     raise RuntimeError("could not generate a unique payment reference")
 
 
-def _reserved_quantity(db: Session, tier: TicketTierPrice, now: datetime) -> int:
+def _reserved_quantity(db: Session, tier: TicketTierPrice) -> int:
+    """Seats taken: paid ones, and the ones reserved for a payment that is waiting.
+
+    A waiting payment keeps its seat for as long as it is ``pending``, however long
+    that takes: the seat is released only when the provider says the payment is over
+    (paid payments stay counted, failed and expired ones are not). That is what
+    makes it impossible to sell a seat that someone is about to pay for.
+    """
     holds = db.scalar(
         select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
             Transaction.ticket_tier_id == tier.id,
-            (
-                (Transaction.status == TransactionStatus.CONFIRMED)
-                | (
-                    (Transaction.status == TransactionStatus.PENDING)
-                    & (Transaction.expires_at > now)
-                )
+            Transaction.status.in_(
+                (TransactionStatus.CONFIRMED, TransactionStatus.PENDING)
             ),
         )
     )
     return int(holds or 0)
 
 
-def _refuse_if_user_already_buying(db: Session, user: User, now: datetime) -> None:
+def _refuse_if_user_already_buying(db: Session, user: User) -> None:
     """Refuse a second purchase: a ticket already exists, or a payment is in flight.
 
     Without this, a person who starts two payments and pays both is charged twice
@@ -137,7 +140,6 @@ def _refuse_if_user_already_buying(db: Session, user: User, now: datetime) -> No
         .where(
             Transaction.user_id == user.id,
             Transaction.status == TransactionStatus.PENDING,
-            Transaction.expires_at > now,
         )
         .limit(1)
     )
@@ -172,9 +174,10 @@ def initiate_payment(
 ) -> tuple[Transaction, TicketTierPrice]:
     # A payment of this person that is past its deadline may already be over (or
     # paid) at the provider. Ask before deciding anything, outside any lock.
+    user_id = user.id
     stale = db.scalars(
         select(Transaction).where(
-            Transaction.user_id == user.id,
+            Transaction.user_id == user_id,
             Transaction.status == TransactionStatus.PENDING,
             Transaction.expires_at <= datetime.now(UTC),
         )
@@ -186,7 +189,7 @@ def initiate_payment(
     # from the same person cannot both pass the check below; the order (user, then
     # tier) is the same everywhere, so it cannot deadlock.
     db.scalar(select(User.id).where(User.id == user.id).with_for_update())
-    _refuse_if_user_already_buying(db, user, datetime.now(UTC))
+    _refuse_if_user_already_buying(db, user)
 
     # Lock the tier row so that the stock check and the reservation are a single
     # atomic step. Without it, two concurrent buyers of a limited tier can both read
@@ -214,7 +217,7 @@ def initiate_payment(
 
     now = datetime.now(UTC)
     if tier.inventory_limit is not None:
-        remaining = tier.inventory_limit - _reserved_quantity(db, tier, now)
+        remaining = tier.inventory_limit - _reserved_quantity(db, tier)
         if remaining < payload.quantity:
             db.rollback()
             raise TicketSoldOutError("This ticket tier is sold out")
@@ -270,18 +273,16 @@ def _holds_another_active_ticket(db: Session, transaction: Transaction) -> bool:
     )
 
 
-def _has_room(db: Session, transaction: Transaction, now: datetime) -> bool:
-    """Whether the seat of a payment that was not confirmed in time is still free.
+def _has_room(db: Session, transaction: Transaction) -> bool:
+    """Whether a payment that is not ``pending`` any more can still get its seat.
 
-    A pending payment inside its window holds its seat. After that the seat was
-    released and may have been sold to someone else, so the stock is checked again
-    (with the modality row locked, like ``initiate_payment`` does): we never sell
-    what we no longer have.
+    A waiting payment always has its seat, so this is only asked for one that was
+    marked ``failed`` or ``expired`` and is then paid after all (the provider
+    answered in the meantime, or its creation reported an error that was not one).
+    The seat was released, so the stock is checked again with the modality row
+    locked, like ``initiate_payment`` does: we never sell what we do not have.
     """
-    if (
-        transaction.status is TransactionStatus.PENDING
-        and _as_utc(transaction.expires_at) > now
-    ):
+    if transaction.status is TransactionStatus.PENDING:
         return True
     tier = db.scalar(
         select(TicketTierPrice)
@@ -290,9 +291,7 @@ def _has_room(db: Session, transaction: Transaction, now: datetime) -> bool:
     )
     if tier is None or tier.inventory_limit is None:
         return True
-    return tier.inventory_limit - _reserved_quantity(db, tier, now) >= (
-        transaction.quantity
-    )
+    return tier.inventory_limit - _reserved_quantity(db, tier) >= transaction.quantity
 
 
 def _record_refund_due(
@@ -300,10 +299,12 @@ def _record_refund_due(
 ) -> Transaction:
     """The money arrived but there is no ticket to give: the payment is refunded.
 
-    Either the person already holds a ticket from another payment (one per person),
-    or the modality sold out while this payment was late (we do not sell what we do
-    not have). The payment is kept as ``refund_due``, which holds no stock, and
-    logged loudly. List them with the query in ``docs/deploy.md``.
+    A last resort that should not happen: a waiting payment holds its seat and
+    blocks a second payment of the same person. It can still follow an unexpected
+    sequence (a payment marked ``failed`` that is paid after all, with the modality
+    sold out meanwhile, or the person already holding a ticket). The payment is kept
+    as ``refund_due``, which holds no stock, and logged loudly. List them with the
+    query in ``docs/deploy.md``.
     """
     transaction.status = TransactionStatus.REFUND_DUE
     transaction.confirmed_at = transaction.confirmed_at or datetime.now(UTC)
@@ -327,10 +328,9 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
 
     The transaction row stays locked until the ticket is committed, so two
     confirmations of the same payment (poll and poll, or poll and callback) run one
-    after the other. The status and the ticket are saved together, so a failure
-    cannot leave a confirmed payment without its ticket. No ticket is issued, and
-    the payment is kept for a refund, when the person already holds a ticket from
-    another payment or when a late payment finds the modality sold out.
+    after the other. The status and the ticket are saved together. No ticket is
+    issued, and the payment is kept for a refund, when the person already holds a
+    ticket from another payment or when a late payment finds the modality sold out.
     """
     db.refresh(transaction, with_for_update=True)
     if transaction.status is TransactionStatus.REFUND_DUE:
@@ -340,7 +340,7 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
         return _record_refund_due(db, transaction, "the person already has a ticket")
 
     if transaction.status is not TransactionStatus.CONFIRMED:
-        if not _has_room(db, transaction, datetime.now(UTC)):
+        if not _has_room(db, transaction):
             return _record_refund_due(db, transaction, "the modality sold out")
         transaction.status = TransactionStatus.CONFIRMED
         transaction.confirmed_at = datetime.now(UTC)
@@ -352,8 +352,8 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
             transaction_reference=transaction.reference,
         )
     except IntegrityError:
-        # Lost a race on the ticket: if this very payment already has its ticket,
-        # someone else confirmed it a moment ago and there is nothing left to do.
+        # Lost a race: either the same payment was confirmed by someone else in
+        # the meantime, or the person's other payment got its ticket first.
         db.rollback()
         db.refresh(transaction)
         issued = db.scalar(
@@ -391,14 +391,14 @@ def _sync_provider_status(
 
     The provider is the source of truth: a confirmed payment must reach the
     frontend even if the local ``expires_at`` window already passed, and a
-    failed/expired one must not stay ``pending`` until the timeout. When the
-    gateway is unreachable we fall back to the local expiry window so the poll
-    keeps working instead of failing the request.
+    failed/expired one must not stay ``pending``. A payment the provider still
+    reports as waiting stays ``pending`` and keeps its seat, even past its local
+    deadline (``expires_at`` is the time the person has to approve, not the moment
+    the seat is released). When the gateway is unreachable the answer is unknown, so
+    the payment also stays ``pending`` and the poll keeps working.
     """
-    now = datetime.now(UTC)
     reference = transaction.reference
     provider_reference = transaction.provider_reference
-    expires_at = _as_utc(transaction.expires_at)
     # Release the pooled database connection before the network call: a slow
     # provider must not keep a connection busy while we wait for its answer.
     db.commit()
@@ -416,10 +416,10 @@ def _sync_provider_status(
         provider_status = TransactionStatus.PENDING
 
     if provider_status is TransactionStatus.PENDING:
-        if expires_at > now:
-            return
-        provider_status = TransactionStatus.EXPIRED
-    elif provider_status is TransactionStatus.CONFIRMED:
+        # Still waiting, whatever the local deadline says: only the provider can end
+        # a payment, and until then it keeps its seat.
+        return
+    if provider_status is TransactionStatus.CONFIRMED:
         confirm_transaction(db, transaction)
         return
 
