@@ -15,6 +15,7 @@ from app.domains.payments.gateway import (
 )
 from app.domains.payments.models import (
     TicketTier,
+    TicketTierPrice,
     Transaction,
     TransactionStatus,
 )
@@ -481,6 +482,46 @@ def test_get_status_polls_the_provider_and_persists_confirmed(
     )
     assert stored.status is TransactionStatus.CONFIRMED
     assert stored.confirmed_at is not None
+
+
+def test_get_status_does_not_sell_a_released_seat_that_sold_out(
+    auth_client, email_sender, db_session, gateway
+):
+    """The provider says paid, but the deadline passed and the last seat went to
+    someone else: the payment is kept for a refund and no ticket is issued."""
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    stored.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    tier = db_session.get(TicketTierPrice, stored.ticket_tier_id)
+    tier.inventory_limit = 1
+    other = User(name="Rui Costa", email="rui@example.com", password_hash="x")
+    db_session.add(other)
+    db_session.flush()
+    db_session.add(
+        Transaction(
+            reference="ENEI-OTHER00001",
+            user_id=other.id,
+            ticket_tier_id=tier.id,
+            amount_cents=stored.amount_cents,
+            quantity=1,
+            status=TransactionStatus.CONFIRMED,
+            phone="912345678",
+            provider="fake",
+            expires_at=stored.expires_at,
+        )
+    )
+    db_session.commit()
+    gateway.status = TransactionStatus.CONFIRMED
+
+    response = auth_client.get(transaction_url(reference))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "refund_due"
+    assert db_session.scalar(select(func.count()).select_from(Ticket)) == 0
 
 
 def test_get_status_persists_provider_failed(
