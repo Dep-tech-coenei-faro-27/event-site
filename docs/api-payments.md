@@ -107,6 +107,7 @@ A chave anti-phishing transita no *query string* do pedido; o backend remove-a d
 | `confirmed` | pago |
 | `failed` | o gateway recusou ou falhou |
 | `expired` | passou o prazo sem confirmação |
+| `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou): vai ser reembolsado. Não ocupa stock |
 
 Fluxo típico no frontend:
 

@@ -155,6 +155,51 @@ def test_callback_ignores_failed_or_expired_transactions(
     assert payment["reference"] in caplog.text
 
 
+def pay(auth_client, reference: str):
+    return auth_client.get(
+        CALLBACK_URL,
+        params={"key": CALLBACK_KEY, "orderId": reference, "amount": "50.00"},
+    )
+
+
+def test_a_repeated_callback_saves_the_status_of_a_payment_that_has_its_ticket(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    assert pay(auth_client, payment["reference"]).status_code == 200
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = TransactionStatus.PENDING  # status lost, ticket kept
+    db_session.commit()
+
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.rollback()  # whatever was not committed is gone
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert count_tickets(db_session, payment["reference"]) == 1
+
+
+def test_a_repeated_callback_does_not_bring_back_a_cancelled_ticket(
+    auth_client, email_sender, db_session, gateway, callback_key, caplog
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    assert pay(auth_client, payment["reference"]).status_code == 200
+    ticket = db_session.scalar(select(Ticket))
+    ticket.payment_status = PaymentStatus.CANCELLED
+    db_session.commit()
+
+    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
+        response = pay(auth_client, payment["reference"])
+
+    assert response.status_code == 200
+    db_session.refresh(ticket)
+    assert ticket.payment_status is PaymentStatus.CANCELLED
+    assert count_tickets(db_session, payment["reference"]) == 1
+    assert "its ticket is cancelled" in caplog.text
+
+
 def test_callback_is_rate_limited_per_ip(
     auth_client, email_sender, db_session, gateway, monkeypatch
 ):
