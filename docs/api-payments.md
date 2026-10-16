@@ -19,11 +19,38 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 | `completo` | Experiência completa | sim |
 | `geral` | Passe geral | não |
 
-> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo variantes **não estudante** com refeições e com a experiência completa (hoje só o passe geral é aberto a não estudantes). O frontend **não deve assumir que são sempre quatro**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. Hoje não há endpoint que liste as modalidades; se o frontend precisar de uma lista dinâmica, pede-se um (por exemplo `GET /api/payment/tiers`).
+> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo variantes **não estudante** com refeições e com a experiência completa (hoje só o passe geral é aberto a não estudantes). O frontend **não deve assumir que são sempre quatro**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
 
 O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
 
 ## Endpoints
+
+### `GET /api/payment/tiers`
+
+**Público** (sem sessão): as modalidades, com o preço e se cada uma se pode comprar agora. É o que o checkout e a página de Bilhetes usam para mostrar preços e «esgotado». Limite de 60 pedidos por minuto por IP (`RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE`); `Cache-Control: no-store`.
+
+```json
+[
+  {
+    "tier": "geral",
+    "name": "Passe geral",
+    "price_cents": 5000,
+    "currency": "EUR",
+    "is_student": false,
+    "sale_open": true,
+    "available": true
+  }
+]
+```
+
+| Campo | Significado |
+| --- | --- |
+| `price_cents` | preço em cêntimos; `null` se a modalidade ainda não tem preço |
+| `is_student` | só quem tem a verificação de estudante a pode comprar |
+| `sale_open` | `false` enquanto os pagamentos estão desligados (`PAYMENTS_MODE=off`) ou a modalidade não tem preço |
+| `available` | `false` se não é possível comprar agora: bilheteira fechada, ou todos os lugares estão ocupados **ou reservados** para um pagamento que espera |
+
+Não se mostra quantos lugares restam. A ordem é fixa (acesso, refeições, completo, geral) e a lista pode crescer: a Frontend não deve assumir que são quatro.
 
 ### `POST /api/payment/initiate`
 
@@ -189,6 +216,7 @@ make set-price tier=geral price=3500
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |
+| `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `60` | consultas de `GET /tiers` por minuto por IP |
 
 Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 

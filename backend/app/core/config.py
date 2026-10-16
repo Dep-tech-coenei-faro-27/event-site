@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
     RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE: int = Field(default=120, gt=0)
     RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
+    RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
