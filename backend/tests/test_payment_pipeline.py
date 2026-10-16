@@ -547,6 +547,7 @@ def test_a_cancelled_ticket_frees_the_person_to_buy_again_and_never_comes_back(w
         ticket = db.scalar(select(Ticket))
         ticket.payment_status = PaymentStatus.CANCELLED
         db.commit()
+    assert ana.get(ME_URL).json()["qr_code"] is None
 
     second = world.buy(ana)
     assert second.status_code == 201
