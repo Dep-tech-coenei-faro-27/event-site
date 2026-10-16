@@ -37,7 +37,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bi
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |
-| `409` | modalidade esgotada (`This ticket tier is sold out`) |
+| `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando expira, falha ou é recusado) |
 | `422` | corpo inválido (telemóvel, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
@@ -177,7 +177,7 @@ Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime 
 | --- | --- |
 | `401` | `{"detail": "..."}` (ver `api-auth.md`) |
 | `403` | `{"detail": "Please verify your email address to continue."}` ou `{"detail": "Student verification is required to buy this ticket"}` |
-| `409` | `{"detail": "This ticket tier is sold out"}` |
+| `409` | `{"detail": "This ticket tier is sold out"}` ou `{"detail": "You already have a ticket or a payment in progress"}` |
 | `422` | `{"detail": [{"type", "loc", "msg"}]}` |
 | `502` | `{"detail": "Payment could not be initiated. Please try again."}` |
 | `503` | `{"detail": "Ticket sales are not open yet"}` ou `{"detail": "Payments are currently disabled."}` |

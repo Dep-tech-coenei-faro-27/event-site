@@ -18,7 +18,11 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import PaymentInitiateRequest
-from app.domains.payments.service import TicketSoldOutError, initiate_payment
+from app.domains.payments.service import (
+    AlreadyHasTicketError,
+    TicketSoldOutError,
+    initiate_payment,
+)
 from app.domains.users.models import User
 from tests.helpers import seed_ticket_tiers
 
@@ -76,8 +80,9 @@ def test_concurrent_initiates_do_not_oversell(db_session, test_engine):
     ticket = seed_ticket_tiers(db_session)[TicketTier.GERAL]
     ticket.inventory_limit = 1
     user = _make_user(db_session, "ana@example.com")
+    other = _make_user(db_session, "rui@example.com")
     db_session.commit()
-    ticket_id, user_id = ticket.id, user.id
+    ticket_id, user_id, other_id = ticket.id, user.id, other.id
 
     blocking = BlockingGateway()
     failures: list[BaseException] = []
@@ -99,7 +104,7 @@ def test_concurrent_initiates_do_not_oversell(db_session, test_engine):
             with pytest.raises(TicketSoldOutError):
                 initiate_payment(
                     session,
-                    session.get(User, user_id),
+                    session.get(User, other_id),
                     _payload(),
                     SimulatedMBWayGateway(),
                 )
@@ -116,8 +121,86 @@ def test_stock_check_and_reservation_are_atomic(db_session, test_engine):
     ticket = seed_ticket_tiers(db_session)[TicketTier.GERAL]
     ticket.inventory_limit = 1
     user = _make_user(db_session, "ana@example.com")
+    other = _make_user(db_session, "rui@example.com")
     db_session.commit()
-    ticket_id, user_id = ticket.id, user.id
+    ticket_id, user_id, other_id = ticket.id, user.id, other.id
+
+    session_a = Session(bind=test_engine)
+    first_commit = threading.Event()
+    release = threading.Event()
+    commits = {"n": 0}
+
+    @event.listens_for(session_a, "before_commit")
+    def _hold_first_commit(session) -> None:
+        commits["n"] += 1
+        if commits["n"] == 1:
+            first_commit.set()
+            assert release.wait(timeout=10)
+
+    a_outcome: dict[str, object] = {}
+
+    def first() -> None:
+        try:
+            initiate_payment(
+                session_a,
+                session_a.get(User, user_id),
+                _payload(),
+                SimulatedMBWayGateway(),
+            )
+            a_outcome["ok"] = True
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            a_outcome["error"] = exc
+        finally:
+            session_a.close()
+
+    b_done = threading.Event()
+    b_outcome: dict[str, object] = {}
+
+    def second() -> None:
+        session = Session(bind=test_engine)
+        try:
+            initiate_payment(
+                session,
+                session.get(User, other_id),
+                _payload(),
+                SimulatedMBWayGateway(),
+            )
+            b_outcome["ok"] = True
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            b_outcome["error"] = exc
+        finally:
+            session.close()
+            b_done.set()
+
+    thread_a = threading.Thread(target=first)
+    thread_a.start()
+    assert first_commit.wait(timeout=10), "first transaction never reached commit"
+
+    thread_b = threading.Thread(target=second)
+    thread_b.start()
+    try:
+        assert not b_done.wait(timeout=0.5), (
+            "second request did not wait for the ticket lock while the first "
+            "held it mid-transaction"
+        )
+    finally:
+        release.set()
+        thread_a.join(timeout=10)
+        thread_b.join(timeout=10)
+
+    assert a_outcome.get("ok") is True, a_outcome.get("error")
+    assert isinstance(b_outcome.get("error"), TicketSoldOutError), b_outcome
+    assert _count_transactions(test_engine, ticket_id) == 1
+
+
+@requires_postgres
+def test_the_same_person_cannot_start_two_payments_at_the_same_time(
+    db_session, test_engine
+):
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    db_session.commit()
+    user_id = user.id
 
     session_a = Session(bind=test_engine)
     first_commit = threading.Event()
@@ -174,7 +257,7 @@ def test_stock_check_and_reservation_are_atomic(db_session, test_engine):
     thread_b.start()
     try:
         assert not b_done.wait(timeout=0.5), (
-            "second request did not wait for the ticket lock while the first "
+            "the second request did not wait for the user lock while the first "
             "held it mid-transaction"
         )
     finally:
@@ -183,8 +266,16 @@ def test_stock_check_and_reservation_are_atomic(db_session, test_engine):
         thread_b.join(timeout=10)
 
     assert a_outcome.get("ok") is True, a_outcome.get("error")
-    assert isinstance(b_outcome.get("error"), TicketSoldOutError), b_outcome
-    assert _count_transactions(test_engine, ticket_id) == 1
+    assert isinstance(b_outcome.get("error"), AlreadyHasTicketError), b_outcome
+    with Session(bind=test_engine) as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(Transaction)
+                .where(Transaction.user_id == user_id)
+            )
+            == 1
+        )
 
 
 @requires_postgres
