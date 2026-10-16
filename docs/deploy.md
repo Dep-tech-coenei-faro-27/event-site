@@ -191,7 +191,7 @@ ORDER BY expires_at;
 SQL
 ```
 
-Cada uma destas linhas é libertada quando alguém consulta a transação ou quando a pessoa tenta comprar outra vez. A reconciliação periódica (#128) vai libertá-las sem esperar por ninguém.
+Cada uma destas linhas é libertada quando alguém consulta a transação, quando a pessoa tenta comprar outra vez, ou quando outra pessoa tenta comprar uma modalidade que parece esgotada. A reconciliação periódica (#128) vai libertá-las sem esperar por ninguém.
 
 ## Promover o Primeiro Administrador
 

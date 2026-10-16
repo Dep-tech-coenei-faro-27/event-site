@@ -521,10 +521,51 @@ def test_a_waiting_payment_keeps_its_seat_after_its_deadline_until_the_provider_
     with pytest.raises(TicketSoldOutError):
         initiate_payment(db_session, other, payload, gateway)
 
-    # The provider closes the payment: the seat is free again.
+    # The person abandoned it and nobody polls. The provider closes it, and the
+    # next buyer's request finds that out and gets the seat.
     gateway.status = TransactionStatus.EXPIRED
-    assert auth_client.get(transaction_url(reference)).json()["status"] == "expired"
     initiate_payment(db_session, other, payload, gateway)
+    assert (
+        db_session.scalar(
+            select(Transaction.status).where(Transaction.reference == reference)
+        )
+        is TransactionStatus.EXPIRED
+    )
+
+
+def test_a_sale_with_stock_left_does_not_ask_the_provider_about_other_payments(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    tiers = seed_ticket_tiers(db_session)
+    tiers[TicketTier.GERAL].inventory_limit = 5
+    other = User(
+        name="Rui Costa",
+        email="rui@example.com",
+        password_hash=hash_password("Password123!"),
+    )
+    db_session.add(other)
+    db_session.flush()
+    db_session.add(
+        Transaction(
+            reference="ENEI-OVERDUE001",
+            user_id=other.id,
+            ticket_tier_id=tiers[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.PENDING,
+            phone="910000000",
+            provider="fake",
+            provider_reference="TX-OLD",
+            expires_at=datetime.now(UTC) - timedelta(minutes=5),
+        )
+    )
+    db_session.commit()
+    assert user.id != other.id
+
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
+
+    assert gateway.status_calls == []
 
 
 def test_get_status_keeps_a_waiting_payment_pending_after_its_deadline(

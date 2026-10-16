@@ -170,6 +170,38 @@ def _settle_pending(
     db.refresh(transaction)
 
 
+ABANDONED_CHECKS_PER_REQUEST = 10
+
+
+def _free_abandoned_seats(
+    db: Session, tier_name: TicketTier, gateway: MBWayGateway
+) -> None:
+    """Before refusing a sale for lack of stock, settle the payments nobody follows.
+
+    A waiting payment holds its seat until the provider ends it. One that was
+    abandoned (the person closed the page) is only settled when someone asks the
+    provider, so when the modality looks full we ask about the oldest overdue ones
+    first. Done outside any lock, a few at a time.
+    """
+    tier = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier_name))
+    if tier is None or tier.inventory_limit is None:
+        return
+    if tier.inventory_limit - _reserved_quantity(db, tier) >= 1:
+        return
+    overdue = db.scalars(
+        select(Transaction)
+        .where(
+            Transaction.ticket_tier_id == tier.id,
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.expires_at <= datetime.now(UTC),
+        )
+        .order_by(Transaction.expires_at)
+        .limit(ABANDONED_CHECKS_PER_REQUEST)
+    ).all()
+    for old in overdue:
+        _sync_provider_status(db, old, gateway)
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -188,6 +220,7 @@ def initiate_payment(
     ).all()
     for old in stale:
         _sync_provider_status(db, old, gateway)
+    _free_abandoned_seats(db, payload.ticket_tier, gateway)
 
     # One ticket per person. The user row is locked first so two simultaneous requests
     # from the same person cannot both pass the check below; the order (user, then
