@@ -30,7 +30,8 @@ class TransactionStatus(StrEnum):
 
     ``refund_due`` is a payment that arrived but cannot get a ticket (the modality
     sold out meanwhile, or the person already has a ticket): the money goes back by
-    hand. It holds no stock.
+    hand. It holds no stock. ``refunded`` is a paid ticket that was cancelled and paid
+    back: it frees the seat.
     """
 
     PENDING = "pending"
@@ -38,6 +39,7 @@ class TransactionStatus(StrEnum):
     FAILED = "failed"
     EXPIRED = "expired"
     REFUND_DUE = "refund_due"
+    REFUNDED = "refunded"
 
 
 class TicketTierPrice(Base):

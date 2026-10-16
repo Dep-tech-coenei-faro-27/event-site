@@ -178,7 +178,7 @@ ORDER BY t.confirmed_at;
 SQL
 ```
 
-Depois do reembolso a pessoa é avisada por fora do sistema.
+Depois do reembolso a pessoa é avisada por fora do sistema. Para registar que um `refund_due` já foi reembolsado (e o tirar da lista), no mesmo `psql`: `UPDATE transactions SET status = 'refunded' WHERE reference = 'ENEI-XXXXXXXXXX' AND status = 'refund_due';`. Um bilhete cancelado pelo código (`cancel_ticket`) passa a transação a `refunded` sozinho e liberta o lugar.
 
 Para ver se há lugares presos por pagamentos que ninguém acompanha (pendentes há mais de 15 minutos, quando o MB WAY dá o pagamento por expirado aos 4):
 
