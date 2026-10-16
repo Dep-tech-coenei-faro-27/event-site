@@ -408,3 +408,34 @@ def test_a_poll_does_not_overwrite_a_payment_confirmed_while_it_waited(
         )
     assert stored is TransactionStatus.CONFIRMED
     assert _count_tickets(test_engine, user_id) == 1
+
+
+@requires_postgres
+def test_two_payments_of_the_same_person_confirmed_together_issue_one_ticket(
+    db_session, test_engine
+):
+    """The first attempt ran out locally, a second was started, and both get paid."""
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    first, _ = initiate_payment(db_session, user, _payload(), SimulatedMBWayGateway())
+    first.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    db_session.commit()
+    second, _ = initiate_payment(db_session, user, _payload(), SimulatedMBWayGateway())
+    ids, user_id = [first.id, second.id], user.id
+
+    def confirm(transaction_id: int):
+        def action(session: Session) -> None:
+            confirm_transaction(session, session.get(Transaction, transaction_id))
+
+        return action
+
+    assert _run_together(test_engine, [confirm(i) for i in ids]) == []
+    assert _count_tickets(test_engine, user_id) == 1
+    with Session(bind=test_engine) as session:
+        statuses = session.scalars(
+            select(Transaction.status).where(Transaction.id.in_(ids))
+        ).all()
+    assert sorted(statuses, key=str) == [
+        TransactionStatus.CONFIRMED,
+        TransactionStatus.REFUND_DUE,
+    ]

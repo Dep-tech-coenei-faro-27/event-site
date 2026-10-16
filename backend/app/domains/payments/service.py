@@ -243,6 +243,42 @@ def initiate_payment(
     return transaction, tier
 
 
+def _holds_another_active_ticket(db: Session, transaction: Transaction) -> bool:
+    return (
+        db.scalar(
+            select(Ticket.id)
+            .where(
+                Ticket.user_id == transaction.user_id,
+                Ticket.payment_status != PaymentStatus.CANCELLED,
+                Ticket.transaction_reference != transaction.reference,
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def _record_refund_due(
+    db: Session, transaction: Transaction, reason: str
+) -> Transaction:
+    """The money arrived but there is no ticket to give: the payment is refunded.
+
+    One ticket per person: the person already holds a ticket from another payment.
+    The payment is kept as ``refund_due``, which holds no stock, and logged loudly.
+    List them with the query in ``docs/deploy.md``.
+    """
+    transaction.status = TransactionStatus.REFUND_DUE
+    transaction.confirmed_at = transaction.confirmed_at or datetime.now(UTC)
+    db.commit()
+    db.refresh(transaction)
+    logger.error(
+        "Payment %s needs a refund: %s. Refund it by hand.",
+        transaction.reference,
+        reason,
+    )
+    return transaction
+
+
 def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     """Record a successful payment and issue its ticket.
 
@@ -254,9 +290,13 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     The transaction row stays locked until the ticket is committed, so two
     confirmations of the same payment (poll and poll, or poll and callback) run one
     after the other. The status and the ticket are saved together, so a failure
-    cannot leave a confirmed payment without its ticket.
+    cannot leave a confirmed payment without its ticket. A person has one ticket: if
+    another payment of theirs already got it, this one is kept for a refund.
     """
     db.refresh(transaction, with_for_update=True)
+    if _holds_another_active_ticket(db, transaction):
+        return _record_refund_due(db, transaction, "the person already has a ticket")
+
     if transaction.status is not TransactionStatus.CONFIRMED:
         transaction.status = TransactionStatus.CONFIRMED
         transaction.confirmed_at = datetime.now(UTC)
@@ -279,6 +319,10 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
         )
         if issued is not None:
             return transaction
+        if _holds_another_active_ticket(db, transaction):
+            return _record_refund_due(
+                db, transaction, "the person already has a ticket"
+            )
         raise
     except PaymentNotConfirmedError:
         # The ticket of this payment was cancelled (a refund). A repeated callback
