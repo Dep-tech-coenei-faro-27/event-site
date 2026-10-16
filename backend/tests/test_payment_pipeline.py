@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email import EmailSender, get_email_sender
 from app.core.qr import verify_qr_payload
 from app.core.security import ACCESS_COOKIE_NAME, hash_password
 from app.db.session import get_db
@@ -266,6 +267,13 @@ class World:
             )
 
 
+class NoEmailAllowed(EmailSender):
+    """The payment pipeline sends no email (no purchase email in the first version)."""
+
+    def send_html(self, to_email: str, subject: str, html_body: str) -> None:
+        raise AssertionError("the payment pipeline must not send email")
+
+
 @pytest.fixture
 def world(test_engine, db_session, monkeypatch):
     """Per-request sessions on the test engine, a scripted provider, a callback key."""
@@ -280,6 +288,7 @@ def world(test_engine, db_session, monkeypatch):
 
     app.dependency_overrides[get_db] = request_session
     app.dependency_overrides[get_mbway_gateway] = lambda: provider
+    app.dependency_overrides[get_email_sender] = lambda: NoEmailAllowed()
     monkeypatch.setattr(settings, "MBWAY_CALLBACK_KEY", CALLBACK_KEY)
     monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", False)
     yield World(test_engine, provider)
