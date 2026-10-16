@@ -148,6 +148,22 @@ def _refuse_if_user_already_buying(db: Session, user: User, now: datetime) -> No
         )
 
 
+def _settle_pending(
+    db: Session, transaction: Transaction, status: TransactionStatus
+) -> None:
+    """Move a pending transaction to ``failed`` or ``expired``.
+
+    The row is locked and read again first: a callback may have confirmed the
+    payment while we were talking to the provider, and a confirmed payment must
+    never be overwritten by a stale ``expired`` or ``failed``.
+    """
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status is TransactionStatus.PENDING:
+        transaction.status = status
+    db.commit()
+    db.refresh(transaction)
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -218,8 +234,7 @@ def initiate_payment(
             email=payload.email or user.email,
         )
     except PaymentGatewayError:
-        transaction.status = TransactionStatus.FAILED
-        db.commit()
+        _settle_pending(db, transaction, TransactionStatus.FAILED)
         raise
 
     transaction.provider_reference = payment.provider_reference
@@ -320,9 +335,7 @@ def _sync_provider_status(
         confirm_transaction(db, transaction)
         return
 
-    transaction.status = provider_status
-    db.commit()
-    db.refresh(transaction)
+    _settle_pending(db, transaction, provider_status)
 
 
 def handle_payment_callback(

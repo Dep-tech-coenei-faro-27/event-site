@@ -7,6 +7,7 @@ from sqlalchemy import delete, event, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.domains.payments.gateway import (
     MBWayPayment,
@@ -22,6 +23,8 @@ from app.domains.payments.service import (
     AlreadyHasTicketError,
     TicketSoldOutError,
     confirm_transaction,
+    get_transaction,
+    handle_payment_callback,
     initiate_payment,
 )
 from app.domains.tickets.models import Ticket
@@ -366,3 +369,42 @@ def test_two_confirmations_of_the_same_payment_issue_one_ticket(
     assert _count_tickets(test_engine, user_id) == 1
     # The row lock makes the second confirmation wait instead of colliding.
     assert integrity_errors == []
+
+
+@requires_postgres
+def test_a_poll_does_not_overwrite_a_payment_confirmed_while_it_waited(
+    db_session, test_engine, monkeypatch
+):
+    """The poll asks the provider, which says "expired"; meanwhile the callback
+    confirms the payment. The poll must not then write ``expired`` over it."""
+    monkeypatch.setattr(settings, "MBWAY_CALLBACK_KEY", "callback-key")
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    transaction, _ = initiate_payment(
+        db_session, user, _payload(), SimulatedMBWayGateway()
+    )
+    transaction_id, reference, user_id = transaction.id, transaction.reference, user.id
+    amount = str(transaction.amount_cents / 100)
+
+    class CallbackWhileAsking:
+        name = "racing"
+
+        def get_status(self, *, reference, provider_reference) -> TransactionStatus:
+            with Session(bind=test_engine) as other:
+                handle_payment_callback(
+                    other, key="callback-key", reference=reference, amount=amount
+                )
+            return TransactionStatus.EXPIRED
+
+    with Session(bind=test_engine) as poll:
+        seen = get_transaction(
+            poll, poll.get(User, user_id), reference, CallbackWhileAsking()
+        )
+        assert seen.status is TransactionStatus.CONFIRMED
+
+    with Session(bind=test_engine) as check:
+        stored = check.scalar(
+            select(Transaction.status).where(Transaction.id == transaction_id)
+        )
+    assert stored is TransactionStatus.CONFIRMED
+    assert _count_tickets(test_engine, user_id) == 1
