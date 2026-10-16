@@ -20,6 +20,10 @@ class PaymentGatewayError(RuntimeError):
     """Raised when the payment provider is unreachable or answers badly."""
 
 
+class UnrecognisedStatusError(PaymentGatewayError):
+    """The provider answered, but with a status we do not know how to read."""
+
+
 @dataclass(frozen=True)
 class MBWayPayment:
     """The provider's answer to a payment request."""
@@ -60,13 +64,18 @@ _STATUS_MAP = {
 
 
 def _normalize_status(raw: object) -> TransactionStatus:
-    if isinstance(raw, str):
-        code = raw.strip()
-        status = _STATUS_MAP.get(code)
+    """Read the provider's status code, as text or as a number.
+
+    Anything else (a missing status, an unknown code) is an error and not "still
+    waiting": a payment that is waiting keeps its seat, so an answer we cannot read
+    must not be mistaken for that.
+    """
+    if raw is not None and not isinstance(raw, bool):
+        status = _STATUS_MAP.get(str(raw).strip())
         if status is not None:
             return status
-        logger.warning("ifthenpay returned an unknown status code: %r", raw)
-    return TransactionStatus.PENDING
+    logger.error("ifthenpay returned an unrecognised status: %r", raw)
+    raise UnrecognisedStatusError(f"unrecognised status {raw!r}")
 
 
 class IfThenPayMBWayGateway:

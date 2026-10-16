@@ -9,7 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.domains.payments.gateway import MBWayGateway, PaymentGatewayError
+from app.domains.payments.gateway import (
+    MBWayGateway,
+    PaymentGatewayError,
+    UnrecognisedStatusError,
+)
 from app.domains.payments.models import (
     TicketTier,
     TicketTierPrice,
@@ -395,29 +399,52 @@ def _sync_provider_status(
     reports as waiting stays ``pending`` and keeps its seat, even past its local
     deadline (``expires_at`` is the time the person has to approve, not the moment
     the seat is released). When the gateway is unreachable the answer is unknown, so
-    the payment also stays ``pending`` and the poll keeps working.
+    the payment also stays ``pending`` and the poll keeps working. A payment the
+    provider cannot resolve (no reference, or an unreadable answer) is expired a long
+    time after its deadline so that it does not hold its seat for ever.
     """
     reference = transaction.reference
     provider_reference = transaction.provider_reference
+    expires_at = _as_utc(transaction.expires_at)
     # Release the pooled database connection before the network call: a slow
     # provider must not keep a connection busy while we wait for its answer.
     db.commit()
 
-    try:
-        provider_status = gateway.get_status(
-            reference=reference,
-            provider_reference=provider_reference,
-        )
-    except PaymentGatewayError:
-        logger.warning(
-            "MB WAY status poll failed for %s; keeping stored status",
-            reference,
-        )
-        provider_status = TransactionStatus.PENDING
+    # "Unresolved" means the provider could not tell us: we never saved its reference,
+    # or it answered something we cannot read. (An unreachable provider is not
+    # unresolved: it is an outage, and the payments stay as they are.)
+    unresolved = False
+    provider_status = TransactionStatus.PENDING
+    if not provider_reference:
+        unresolved = True
+        logger.warning("Payment %s has no provider reference to ask about", reference)
+    else:
+        try:
+            provider_status = gateway.get_status(
+                reference=reference,
+                provider_reference=provider_reference,
+            )
+        except UnrecognisedStatusError:
+            unresolved = True
+        except PaymentGatewayError:
+            logger.warning(
+                "MB WAY status poll failed for %s; keeping stored status",
+                reference,
+            )
 
     if provider_status is TransactionStatus.PENDING:
         # Still waiting, whatever the local deadline says: only the provider can end
-        # a payment, and until then it keeps its seat.
+        # a payment, and until then it keeps its seat. The one exception is a payment
+        # the provider cannot resolve for a long time: it would hold its seat for ever.
+        limit = timedelta(seconds=settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS)
+        if unresolved and expires_at + limit < datetime.now(UTC):
+            logger.error(
+                "Payment %s could not be resolved with the provider for over %s s "
+                "after its deadline: expired. If it was paid, it needs a look.",
+                reference,
+                settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS,
+            )
+            _settle_pending(db, transaction, TransactionStatus.EXPIRED)
         return
     if provider_status is TransactionStatus.CONFIRMED:
         confirm_transaction(db, transaction)

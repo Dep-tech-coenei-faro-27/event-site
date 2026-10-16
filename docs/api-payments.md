@@ -73,7 +73,7 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 | `403` | email por verificar |
 | `404` | referência inexistente ou de outro utilizador |
 
-Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Se o fornecedor ainda responde `pending`, ou está inacessível, a transação **continua `pending` e com o lugar reservado, mesmo depois do prazo** (`expires_at`): só o MB WAY pode terminar um pagamento. O frontend deve tratar `pending` depois de `expires_at` como «ainda a confirmar» e não como erro. Na prática o MB WAY dá o pagamento por expirado ao fim dos 4 minutos.
+Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Se o fornecedor ainda responde `pending`, ou está inacessível, a transação **continua `pending` e com o lugar reservado, mesmo depois do prazo** (`expires_at`): só o MB WAY pode terminar um pagamento. O frontend deve tratar `pending` depois de `expires_at` como «ainda a confirmar» e não como erro. Na prática o MB WAY dá o pagamento por expirado ao fim dos 4 minutos. Há uma exceção: se o MB WAY **não consegue dizer** (responde algo que não se lê, ou nunca guardámos a referência dele), o pagamento dá-se por expirado `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` (30 minutos) depois do prazo, com um erro no log, para não prender o lugar para sempre. Um MB WAY inacessível ou que responde «à espera» nunca provoca isto.
 
 ### `GET /api/payment/callback`
 
@@ -183,6 +183,7 @@ make set-price tier=geral price=3500
 | `MBWAY_CALLBACK_KEY` | vazio | chave anti-phishing do callback da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | prazo para a pessoa aprovar o pagamento (4 minutos). É o `expires_at`; não é o momento em que o lugar se liberta. No modo `simulated` é também quando o simulador dá o pagamento por expirado |
+| `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` | `1800` | quanto tempo depois do prazo um pagamento que o MB WAY não consegue resolver (resposta ilegível ou sem referência) mantém o lugar antes de ser dado por expirado |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |

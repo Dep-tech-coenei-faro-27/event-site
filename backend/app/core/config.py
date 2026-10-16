@@ -95,6 +95,10 @@ class Settings(BaseSettings):
     MBWAY_CALLBACK_KEY: str = ""
     MBWAY_TIMEOUT_SECONDS: int = Field(default=10, gt=0, le=60)
     MBWAY_PAYMENT_TIMEOUT_SECONDS: int = Field(default=240, gt=0, le=900)
+    # A payment keeps its seat while the provider says it is waiting. When the provider
+    # cannot say (it answers something we do not understand, or we never saved its
+    # reference), the seat is released this long after the payment deadline.
+    MBWAY_UNRESOLVED_MAX_WAIT_SECONDS: int = Field(default=1800, gt=0, le=86400)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the

@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -11,6 +12,7 @@ from app.domains.payments.gateway import (
     MBWayPayment,
     PaymentGatewayError,
     SimulatedMBWayGateway,
+    UnrecognisedStatusError,
     get_mbway_gateway,
 )
 from app.domains.payments.models import (
@@ -572,6 +574,138 @@ def test_a_new_payment_finds_out_that_the_old_one_was_paid(
     assert response.status_code == 409
     assert "already have a ticket" in response.json()["detail"]
     assert db_session.scalar(select(func.count()).select_from(Ticket)) == 1
+
+
+def _seed_pending(db_session, user, *, reference, provider_reference, late_by):
+    """A waiting payment whose deadline passed `late_by` ago."""
+    tiers = seed_ticket_tiers(db_session)
+    db_session.add(
+        Transaction(
+            reference=reference,
+            user_id=user.id,
+            ticket_tier_id=tiers[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.PENDING,
+            phone="910000000",
+            provider="fake",
+            provider_reference=provider_reference,
+            expires_at=datetime.now(UTC) - late_by,
+        )
+    )
+    db_session.commit()
+
+
+def _status_of(db_session, reference):
+    db_session.expire_all()
+    return db_session.scalar(
+        select(Transaction.status).where(Transaction.reference == reference)
+    )
+
+
+def test_an_unreadable_answer_keeps_the_seat_for_a_while_then_gives_it_up(
+    auth_client, email_sender, db_session, gateway, caplog
+):
+    """The provider answers something we cannot read: not "waiting for ever"."""
+    user = authenticate(auth_client, email_sender, db_session)
+    _seed_pending(
+        db_session,
+        user,
+        reference="ENEI-0000000011",
+        provider_reference="TX-11",
+        late_by=timedelta(minutes=10),
+    )
+    gateway.status_error = UnrecognisedStatusError("unrecognised status 'x'")
+
+    assert (
+        auth_client.get(transaction_url("ENEI-0000000011")).json()["status"]
+        == "pending"
+    )
+
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == "ENEI-0000000011")
+    )
+    stored.expires_at = datetime.now(UTC) - timedelta(
+        seconds=settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS + 60
+    )
+    db_session.commit()
+    with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
+        response = auth_client.get(transaction_url("ENEI-0000000011"))
+
+    assert response.json()["status"] == "expired"
+    assert "could not be resolved with the provider" in caplog.text
+
+
+def test_a_payment_without_a_provider_reference_is_not_asked_about_and_gives_up(
+    auth_client, email_sender, db_session, gateway
+):
+    """The process died between asking the provider and saving its reference."""
+    user = authenticate(auth_client, email_sender, db_session)
+    _seed_pending(
+        db_session,
+        user,
+        reference="ENEI-0000000012",
+        provider_reference=None,
+        late_by=timedelta(minutes=10),
+    )
+
+    assert (
+        auth_client.get(transaction_url("ENEI-0000000012")).json()["status"]
+        == "pending"
+    )
+    assert gateway.status_calls == []
+
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == "ENEI-0000000012")
+    )
+    stored.expires_at = datetime.now(UTC) - timedelta(
+        seconds=settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS + 60
+    )
+    db_session.commit()
+
+    assert (
+        auth_client.get(transaction_url("ENEI-0000000012")).json()["status"]
+        == "expired"
+    )
+
+
+def test_a_payment_the_provider_says_is_waiting_is_never_given_up(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    _seed_pending(
+        db_session,
+        user,
+        reference="ENEI-0000000013",
+        provider_reference="TX-13",
+        late_by=timedelta(days=2),
+    )
+
+    assert (
+        auth_client.get(transaction_url("ENEI-0000000013")).json()["status"]
+        == "pending"
+    )
+
+
+def test_an_unreachable_provider_never_makes_a_payment_give_up(
+    auth_client, email_sender, db_session, gateway
+):
+    """An outage is not a payment nobody can resolve: nothing is released."""
+    user = authenticate(auth_client, email_sender, db_session)
+    _seed_pending(
+        db_session,
+        user,
+        reference="ENEI-0000000014",
+        provider_reference="TX-14",
+        late_by=timedelta(days=2),
+    )
+    gateway.status_error = PaymentGatewayError("provider down")
+
+    assert (
+        auth_client.get(transaction_url("ENEI-0000000014")).json()["status"]
+        == "pending"
+    )
+    assert _status_of(db_session, "ENEI-0000000014") is TransactionStatus.PENDING
 
 
 def test_get_status_persists_provider_failed(
