@@ -292,7 +292,7 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 - O envio usa uma **fila na base de dados** (tabela `email_outbox`). O pedido grava o email e responde logo; um *worker*
   (uma *thread* que arranca com o backend) envia o que está pendente a cada 5 segundos, sem esperar entre lotes enquanto
   houver fila, e **repete o que falhar** com espera crescente (30 s, 2 min, 10 min, 30 min, 2 h e depois de 6 em 6 h). Por
-  omissão tenta 10 vezes (cerca de 32 horas, o que cobre uma quota diária esgotada, como o limite do plano gratuito do
+  omissão tenta 10 vezes (cerca de 27 horas, o que cobre uma quota diária esgotada, como o limite do plano gratuito do
   Resend). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
   na fila **sobrevive a um reinício** do backend ou a uma falha do servidor SMTP. A entrega é *pelo menos uma vez*: se o
   backend cair entre enviar e registar, o email pode seguir duas vezes.
