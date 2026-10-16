@@ -524,6 +524,51 @@ def test_get_status_does_not_sell_a_released_seat_that_sold_out(
     assert db_session.scalar(select(func.count()).select_from(Ticket)) == 0
 
 
+def _let_the_deadline_pass(db_session, reference: str) -> Transaction:
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    stored.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    db_session.commit()
+    return stored
+
+
+def test_a_new_payment_finds_out_that_the_old_one_was_paid(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    first = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    _let_the_deadline_pass(db_session, first)
+    gateway.status = TransactionStatus.CONFIRMED
+
+    response = auth_client.post(INITIATE_URL, json=INITIATE)
+
+    assert response.status_code == 409
+    assert "already have a ticket" in response.json()["detail"]
+    assert db_session.scalar(select(func.count()).select_from(Ticket)) == 1
+
+
+def test_a_new_payment_asks_the_provider_about_the_one_that_ran_out(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    first = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
+    _let_the_deadline_pass(db_session, first)
+    gateway.status = TransactionStatus.EXPIRED
+
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
+
+    assert gateway.status_calls[0][0] == first
+    assert (
+        db_session.scalar(
+            select(Transaction.status).where(Transaction.reference == first)
+        )
+        is TransactionStatus.EXPIRED
+    )
+
+
 def test_get_status_persists_provider_failed(
     auth_client, email_sender, db_session, gateway
 ):

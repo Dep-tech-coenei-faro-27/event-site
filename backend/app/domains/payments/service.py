@@ -170,6 +170,18 @@ def initiate_payment(
     payload: PaymentInitiateRequest,
     gateway: MBWayGateway,
 ) -> tuple[Transaction, TicketTierPrice]:
+    # A payment of this person that is past its deadline may already be over (or
+    # paid) at the provider. Ask before deciding anything, outside any lock.
+    stale = db.scalars(
+        select(Transaction).where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.expires_at <= datetime.now(UTC),
+        )
+    ).all()
+    for old in stale:
+        _sync_provider_status(db, old, gateway)
+
     # One ticket per person. The user row is locked first so two simultaneous requests
     # from the same person cannot both pass the check below; the order (user, then
     # tier) is the same everywhere, so it cannot deadlock.

@@ -27,7 +27,7 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 
 ### `POST /api/payment/initiate`
 
-Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bilhete é reservado durante alguns minutos (por omissão 4, `MBWAY_PAYMENT_TIMEOUT_SECONDS`); se o pagamento não for confirmado nesse tempo, a transação expira e o lugar volta a ficar livre.
+Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bilhete é reservado durante alguns minutos (por omissão 4, `MBWAY_PAYMENT_TIMEOUT_SECONDS`); se o pagamento não for confirmado nesse tempo, a transação expira e o lugar volta a ficar livre. Antes de decidir um novo pedido, o backend pergunta ao MB WAY pelos pagamentos anteriores da pessoa que já passaram o prazo: se algum foi pago, o bilhete é emitido e o novo pedido responde `409` («já tens bilhete») em vez de a pessoa pagar duas vezes.
 
 | | |
 | --- | --- |
