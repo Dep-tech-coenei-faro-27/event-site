@@ -18,7 +18,10 @@ from app.domains.payments.models import (
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
 from app.domains.tickets.models import PaymentStatus, Ticket
-from app.domains.tickets.service import issue_ticket_for_paid_transaction
+from app.domains.tickets.service import (
+    PaymentNotConfirmedError,
+    issue_ticket_for_paid_transaction,
+)
 from app.domains.users.models import StudentVerificationStatus, User
 
 logger = logging.getLogger(__name__)
@@ -262,6 +265,16 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
         if issued is not None:
             return transaction
         raise
+    except PaymentNotConfirmedError:
+        # The ticket of this payment was cancelled (a refund). A repeated callback
+        # must not bring it back, and ifthenpay must stop retrying.
+        db.commit()
+        logger.warning(
+            "Payment %s confirmed again but its ticket is cancelled; left as is",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+        return transaction
     # Saves the status when the ticket already existed and nothing else committed.
     db.commit()
     db.refresh(transaction)
