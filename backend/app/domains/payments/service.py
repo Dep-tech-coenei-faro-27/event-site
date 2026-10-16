@@ -258,14 +258,40 @@ def _holds_another_active_ticket(db: Session, transaction: Transaction) -> bool:
     )
 
 
+def _has_room(db: Session, transaction: Transaction, now: datetime) -> bool:
+    """Whether the seat of a payment that was not confirmed in time is still free.
+
+    A pending payment inside its window holds its seat. After that the seat was
+    released and may have been sold to someone else, so the stock is checked again
+    (with the modality row locked, like ``initiate_payment`` does): we never sell
+    what we no longer have.
+    """
+    if (
+        transaction.status is TransactionStatus.PENDING
+        and _as_utc(transaction.expires_at) > now
+    ):
+        return True
+    tier = db.scalar(
+        select(TicketTierPrice)
+        .where(TicketTierPrice.id == transaction.ticket_tier_id)
+        .with_for_update()
+    )
+    if tier is None or tier.inventory_limit is None:
+        return True
+    return tier.inventory_limit - _reserved_quantity(db, tier, now) >= (
+        transaction.quantity
+    )
+
+
 def _record_refund_due(
     db: Session, transaction: Transaction, reason: str
 ) -> Transaction:
     """The money arrived but there is no ticket to give: the payment is refunded.
 
-    One ticket per person: the person already holds a ticket from another payment.
-    The payment is kept as ``refund_due``, which holds no stock, and logged loudly.
-    List them with the query in ``docs/deploy.md``.
+    Either the person already holds a ticket from another payment (one per person),
+    or the modality sold out while this payment was late (we do not sell what we do
+    not have). The payment is kept as ``refund_due``, which holds no stock, and
+    logged loudly. List them with the query in ``docs/deploy.md``.
     """
     transaction.status = TransactionStatus.REFUND_DUE
     transaction.confirmed_at = transaction.confirmed_at or datetime.now(UTC)
@@ -290,14 +316,20 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     The transaction row stays locked until the ticket is committed, so two
     confirmations of the same payment (poll and poll, or poll and callback) run one
     after the other. The status and the ticket are saved together, so a failure
-    cannot leave a confirmed payment without its ticket. A person has one ticket: if
-    another payment of theirs already got it, this one is kept for a refund.
+    cannot leave a confirmed payment without its ticket. No ticket is issued, and
+    the payment is kept for a refund, when the person already holds a ticket from
+    another payment or when a late payment finds the modality sold out.
     """
     db.refresh(transaction, with_for_update=True)
+    if transaction.status is TransactionStatus.REFUND_DUE:
+        return transaction  # already decided: a repeated callback changes nothing
+
     if _holds_another_active_ticket(db, transaction):
         return _record_refund_due(db, transaction, "the person already has a ticket")
 
     if transaction.status is not TransactionStatus.CONFIRMED:
+        if not _has_room(db, transaction, datetime.now(UTC)):
+            return _record_refund_due(db, transaction, "the modality sold out")
         transaction.status = TransactionStatus.CONFIRMED
         transaction.confirmed_at = datetime.now(UTC)
 
@@ -392,12 +424,13 @@ def handle_payment_callback(
     """Apply an ifthenpay payment callback to a transaction.
 
     Trust only callbacks that carry our anti-phishing key, and only confirm a
-    payment whose value matches what was charged. A callback only confirms a
-    transaction that is still ``pending``: one that already ``failed`` or
-    ``expired`` is answered 200 (so ifthenpay stops retrying) but left untouched
-    and logged, because an unexpected late payment needs a manual look. Idempotent:
-    a repeated callback returns the same transaction and never duplicates the
-    ticket.
+    payment whose value matches what was charged. ifthenpay only calls this when
+    the money has been paid, so a callback for a transaction that already
+    ``failed`` or ``expired`` locally is a late payment: it is confirmed like any
+    other (the person paid and gets the ticket) and logged, unless the modality sold
+    out meanwhile or the person already has a ticket: ``confirm_transaction`` then
+    keeps the payment as ``refund_due`` for a manual refund. Idempotent: a repeated
+    callback returns the same transaction and never duplicates the ticket.
     """
     if not _callback_key_matches(key):
         raise InvalidCallbackKeyError("Invalid callback key")
@@ -418,11 +451,10 @@ def handle_payment_callback(
 
     if transaction.status in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
         logger.warning(
-            "MB WAY callback for %s ignored: transaction is %s",
+            "Late MB WAY payment for %s: the transaction was %s locally",
             transaction.reference,
             transaction.status.value,
         )
-        return transaction
 
     return confirm_transaction(db, transaction)
 

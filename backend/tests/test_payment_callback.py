@@ -7,8 +7,14 @@ from sqlalchemy import event, func, select
 from app.core.config import settings
 from app.core.qr import verify_qr_payload
 from app.domains.payments.gateway import MBWayPayment, get_mbway_gateway
-from app.domains.payments.models import TicketTier, Transaction, TransactionStatus
+from app.domains.payments.models import (
+    TicketTier,
+    TicketTierPrice,
+    Transaction,
+    TransactionStatus,
+)
 from app.domains.tickets.models import PaymentStatus, Ticket
+from app.domains.users.models import User
 from app.main import app
 from tests.helpers import INITIATE_URL, authenticate, seed_ticket_tiers, transaction_url
 
@@ -117,43 +123,6 @@ def test_polling_confirms_the_transaction_and_issues_the_ticket(
     assert ticket is not None
     assert ticket.payment_status is PaymentStatus.PAID
     assert verify_qr_payload(ticket.qr_payload).ticket_id == ticket.id
-
-
-@pytest.mark.parametrize(
-    "terminal_status", [TransactionStatus.FAILED, TransactionStatus.EXPIRED]
-)
-def test_callback_ignores_failed_or_expired_transactions(
-    auth_client,
-    email_sender,
-    db_session,
-    gateway,
-    callback_key,
-    caplog,
-    terminal_status,
-):
-    payment = start_payment(auth_client, email_sender, db_session, gateway)
-    transaction = db_session.scalar(
-        select(Transaction).where(Transaction.reference == payment["reference"])
-    )
-    transaction.status = terminal_status
-    db_session.commit()
-
-    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
-        response = auth_client.get(
-            CALLBACK_URL,
-            params={
-                "key": callback_key,
-                "orderId": payment["reference"],
-                "amount": "50.00",
-            },
-        )
-
-    assert response.status_code == 200
-    db_session.refresh(transaction)
-    assert transaction.status is terminal_status
-    assert transaction.confirmed_at is None
-    assert count_tickets(db_session, payment["reference"]) == 0
-    assert payment["reference"] in caplog.text
 
 
 def pay(auth_client, reference: str):
@@ -278,6 +247,167 @@ def test_two_payments_of_one_person_never_crash_the_callback(
     assert count_tickets(db_session, first["reference"]) == 0
     assert count_tickets(db_session, second.json()["reference"]) == 1
     assert f"Payment {first['reference']} needs a refund" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "terminal_status", [TransactionStatus.FAILED, TransactionStatus.EXPIRED]
+)
+def test_a_late_callback_still_issues_the_ticket(
+    auth_client,
+    email_sender,
+    db_session,
+    gateway,
+    callback_key,
+    caplog,
+    terminal_status,
+):
+    """The callback only comes when the money was paid: the person gets the ticket."""
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = terminal_status
+    db_session.commit()
+
+    with caplog.at_level(logging.WARNING, logger="app.domains.payments.service"):
+        response = pay(auth_client, payment["reference"])
+
+    assert response.status_code == 200
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert transaction.confirmed_at is not None
+    assert count_tickets(db_session, payment["reference"]) == 1
+    assert "Late MB WAY payment" in caplog.text
+    assert payment["reference"] in caplog.text
+
+
+def _sell_out_the_modality(db_session, payment: dict) -> None:
+    """Give the modality of ``payment`` a limit of one that another buyer holds."""
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
+    tier.inventory_limit = 1
+    other = User(name="Rui Costa", email="rui@example.com", password_hash="x")
+    db_session.add(other)
+    db_session.flush()
+    db_session.add(
+        Transaction(
+            reference="ENEI-OTHER00001",
+            user_id=other.id,
+            ticket_tier_id=tier.id,
+            amount_cents=transaction.amount_cents,
+            quantity=1,
+            status=TransactionStatus.CONFIRMED,
+            phone="912345678",
+            provider="fake",
+            expires_at=transaction.expires_at,
+        )
+    )
+    db_session.commit()
+
+
+@pytest.mark.parametrize(
+    "late_status", [TransactionStatus.FAILED, TransactionStatus.EXPIRED]
+)
+def test_a_late_payment_is_not_sold_when_the_modality_sold_out(
+    auth_client, email_sender, db_session, gateway, callback_key, caplog, late_status
+):
+    """We do not sell what we no longer have: the payment is kept for a refund."""
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = late_status
+    db_session.commit()
+    _sell_out_the_modality(db_session, payment)
+
+    with caplog.at_level(logging.ERROR, logger="app.domains.payments.service"):
+        response = pay(auth_client, payment["reference"])
+
+    assert response.status_code == 200
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.REFUND_DUE
+    assert count_tickets(db_session, payment["reference"]) == 0
+    assert "the modality sold out" in caplog.text
+
+
+def test_a_payment_inside_its_window_always_keeps_its_seat(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
+    tier.inventory_limit = 1  # this very payment holds the last seat
+    db_session.commit()
+
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert count_tickets(db_session, payment["reference"]) == 1
+
+
+def test_a_late_payment_is_sold_while_there_is_still_stock(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = TransactionStatus.EXPIRED
+    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
+    tier.inventory_limit = 5
+    db_session.commit()
+
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+    assert count_tickets(db_session, payment["reference"]) == 1
+
+
+def test_a_refund_due_payment_stays_that_way_when_the_callback_is_repeated(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.status = TransactionStatus.EXPIRED
+    db_session.commit()
+    _sell_out_the_modality(db_session, payment)
+    pay(auth_client, payment["reference"])
+
+    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
+    tier.inventory_limit = None  # stock came back, the decision was already taken
+    db_session.commit()
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.REFUND_DUE
+    assert count_tickets(db_session, payment["reference"]) == 0
+
+
+def test_a_payment_still_pending_but_past_its_deadline_is_not_sold_either(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    """Nobody polled, so it is still ``pending``, but its seat was released."""
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    transaction.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    db_session.commit()
+    _sell_out_the_modality(db_session, payment)
+
+    assert pay(auth_client, payment["reference"]).status_code == 200
+
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.REFUND_DUE
+    assert count_tickets(db_session, payment["reference"]) == 0
 
 
 def test_callback_is_rate_limited_per_ip(

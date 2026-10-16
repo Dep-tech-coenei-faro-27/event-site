@@ -439,3 +439,39 @@ def test_two_payments_of_the_same_person_confirmed_together_issue_one_ticket(
         TransactionStatus.CONFIRMED,
         TransactionStatus.REFUND_DUE,
     ]
+
+
+@requires_postgres
+def test_two_late_payments_for_the_last_seat_sell_it_once(db_session, test_engine):
+    """Both seats were released when the payments ran out; only one can be sold."""
+    tier = seed_ticket_tiers(db_session)[TicketTier.GERAL]
+    tier.inventory_limit = 1
+    first = _make_user(db_session, "ana@example.com")
+    second = _make_user(db_session, "rui@example.com")
+    ids = []
+    for user in (first, second):
+        transaction, _ = initiate_payment(
+            db_session, user, _payload(), SimulatedMBWayGateway()
+        )
+        ids.append(transaction.id)
+        # It ran out (the seat is free again), so the next one can start.
+        transaction.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+        db_session.commit()
+    user_ids = [first.id, second.id]
+
+    def confirm(transaction_id: int):
+        def action(session: Session) -> None:
+            confirm_transaction(session, session.get(Transaction, transaction_id))
+
+        return action
+
+    assert _run_together(test_engine, [confirm(i) for i in ids]) == []
+    assert sum(_count_tickets(test_engine, uid) for uid in user_ids) == 1
+    with Session(bind=test_engine) as session:
+        statuses = session.scalars(
+            select(Transaction.status).where(Transaction.id.in_(ids))
+        ).all()
+    assert sorted(statuses, key=str) == [
+        TransactionStatus.CONFIRMED,
+        TransactionStatus.REFUND_DUE,
+    ]
