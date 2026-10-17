@@ -1,10 +1,10 @@
 export default function CtaBanner() {
   return (
     <section className="relative w-full py-20 bg-[#050d21] text-white">
-      <div className="w-full max-w-7xl mx-auto px-6">
+      <div className="container">
         
-        {/* Caixa Principal Azul (mantém o gradiente) */}
-        <div className="azulejo-bg relative overflow-hidden rounded-[32px] sm:rounded-[40px] bg-gradient-to-r bg-[#00A3FF] p-8 sm:p-14 lg:p-16 text-white shadow-2xl shadow-[#00A3FF]/20 [&::before]:!opacity-25">
+        {/* Caixa principal: degradê do ciano profundo (onde está o texto, contraste ~5,5:1) para o ciano digital */}
+        <div className="azulejo-bg relative overflow-hidden rounded-[32px] sm:rounded-[40px] bg-gradient-to-r from-ciano-profundo to-[#0089CF] p-8 sm:p-14 lg:p-16 text-white shadow-xl shadow-black/30 [&::before]:!opacity-[0.24]">
           
           {/* O azulejo fica aqui, desenhado POR CIMA da cor azul */}
           <div className="absolute pointer-events-none z-[1] " />

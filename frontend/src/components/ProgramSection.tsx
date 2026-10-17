@@ -79,7 +79,7 @@ const programCards: ProgramCardItem[] = [
 export default function ProgramSection() {
   return (
     <section className="relative w-full pt-20 sm:pt-30 pb-20 bg-azul-base text-branco">
-      <div className="w-full max-w-7xl mx-auto px-6">
+      <div className="container">
         
         {/* Cabeçalho */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pb-8">

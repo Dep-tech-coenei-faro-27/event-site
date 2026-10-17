@@ -3,7 +3,7 @@ import faroMarinaImg from '../assets/faro-baixa.webp'; // Ou a imagem correspond
 export default function LocationSection() {
   return (
     <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
-      <div className="w-full max-w-7xl mx-auto px-6">
+      <div className="container">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           
           {/* Coluna Esquerda: Imagem com cantos estilizados */}

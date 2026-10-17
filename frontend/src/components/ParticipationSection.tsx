@@ -39,7 +39,7 @@ const paths: PathItem[] = [
 export default function ParticipationSection() {
   return (
     <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
-      <div className="w-full max-w-7xl mx-auto px-6">
+      <div className="container">
         
         {/* Cabeçalho da Secção */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end pb-16">

@@ -27,7 +27,7 @@ const details: DetailCard[] = [
 export default function ExperienceSection() {
   return (
     <section className="relative w-full py-24 bg-[#050d21] text-white">
-      <div className="w-full max-w-7xl mx-auto px-6 flex flex-col gap-6">
+      <div className="container flex flex-col gap-6">
         
         {/* Bloco Superior: Manifesto de Experiência */}
         <div className="azulejo-bg relative p-8 sm:p-12 lg:p-16 border border-[#00AAFF]/20 border-l-4 border-l-[#00AAFF] bg-[#051126]/60 backdrop-blur-sm">
