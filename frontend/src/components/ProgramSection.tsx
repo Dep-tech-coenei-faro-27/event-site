@@ -134,7 +134,7 @@ export default function ProgramSection() {
         <div className="flex justify-center mt-12">
           <button
             type="button"
-            className="px-7 py-3 rounded-full bg-ciano-digital hover:bg-acento-forte text-texto-sobre-ciano font-montserrat font-bold text-sm transition-all duration-200 shadow-md shadow-ciano-digital/20 hover:shadow-acento-forte/30 active:scale-95 cursor-pointer"
+            className="btn btn--primary"
           >
             Ver agenda
           </button>

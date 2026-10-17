@@ -26,14 +26,14 @@ export default function CtaBanner() {
             <div className="flex flex-wrap items-center gap-4">
               <button
                 type="button"
-                className="min-h-[46px] px-7 py-0 inline-flex items-center justify-center rounded-full bg-[#050D21] hover:bg-[#081635] text-white font-montserrat font-bold text-sm transition-all duration-200 shadow-lg shadow-black/25 active:scale-95 cursor-pointer"
+                className="btn btn--dark"
               >
                 Comprar bilhete
               </button>
 
               <button
                 type="button"
-                className="min-h-[46px] px-7 py-0 inline-flex items-center justify-center rounded-full border border-white/30 bg-[#050D21]/30 hover:bg-[#050D21]/50 hover:border-white/50 text-white font-montserrat font-bold text-sm transition-all duration-200 backdrop-blur-sm active:scale-95 cursor-pointer"
+                className="btn btn--outline-light"
               >
                 Tenho dúvidas
               </button>

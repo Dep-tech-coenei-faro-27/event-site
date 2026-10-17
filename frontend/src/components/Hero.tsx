@@ -57,7 +57,7 @@ export default function Hero() {
           Encontro Nacional de Estudantes de Informática
         </p>
 
-        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-full border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
+        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-[2px] border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
           <span>{EVENT_DATES} · Faro, Algarve</span>
         </div>
 

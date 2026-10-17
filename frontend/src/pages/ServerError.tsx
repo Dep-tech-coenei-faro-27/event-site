@@ -12,8 +12,7 @@ const wrapper =
   'grid min-h-[70vh] place-items-center bg-azul-base px-5 pb-20 pt-[calc(76px+64px)]';
 
 // Sem `Link` do router: este ecrã também aparece quando o próprio router falhou.
-const helpLink =
-  'min-h-[46px] px-6 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/5 text-white font-montserrat font-bold text-[14px] transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:border-white/55';
+const helpLink = 'btn btn--secondary';
 
 /**
  * Ecrã de erro do servidor do protótipo (`ui-ux/erros/servidor`), usado quando uma página

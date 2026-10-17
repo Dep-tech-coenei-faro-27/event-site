@@ -124,9 +124,7 @@ const wrap = 'mx-auto w-[calc(100%-40px)] max-w-[1180px]';
 const sectionY = 'py-[clamp(72px,9vw,124px)]';
 const h2Center = 'mt-1 font-extrabold text-4xl sm:text-4xl lg:text-5xl leading-[1.08] tracking-tight text-branco';
 
-const btn =
-    'inline-flex min-h-[46px] items-center justify-center rounded-full border px-6 text-sm font-bold transition duration-200 hover:-translate-y-0.5';
-const btnCtaDark = `${btn} border-white/15 bg-azul-painel text-branco hover:bg-azul-elevado`;
+const btnCtaDark = 'btn btn--dark';
 
 const centerEyebrow = (text: string) => (
     <p className="m-0 mb-3.5 font-montserrat text-[11px] font-bold uppercase leading-[1.4] tracking-[0.16em] text-acento-forte">

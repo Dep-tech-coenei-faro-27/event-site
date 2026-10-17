@@ -96,7 +96,7 @@ export default function LocationSection() {
                 href="https://www.google.com/maps/search/?api=1&query=37.045102%2C-7.971998"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-[46px] w-fit items-center justify-center rounded-full bg-[#1ab2ff] px-6 text-sm font-bold text-[#02101c] transition hover:-translate-y-0.5 hover:bg-[#23caff]"
+                className="btn btn--primary w-fit"
               >
                 Obter direções
               </a>

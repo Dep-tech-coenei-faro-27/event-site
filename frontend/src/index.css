@@ -16,6 +16,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Desenho novo (ui-ux): tokens de movimento e do botão. Valores de ui-ux/src/core.css e motion.css. */
+:root {
+  --accent: #1ab2ff;
+  --accent-strong: #23caff;
+  --accent-rgb: 26, 178, 255;
+  --motion-fast: 120ms;
+  --motion-default: 200ms;
+  --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-default: 0ms;
+  }
+}
+
+body {
+  font-family: Poppins, system-ui, sans-serif;
+}
+
+@layer components {
+  /* Botão do desenho novo: retangular, em maiúsculas, com a sombra deslocada ao passar o rato. */
+  .btn {
+    min-height: 48px;
+    padding-inline: 21px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font: 700 12px/1.15 Montserrat, sans-serif;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      color var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-fast) var(--motion-ease-out),
+      border-color var(--motion-fast) var(--motion-ease-out),
+      box-shadow var(--motion-default) var(--motion-ease-out),
+      transform var(--motion-fast) var(--motion-ease-out);
+  }
+  .btn:hover,
+  .btn:focus-visible {
+    box-shadow: 5px 5px 0 rgba(var(--accent-rgb), 0.22);
+    transform: translate(-2px, -2px);
+  }
+  .btn:active {
+    box-shadow: 2px 2px 0 rgba(var(--accent-rgb), 0.18);
+    transform: translate(0, 0) scale(0.985);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .btn--primary {
+    background: var(--accent);
+    color: #02101c;
+  }
+  .btn--primary:hover {
+    background: var(--accent-strong);
+  }
+  .btn--secondary {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+  .btn--secondary:hover {
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .btn--dark {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: #0a172f;
+    color: #fff;
+  }
+  .btn--dark:hover {
+    background: #0d1a34;
+  }
+  .btn--outline-light {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(3, 16, 31, 0.72);
+    color: #fff;
+  }
+  .btn--outline-light:hover {
+    border-color: #fff;
+    background: rgba(3, 16, 31, 0.9);
+  }
+}
+
 
 .azulejo-bg {
   position: relative;

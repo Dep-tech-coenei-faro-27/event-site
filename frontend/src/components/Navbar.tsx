@@ -16,9 +16,9 @@ const LOGIN_PATH = '/conta';
 const ACCOUNT_PATH = '/perfil';
 
 const accountDesktopClass =
-  'hidden md:inline-flex min-h-[40px] items-center justify-center px-4 rounded-full border border-acento-principal/50 bg-acento-principal/10 text-branco text-[13px] font-bold transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
+  'hidden md:inline-flex min-h-[40px] items-center justify-center px-4 rounded-[3px] border border-acento-principal/50 bg-acento-principal/10 text-branco text-[13px] font-bold transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
 const accountMobileClass =
-  'md:hidden w-full mt-4 min-h-[40px] inline-flex items-center justify-center px-[18px] rounded-full text-branco font-bold border border-acento-principal/50 bg-acento-principal/10 transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
+  'md:hidden w-full mt-4 min-h-[40px] inline-flex items-center justify-center px-[18px] rounded-[3px] text-branco font-bold border border-acento-principal/50 bg-acento-principal/10 transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
 
 
 function AccountActions({ className }: { className: string }) {

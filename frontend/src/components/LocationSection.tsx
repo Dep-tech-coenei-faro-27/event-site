@@ -31,7 +31,7 @@ export default function LocationSection() {
 
             <button
               type="button"
-              className="min-h-[44px] px-6 py-0 inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 text-white font-montserrat font-semibold text-sm transition-all duration-200 cursor-pointer active:scale-95"
+              className="btn btn--secondary"
             >
               Descobrir Faro
             </button>

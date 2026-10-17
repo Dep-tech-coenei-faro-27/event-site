@@ -72,10 +72,8 @@ const h2Class = 'text-[clamp(30px,4vw,52px)] leading-[1.06] tracking-[-0.045em] 
 const h3Class = 'font-poppins text-xl font-bold leading-[1.06] tracking-[-0.045em] text-branco';
 const leadClass = '!text-[clamp(17px,2vw,20px)] text-cinza-texto';
 
-const btn =
-    'inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full border px-6 text-sm font-bold transition duration-200 hover:-translate-y-0.5';
-const btnPrimary = `${btn} border-transparent bg-acento-principal text-texto-sobre-ciano hover:bg-acento-forte`;
-const btnSecondary = `${btn} border-white/25 bg-white/5 text-branco hover:border-white/55`;
+const btnPrimary = 'btn btn--primary';
+const btnSecondary = 'btn btn--secondary';
 
 const patternMask = (size: number, position = 'center'): CSSProperties => ({
     WebkitMaskImage: `url(${azulejoPattern})`,

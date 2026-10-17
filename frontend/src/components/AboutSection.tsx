@@ -21,7 +21,7 @@ export default function AboutSection() {
 
           <button
             type="button"
-            className="px-7 py-3.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 text-white font-montserrat font-semibold text-sm transition-all duration-200 cursor-pointer"
+            className="btn btn--secondary"
           >
             Conhecer o ENEI
           </button>
