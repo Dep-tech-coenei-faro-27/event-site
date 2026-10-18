@@ -1,105 +1,63 @@
-import Eyebrow from './EyeBrow';
+import { Link } from 'react-router-dom';
 
-interface PathItem {
-  number: string;
-  category: string;
-  title: string;
-  description: string;
-  linkText: string;
-  href: string;
-}
-
-const paths: PathItem[] = [
+const paths = [
   {
     number: '01',
-    category: 'ESTUDANTES',
+    label: 'Estudantes',
     title: 'Vive os quatro dias.',
-    description: 'Palestras, atividades, alojamento, refeições e toda a experiência ENEI.',
+    text: 'Palestras, atividades, alojamento, refeições e toda a experiência ENEI.',
     linkText: 'Comprar bilhete',
-    href: '#bilhetes',
+    to: '/bilhetes',
   },
   {
     number: '02',
-    category: 'EMPRESAS',
+    label: 'Empresas',
     title: 'Liga-te ao talento.',
-    description: 'Participa no ecossistema, apresenta oportunidades e cria relações com a comunidade.',
+    text: 'Participa no ecossistema, apresenta oportunidades e cria relações com a comunidade.',
     linkText: 'Conhecer parcerias',
-    href: '#parcerias',
+    to: '/parcerias',
   },
   {
     number: '03',
-    category: 'COMUNIDADE',
+    label: 'Comunidade',
     title: 'Faz parte do encontro.',
-    description: 'Conhece a missão, a equipa organizadora e a rede que constrói a edição de Faro.',
+    text: 'Conhece a missão, a equipa organizadora e a rede que constrói a edição de Faro.',
     linkText: 'Descobrir o ENEI',
-    href: '#sobre',
+    to: '/sobre',
   },
 ];
 
 export default function ParticipationSection() {
   return (
-    <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
+    <section className="section section--panel event-pathways">
       <div className="container">
-        
-        {/* Cabeçalho da Secção */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end pb-16">
-          <div className="lg:col-span-7 flex flex-col items-start">
-            <Eyebrow text="PARTICIPA" />
-            <h2 className="font-poppins font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-[1.1] tracking-tight text-white">
-              Um encontro,<br />diferentes percursos.
-            </h2>
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">&lt;PARTICIPA /&gt;</p>
+            <h2>Um encontro, diferentes percursos.</h2>
           </div>
-
-          <div className="lg:col-span-5 flex items-end">
-            <p className="font-montserrat text-[#AAB7C9] text-base sm:text-lg leading-relaxed max-w-md">
-              Encontra rapidamente a informação certa para a forma como queres participar no ENEI.
-            </p>
-          </div>
+          <p className="lead">
+            Encontra rapidamente a informação certa para a forma como queres participar no ENEI.
+          </p>
         </div>
-
-        {/* Grelha de 3 Colunas com Linhas Divisórias */}
-        <div className="border-t-2 border-b-2  border-[#00AAFF]/20 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#00AAFF]/20">
-          {paths.map((item, index) => (
-            <div
-              key={index}
-              className="py-10 md:py-12 md:px-8 first:pl-0 last:pr-0 flex flex-col justify-between"
-            >
+        <div className="pathway-grid">
+          {paths.map((item) => (
+            <article className="pathway" key={item.number}>
+              <span className="pathway__number">{item.number}</span>
               <div>
-                {/* Número do Passo */}
-                <span className="block text-[#00AAFF] font-montserrat font-bold text-xs tracking-wider mb-8">
-                  {item.number}
-                </span>
-
-                {/* Categoria / Tag */}
-                <span className="block text-[#AAB7C9] font-montserrat font-bold text-[11px] tracking-[0.16em] uppercase mb-3">
-                  {item.category}
-                </span>
-
-                {/* Título Principal */}
-                <h3 className="font-poppins font-extrabold text-2xl lg:text-[26px] text-white leading-tight mb-4">
-                  {item.title}
-                </h3>
-
-                {/* Descrição */}
-                <p className="font-montserrat text-[#AAB7C9] text-sm leading-relaxed mb-8">
-                  {item.description}
-                </p>
+                <p className="pathway__label">{item.label}</p>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
               </div>
-
-              {/* Link de Ação com Seta para Cima e Direita */}
-              <a
-                href={item.href}
-                className="group inline-flex items-center gap-1.5 text-sm font-montserrat font-semibold text-white hover:text-[#00AAFF] transition-colors duration-200 mt-auto"
-              >
-                <span>{item.linkText}</span>
-                <span className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                  ↗
-                </span>
-              </a>
-            </div>
+              <Link to={item.to}>
+                {item.linkText}
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4 12 12 4M6 4h6v6" />
+                </svg>
+              </Link>
+            </article>
           ))}
         </div>
-
       </div>
     </section>
   );

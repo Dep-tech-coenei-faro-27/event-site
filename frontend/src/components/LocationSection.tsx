@@ -1,42 +1,25 @@
-import Eyebrow from './EyeBrow';
-import faroMarinaImg from '../assets/faro-baixa.webp'; // Ou a imagem correspondente da marina
+import { Link } from 'react-router-dom';
+import faroMarinaImg from '../assets/faro-baixa.webp';
+
 export default function LocationSection() {
   return (
-    <section className="azulejo-bg relative w-full py-24 bg-[#050d21] text-white">
-      <div className="container">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          
-          {/* Coluna Esquerda: Imagem com cantos estilizados */}
-          <div className="lg:col-span-6">
-            <div className="relative overflow-hidden rounded-2xl rounded-tl-[80px] sm:rounded-tl-[100px] border border-[#00AAFF]/20 shadow-2xl shadow-black/50">
-              <img
-                src={faroMarinaImg}
-                alt="Marina de Faro e centro histórico"
-                className="w-full h-[360px] sm:h-[420px] object-cover object-center"
-              />
-            </div>
-          </div>
-
-          {/* Coluna Direita: Informação textual */}
-          <div className="lg:col-span-6 flex flex-col items-start">
-            <Eyebrow text="FARO, ALGARVE" />
-
-            <h2 className="font-poppins font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-[1.1] tracking-tight text-white mb-6">
-              Uma cidade feita<br />para receber.
-            </h2>
-
-            <p className="font-montserrat text-[#AAB7C9] text-base sm:text-lg leading-relaxed max-w-lg mb-8">
-              Faro combina vida académica, acessibilidade, património e a identidade única da Ria Formosa.
-            </p>
-
-            <button
-              type="button"
-              className="btn btn--secondary"
-            >
+    <section className="section home-faro">
+      <div className="container split">
+        <div className="photo home-faro-photo">
+          <img src={faroMarinaImg} alt="Centro histórico de Faro" />
+        </div>
+        <div>
+          <p className="eyebrow">&lt;FARO, ALGARVE /&gt;</p>
+          <h2>Uma cidade feita para receber.</h2>
+          <p className="lead">
+            Faro combina vida académica, acessibilidade, património e a identidade única da Ria
+            Formosa.
+          </p>
+          <div className="actions">
+            <Link className="btn btn--secondary" to="/sobre#faro">
               Descobrir Faro
-            </button>
+            </Link>
           </div>
-
         </div>
       </div>
     </section>

@@ -1,7 +1,5 @@
 import heroFaro from '../assets/hero-faro.webp';
 import Eyebrow from './EyeBrow';
-import SecundaryButton from './SecundaryButton';
-import PrimaryButton from './PrimaryButton';
 import { Link } from 'react-router-dom';
 import { EVENT_DATES } from '../data/Event';
 
@@ -60,13 +58,12 @@ export default function Hero() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4 pt-4">
-            <Link to="/"> {/* TODO: Alterar link para a página adequanda */}
-            <SecundaryButton text="Saber mais" />
-            </Link>
-
-            <Link to="/"> {/* TODO: Alterar link para a página adequanda */}
-            <PrimaryButton text="Comprar Bilhete" />
-            </Link>
+          <Link className="btn btn--secondary" to="/sobre">
+            Saber mais
+          </Link>
+          <Link className="btn btn--primary" to="/bilhetes">
+            Comprar bilhete
+          </Link>
         </div>
       </div>
 

@@ -1,37 +1,51 @@
-import AboutSectionCard from './AboutSectionCards';
-import Eyebrow from './EyeBrow';
+import { Link } from 'react-router-dom';
+
+const points = [
+  {
+    label: 'Programa',
+    title: 'Aprender e experimentar.',
+    text: 'Conteúdo técnico, desafios e cultura académica num só encontro.',
+  },
+  {
+    label: 'Rede',
+    title: 'Criar ligações reais.',
+    text: 'Estudantes, comunidades e organizações lado a lado durante quatro dias.',
+  },
+  {
+    label: 'Edição',
+    title: 'Uma identidade algarvia.',
+    text: 'O ambiente de Faro dá ritmo e contexto à experiência de 2027.',
+  },
+];
 
 export default function AboutSection() {
   return (
-    <section className="relative w-full py-24 bg-[#050d21] text-white">
-      <div className="container grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-        
-        {/* Coluna Esquerda: Texto Principal */}
-        <div className="lg:col-span-6 flex flex-col items-start">
-          <Eyebrow text="18.ª EDIÇÃO" />
-
-          <h2 className="font-poppins font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-[1.15] tracking-tight mb-6">
-            O ponto de encontro da próxima geração tecnológica.
-          </h2>
-
-          <p className="font-montserrat text-[#AAB7C9] text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
-            Quatro dias para ligar estudantes de todo o país às tendências do setor,
-            ao ecossistema empresarial e a novas comunidades.
+    <section className="section home-edition">
+      <div className="container split">
+        <div>
+          <p className="eyebrow">&lt;18.ª EDIÇÃO /&gt;</p>
+          <h2>O ponto de encontro da próxima geração tecnológica.</h2>
+          <p className="lead">
+            Quatro dias para ligar estudantes de todo o país às tendências do setor, ao ecossistema
+            empresarial e a novas comunidades.
           </p>
-
-          <button
-            type="button"
-            className="btn btn--secondary"
-          >
-            Conhecer o ENEI
-          </button>
+          <div className="actions">
+            <Link className="btn btn--secondary" to="/sobre">
+              Conhecer o ENEI
+            </Link>
+          </div>
         </div>
-
-        {/* Coluna Direita: Cartões com Borda Esquerda */}
-        <div className="lg:col-span-6 flex flex-col gap-5">
-            <AboutSectionCard />
-        </div>
-
+        <dl className="editorial-index" aria-label="O ENEI em três pontos">
+          {points.map((point) => (
+            <div key={point.label}>
+              <dt>{point.label}</dt>
+              <dd>
+                <strong>{point.title}</strong>
+                <span>{point.text}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
