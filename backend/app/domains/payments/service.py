@@ -26,6 +26,7 @@ from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import (
     PaymentNotConfirmedError,
+    TicketNotFoundError,
     issue_ticket_for_paid_transaction,
 )
 from app.domains.users.models import StudentVerificationStatus, User
@@ -372,7 +373,7 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     ticket from another payment or when a late payment finds the modality sold out.
     """
     db.refresh(transaction, with_for_update=True)
-    if transaction.status is TransactionStatus.REFUND_DUE:
+    if transaction.status in (TransactionStatus.REFUND_DUE, TransactionStatus.REFUNDED):
         return transaction  # already decided: a repeated callback changes nothing
 
     if _holds_another_active_ticket(db, transaction):
@@ -518,6 +519,35 @@ def _sync_provider_status(
         return
 
     _settle_pending(db, transaction, provider_status)
+
+
+def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
+    """Cancel a ticket and free its seat: the payment becomes ``refunded``.
+
+    The caller refunds the money (the gateway, or by hand). The person can buy again,
+    and the seat counts as free for the next buyer. Idempotent. The transaction is
+    locked before the ticket, the same order as ``confirm_transaction``, so a
+    repeated callback arriving at the same time cannot deadlock with it.
+    """
+    reference = db.scalar(
+        select(Ticket.transaction_reference).where(Ticket.id == ticket_id)
+    )
+    if reference is None:
+        raise TicketNotFoundError(f"Ticket {ticket_id} not found")
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    ticket = db.scalar(select(Ticket).where(Ticket.id == ticket_id).with_for_update())
+    if ticket.payment_status is not PaymentStatus.CANCELLED:
+        ticket.payment_status = PaymentStatus.CANCELLED
+        if (
+            transaction is not None
+            and transaction.status is TransactionStatus.CONFIRMED
+        ):
+            transaction.status = TransactionStatus.REFUNDED
+        db.commit()
+        db.refresh(ticket)
+    return ticket
 
 
 def handle_payment_callback(
