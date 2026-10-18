@@ -735,3 +735,7 @@ body[data-page="inicio"] .home-faro-photo {
     --media-radius: 64px 20px 20px;
   }
 }
+/* O Convívio ganha a sua cor (areia, a do ícone): no protótipo partilhava o violeta com o Networking. */
+body[data-page="inicio"] .programme-preview__item:nth-child(4) {
+  --tile-color: #E5BF78;
+}

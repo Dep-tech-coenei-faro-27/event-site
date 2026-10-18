@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 type ProgramItem = {
   title: string;
   text: string;
-  tone: 'cyan' | 'coral' | 'periwinkle';
+  tone: 'cyan' | 'coral' | 'periwinkle' | 'sand';
   icon: ReactNode;
 };
 
@@ -46,7 +46,7 @@ const items: ProgramItem[] = [
   {
     title: 'Convívio',
     text: 'Momentos sociais para tornar a experiência memorável.',
-    tone: 'periwinkle',
+    tone: 'sand',
     // Chávena de café com vapor: o convívio é o intervalo para conversar.
     icon: (
       <>
