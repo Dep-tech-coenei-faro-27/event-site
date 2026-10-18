@@ -40,3 +40,8 @@ jobs:
 
       - name: Type check and build
         run: npm run build
+
+      # nginx -t sem avisos, na mesma imagem do Dockerfile, e nenhum token nem chave nos logs.
+      - name: Check nginx config and logs
+        working-directory: .
+        run: sh scripts/check-nginx.sh
