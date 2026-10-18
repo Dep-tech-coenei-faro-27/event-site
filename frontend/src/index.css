@@ -98,6 +98,12 @@ body {
        caracter sai dela e fica cortado: damos-lhe espaço à direita sem mexer na posição. */
     padding-right: 0.14em;
     margin-right: -0.14em;
+    /* Degradê de branco a branco mais suave por máscara, com o texto branco por baixo. O
+       `background-clip: text` com `color: transparent` aparecia a preto em alguns telemóveis
+       (o elemento tem animação de entrada), e assim, se a máscara falhar, o texto fica branco. */
+    color: #fff;
+    -webkit-mask-image: linear-gradient(155deg, #000 50%, rgba(0, 0, 0, 0.62));
+    mask-image: linear-gradient(155deg, #000 50%, rgba(0, 0, 0, 0.62));
   }
   @media (max-width: 620px) {
     .hero-title {

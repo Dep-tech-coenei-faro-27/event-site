@@ -41,12 +41,7 @@ export default function Hero() {
         </div>
 
         {/* Título Principal com escala fluida forçada */}
-        <h1
-            className="hero-title font-poppins font-bold max-w-[880px] leading-[1.06] tracking-[-0.075em] bg-clip-text text-transparent"
-            style={{
-                backgroundImage: 'linear-gradient(155deg, #ffffff 50%, rgba(255, 255, 255, 0.62))',
-            }}
-        >
+        <h1 className="hero-title font-poppins font-bold max-w-[880px] leading-[1.06] tracking-[-0.075em]">
             ENEI 2027
         </h1>
         <p className="max-w-[680px] text-lg sm:text-xl text-[#AAB7C9] font-montserrat font-normal leading-relaxed">
