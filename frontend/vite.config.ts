@@ -10,8 +10,8 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
     setupFiles: './src/setupTests.ts',
-    pool: 'threads',
+    pool: 'forks',
   },
 })
