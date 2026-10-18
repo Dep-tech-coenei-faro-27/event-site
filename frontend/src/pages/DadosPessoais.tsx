@@ -1,7 +1,7 @@
 import { useState, type SyntheticEvent } from "react";
 import AccountLayout from "../components/dashboard/AccountLayout";
 import AccountPanel from "../components/dashboard/AccountPanel";
-import { BORDER, panelClass, panelTitleClass } from "../components/dashboard/AccountStyles";
+import { panelClass, panelTitleClass } from "../components/dashboard/AccountStyles";
 import Eyebrow from "../components/EyeBrow";
 import Field from "../components/Field";
 import PrimaryButton from "../components/PrimaryButton";
