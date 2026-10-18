@@ -12,7 +12,7 @@ import workshopImage from '../assets/about-workshop.webp';
 import Tile, { IconBox } from '../components/Tile';
 import type { Tone } from '../components/Tones';
 import { usePageMeta } from "../utils/usePageMeta";
-
+import Reveal from '../components/Reveal';
 
 interface TileItem {
     title: string;
@@ -121,38 +121,41 @@ const historyItems = [
 
 export default function Sobre() {
 
-    usePageMeta( "Sobre · ENEI 2027", "Conhece o ENEI, o Encontro Nacional de Estudantes de Informática, que decorre em Faro, no Algarve, de 1 a 4 de abril de 2027.",);
+    usePageMeta("Sobre · ENEI 2027", "Conhece o ENEI, o Encontro Nacional de Estudantes de Informática, que decorre em Faro, no Algarve, de 1 a 4 de abril de 2027.",);
 
     return (
         <div>
             <PageHeader backgroundImage={faroBaixa} className="pt-[220px] pb-[160px]">
-                <SectionHeading
-                    title="O que é o ENEI?"
-                    eyebrow={<EyeBrow text="SOBRE" />}
-                    lead="O Encontro Nacional de Estudantes de Informática reúne estudantes, comunidades, instituições e empresas numa experiência criada para aprender, partilhar e construir ligações."
-                    className="max-w-[800px] text-branco"
-                    classNameTitle="mt-1 font-extrabold text-3xl sm:text-4xl lg:text-7xl leading-[1.08] tracking-tight text-branco"
-                />
+                <Reveal>
+                    <SectionHeading
+                        title="O que é o ENEI?"
+                        eyebrow={<EyeBrow text="SOBRE" />}
+                        lead="O Encontro Nacional de Estudantes de Informática reúne estudantes, comunidades, instituições e empresas numa experiência criada para aprender, partilhar e construir ligações."
+                        className="max-w-[800px] text-branco"
+                        classNameTitle="mt-1 font-extrabold text-3xl sm:text-4xl lg:text-7xl leading-[1.08] tracking-tight text-branco"
+                    />
+                </Reveal>
             </PageHeader>
 
             {/* GALERIA */}
-            <section className="azulejo-bg bg-azul-superficie py-12">
-                <div className={`${wrap} grid grid-cols-2 grid-rows-[240px_150px] gap-3.5 sm:-translate-y-7 sm:grid-cols-[1.35fr_0.65fr] sm:grid-rows-[220px_220px]`}>
-                    {galleryImages.map(({ src, alt, className }) => (
-                        <figure
-                            key={alt}
-                            className={`group m-0 overflow-hidden rounded-[28px] border border-gelo/10 bg-azul-painel ${className}`}
-                        >
-                            <img
-                                src={src}
-                                alt={alt}
-                                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
-                            />
-                        </figure>
-                    ))}
-                </div>
-            </section>
-
+            <Reveal>
+                <section className="azulejo-bg bg-azul-superficie py-12">
+                    <div className={`${wrap} grid grid-cols-2 grid-rows-[240px_150px] gap-3.5 sm:-translate-y-7 sm:grid-cols-[1.35fr_0.65fr] sm:grid-rows-[220px_220px]`}>
+                        {galleryImages.map(({ src, alt, className }) => (
+                            <figure
+                                key={alt}
+                                className={`group m-0 overflow-hidden rounded-[28px] border border-gelo/10 bg-azul-painel ${className}`}
+                            >
+                                <img
+                                    src={src}
+                                    alt={alt}
+                                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
+                                />
+                            </figure>
+                        ))}
+                    </div>
+                </section>
+            </Reveal>
             {/* HISTÓRIA */}
             <section className={`${wrap} py-14`}>
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-8">
@@ -165,25 +168,26 @@ export default function Sobre() {
                             classNameTitle="mt-1 font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-[1.08] tracking-tight text-branco"
                         />
                     </div>
-
                     <div className="w-full max-w-[540px] lg:ml-auto">
                         <div className="azulejo-bg relative overflow-hidden rounded-bl-[12px] rounded-br-[48px] rounded-tl-[48px] rounded-tr-[12px] border border-[#1e2d4a] bg-azul-superficie p-7 shadow-2xl md:p-8">
                             <div className="azulejo-bg pointer-events-none absolute inset-0 opacity-30" />
 
                             <div className="relative z-10 ml-3 space-y-7 border-l-[2px] border-[#184673] py-1">
                                 {historyItems.map(({ label, title, text }) => (
-                                    <div key={label} className="relative pl-7 md:pl-9">
-                                        <div className="absolute -left-[11px] top-1 flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-cyan-400 bg-azul-base ring-[3px] ring-azul-base">
-                                            <div className="h-[8px] w-[8px] rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                                    <Reveal>
+                                        <div key={label} className="relative pl-7 md:pl-9">
+                                            <div className="absolute -left-[11px] top-1 flex h-5 w-5 items-center justify-center rounded-full border-[2px] border-cyan-400 bg-azul-base ring-[3px] ring-azul-base">
+                                                <div className="h-[8px] w-[8px] rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                                            </div>
+                                            <small className="mb-1 block text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-400">
+                                                {label}
+                                            </small>
+                                            <h3 className="mb-1.5 font-poppins text-lg font-bold leading-tight tracking-tight text-white md:text-[22px]">
+                                                {title}
+                                            </h3>
+                                            <p className="text-[15px] leading-relaxed text-slate-300">{text}</p>
                                         </div>
-                                        <small className="mb-1 block text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-400">
-                                            {label}
-                                        </small>
-                                        <h3 className="mb-1.5 font-poppins text-lg font-bold leading-tight tracking-tight text-white md:text-[22px]">
-                                            {title}
-                                        </h3>
-                                        <p className="text-[15px] leading-relaxed text-slate-300">{text}</p>
-                                    </div>
+                                    </Reveal>
                                 ))}
                             </div>
                         </div>
@@ -192,7 +196,7 @@ export default function Sobre() {
             </section>
 
             {/* CONTEXTO */}
-            <section className={`bg-azul-superficie ${sectionY}`}>
+            <section className={`azulejo-bg ${sectionY}`}>
                 <div className={wrap}>
                     <SectionHeading
                         title="Academia, região e tecnologia."
@@ -231,7 +235,7 @@ export default function Sobre() {
             </section>
 
             {/* FARO */}
-            <section id="faro" className={`bg-azul-superficie ${sectionY}`}>
+            <section id="faro" className={`azulejo-bg ${sectionY}`}>
                 <div className={`${wrap} grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)] lg:gap-[clamp(40px,8vw,100px)]`}>
                     <div className="aspect-[16/10] overflow-hidden rounded-[22px] border border-acento-principal/30 bg-azul-painel shadow-[0_22px_50px_rgba(0,0,0,0.24)]">
                         <img
@@ -300,7 +304,7 @@ export default function Sobre() {
             </section>
 
             {/* ORGANIZAÇÃO */}
-            <section className={`bg-azul-superficie ${sectionY}`}>
+            <section className={`azulejo-bg ${sectionY}`}>
                 <div className={wrap}>
                     <div className="mb-11 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-[30px]">
                         <SectionHeading

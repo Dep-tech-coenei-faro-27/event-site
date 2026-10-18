@@ -457,8 +457,8 @@ const AxisCard = ({ title, number, icon, items, index }: Axis & { index: number 
         index === 0
             ? ''
             : index === 2
-              ? 'min-[701px]:border-l min-[701px]:border-l-gelo/10'
-              : 'min-[621px]:border-l min-[621px]:border-l-gelo/10';
+                ? 'min-[701px]:border-l min-[701px]:border-l-gelo/10'
+                : 'min-[621px]:border-l min-[621px]:border-l-gelo/10';
 
     return (
         <article
@@ -563,23 +563,20 @@ export default function Agenda() {
                                 aria-selected={selected}
                                 aria-controls={`agenda-${id}`}
                                 onClick={() => setActiveDay(id)}
-                                className={`min-w-0 cursor-pointer rounded-xl border px-5 py-3.5 text-center min-[621px]:min-w-[118px] ${
-                                    selected
+                                className={`min-w-0 cursor-pointer rounded-xl border px-5 py-3.5 text-center min-[621px]:min-w-[118px] ${selected
                                         ? 'border-acento-principal bg-acento-principal/[0.12] shadow-[inset_0_0_0_1px_rgba(26,178,255,0.18)]'
                                         : 'border-gelo/10 bg-white/[0.025]'
-                                }`}
+                                    }`}
                             >
                                 <span
-                                    className={`mb-1 block font-montserrat text-[9px] font-bold uppercase leading-none tracking-[0.13em] ${
-                                        selected ? 'text-acento-forte' : 'text-cinza-subtil'
-                                    }`}
+                                    className={`mb-1 block font-montserrat text-[9px] font-bold uppercase leading-none tracking-[0.13em] ${selected ? 'text-acento-forte' : 'text-cinza-subtil'
+                                        }`}
                                 >
                                     {tab}
                                 </span>
                                 <strong
-                                    className={`block font-poppins text-lg font-bold leading-[1.1] ${
-                                        selected ? 'text-acento-forte' : 'text-cinza-texto'
-                                    }`}
+                                    className={`block font-poppins text-lg font-bold leading-[1.1] ${selected ? 'text-acento-forte' : 'text-cinza-texto'
+                                        }`}
                                 >
                                     {date}
                                 </strong>
@@ -672,24 +669,24 @@ export default function Agenda() {
                 />
 
                 <div className="grid grid-cols-1 gap-3.5 min-[621px]:max-[700px]:grid-cols-2 xl:grid-cols-2">
-    {platformItems.map(({ title, text, tone, icon }) => (
-        <Tile
-            key={title}
-            tone={tone}
-            rounded
-            showInnerBorder
-            className="min-w-0 p-[22px] min-[621px]:p-[26px]"
-        >
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px]">
-                <div className="row-span-2 [&>div]:mb-0">
-                    <IconBox tone={tone}>{icon}</IconBox>
+                    {platformItems.map(({ title, text, tone, icon }) => (
+                        <Tile
+                            key={title}
+                            tone={tone}
+                            rounded
+                            showInnerBorder
+                            className="min-w-0 p-[20px] min-[621px]:p-[26px]"
+                        >
+                            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-[18px]">
+                                <div className="row-span-2 [&>div]:mb-0">
+                                    <IconBox tone={tone}>{icon}</IconBox>
+                                </div>
+                                <h3 className={`${h3Class} min-w-0 break-words`}>{title}</h3>
+                                <p className="mt-[7px] min-w-0 break-words text-sm text-cinza-texto">{text}</p>
+                            </div>
+                        </Tile>
+                    ))}
                 </div>
-                <h3 className={`${h3Class} min-w-0 break-words`}>{title}</h3>
-                <p className="mt-[7px] min-w-0 break-words text-sm text-cinza-texto">{text}</p>
-            </div>
-        </Tile>
-    ))}
-</div>
             </Section>
         </div>
     );

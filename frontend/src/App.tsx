@@ -24,6 +24,8 @@ import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './utils/AuthContext';
 
+import Seguranca from './pages/Seguranca';
+import DadosPessoais from './pages/DadosPessoais';
 // Um erro numa página mostra o ecrã de erro dentro do layout (com Navbar e Footer) e
 // desaparece ao navegar para outra página.
 function RouteErrorBoundary({ children }: { children: ReactNode }) {
@@ -51,10 +53,10 @@ function App() {
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/parcerias" element={<Parcerias />} />
-              <Route path="/acessibilidade" element={<Acessibilidade/>}/>
-              <Route path="/termos" element={<Termos/>} /> 
+              <Route path="/acessibilidade" element={<Acessibilidade />} />
+              <Route path="/termos" element={<Termos />} />
               <Route path="/agenda" element={<Agenda />} />
-              <Route path="/privacidade" element={<Privacidade />}/>
+              <Route path="/privacidade" element={<Privacidade />} />
               <Route path="/conta" element={<Login />} />
               <Route path="/conta/criar" element={<Registo />} />
               <Route path="/conta/verificar" element={<VerifyEmailPage />} />
@@ -63,6 +65,9 @@ function App() {
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/conta/perfil" element={<ProfilePage />} />
+                <Route path="/conta/dados" element={<DadosPessoais />} />
+                <Route path="/conta/seguranca" element={<Seguranca />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
