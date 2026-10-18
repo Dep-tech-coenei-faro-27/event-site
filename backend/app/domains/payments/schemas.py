@@ -51,3 +51,18 @@ class TransactionRead(BaseModel):
     expires_at: datetime
     confirmed_at: datetime | None = None
     created_at: datetime
+
+
+class TicketTierRead(BaseModel):
+    """A modality as the checkout shows it: price and whether it can be bought now.
+
+    The number of seats left is not exposed, only whether there are any.
+    """
+
+    tier: TicketTier
+    name: str
+    price_cents: int | None
+    currency: str = "EUR"
+    is_student: bool
+    sale_open: bool
+    available: bool

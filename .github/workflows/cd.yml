@@ -126,7 +126,17 @@ jobs:
             # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
             # por isso não depende de portas publicadas no servidor).
             for i in $(seq 1 30); do
-              if $COMPOSE exec -T backend curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then echo "backend OK"; exit 0; fi
+              if $COMPOSE exec -T backend curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then
+                echo "backend OK"
+                # Teste de fumo (scripts/smoke-test.sh): só lê. Nunca regista contas nem compra,
+                # porque aqui o staging e a produção são a mesma base de dados e um registo
+                # mandaria um email a sério. Se falhar, o deploy fica a vermelho.
+                if ! SMOKE_CURL="$COMPOSE exec -T backend curl" sh scripts/smoke-test.sh; then
+                  $COMPOSE logs --tail 50 backend
+                  exit 1
+                fi
+                exit 0
+              fi
               sleep 2
             done
             $COMPOSE logs --tail 50 backend

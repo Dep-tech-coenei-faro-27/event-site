@@ -165,6 +165,34 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
   `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
+## Pagamentos a reembolsar
+
+Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado. **Não devia acontecer**: um lugar fica reservado enquanto o pagamento espera (só o MB WAY o termina) e uma pessoa só pode ter um pagamento à espera. Se acontecer, não ocupa stock e o backend regista um erro `Payment ENEI-... needs a refund`, que deve ser investigado e reembolsado à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
+
+```bash
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SELECT t.reference, t.user_id, t.amount_cents, t.confirmed_at
+FROM transactions t
+WHERE t.status = 'refund_due'
+ORDER BY t.confirmed_at;
+SQL
+```
+
+Depois do reembolso a pessoa é avisada por fora do sistema. Para registar que um `refund_due` já foi reembolsado (e o tirar da lista), no mesmo `psql`: `UPDATE transactions SET status = 'refunded' WHERE reference = 'ENEI-XXXXXXXXXX' AND status = 'refund_due';`. Um bilhete cancelado pelo código (`cancel_ticket`) passa a transação a `refunded` sozinho e liberta o lugar.
+
+Para ver se há lugares presos por pagamentos que ninguém acompanha (pendentes há mais de 15 minutos, quando o MB WAY dá o pagamento por expirado aos 4):
+
+```bash
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SELECT reference, user_id, created_at, expires_at
+FROM transactions
+WHERE status = 'pending' AND expires_at < now() - interval '15 minutes'
+ORDER BY expires_at;
+SQL
+```
+
+Cada uma destas linhas é libertada quando alguém consulta a transação, quando a pessoa tenta comprar outra vez, ou quando outra pessoa tenta comprar uma modalidade que parece esgotada. A reconciliação periódica (#128) vai libertá-las sem esperar por ninguém.
+
 ## Promover o Primeiro Administrador
 
 Como o sistema não possui uma rota nativa de criação de administradores de raiz, a promoção da primeira conta é feita de

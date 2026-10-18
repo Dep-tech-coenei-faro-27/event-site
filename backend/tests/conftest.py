@@ -7,6 +7,16 @@ os.environ.setdefault(
 )
 os.environ.setdefault("PAYMENTS_MODE", "simulated")
 os.environ.setdefault("EMAIL_OUTBOX_WORKER", "0")
+# Tests never send email: no SMTP server is configured, even if the developer's own
+# backend/.env has one (the environment wins over that file).
+os.environ["SMTP_HOST"] = ""
+os.environ["SMTP_USER"] = ""
+os.environ["SMTP_PASSWORD"] = ""
+os.environ["EMAIL_SENDER"] = ""
+# Tests ask the provider every time; the throttle has its own tests.
+os.environ.setdefault("PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS", "0")
+
+import smtplib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -41,6 +51,21 @@ def build_test_engine():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+
+@pytest.fixture(autouse=True)
+def no_smtp_connection(monkeypatch):
+    """A tripwire: no test may open a connection to an SMTP server.
+
+    The tests of the SMTP sender replace these two with their own fakes (their
+    ``monkeypatch.setattr`` runs after this one), so only a real attempt trips it.
+    """
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("a test tried to connect to an SMTP server")
+
+    monkeypatch.setattr(smtplib, "SMTP", refuse)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", refuse)
 
 
 @pytest.fixture

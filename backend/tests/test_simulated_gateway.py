@@ -58,6 +58,58 @@ def test_simulated_gateway_stays_pending_by_default():
     )
 
 
+def test_simulator_expires_the_payment_like_the_real_provider():
+    """A payment that never ended would hold its seat for ever."""
+    clock = Clock()
+    gateway = SimulatedMBWayGateway(expire_after_seconds=240, now=clock)
+    payment = gateway.create_payment(
+        reference="ENEI-0000000001",
+        amount_cents=5000,
+        phone="912345678",
+        email="ana@example.com",
+    )
+
+    def status() -> TransactionStatus:
+        return gateway.get_status(
+            reference="ENEI-0000000001", provider_reference=payment.provider_reference
+        )
+
+    clock.advance(239)
+    assert status() is TransactionStatus.PENDING
+    clock.advance(1)
+    assert status() is TransactionStatus.EXPIRED
+
+
+def test_simulator_confirms_before_it_expires_when_the_delay_is_shorter():
+    clock = Clock()
+    gateway = SimulatedMBWayGateway(
+        confirm_after_seconds=5, expire_after_seconds=240, now=clock
+    )
+    payment = gateway.create_payment(
+        reference="ENEI-0000000001",
+        amount_cents=5000,
+        phone="912345678",
+        email="ana@example.com",
+    )
+    clock.advance(10)
+
+    assert (
+        gateway.get_status(
+            reference="ENEI-0000000001", provider_reference=payment.provider_reference
+        )
+        is TransactionStatus.CONFIRMED
+    )
+
+
+def test_simulated_mode_builds_a_simulator_that_expires_with_the_payment_window(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
+    gateway = get_mbway_gateway()
+
+    assert gateway.expire_after_seconds == settings.MBWAY_PAYMENT_TIMEOUT_SECONDS
+
+
 def test_confirming_simulator_waits_the_configured_delay():
     clock = Clock()
     gateway = SimulatedMBWayGateway(confirm_after_seconds=5, now=clock)
