@@ -7,6 +7,8 @@ os.environ.setdefault(
 )
 os.environ.setdefault("PAYMENTS_MODE", "simulated")
 os.environ.setdefault("EMAIL_OUTBOX_WORKER", "0")
+# Tests ask the provider every time; the throttle has its own tests.
+os.environ.setdefault("PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS", "0")
 
 import pytest
 from fastapi.testclient import TestClient

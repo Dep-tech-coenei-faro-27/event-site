@@ -27,7 +27,7 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 
 ### `POST /api/payment/initiate`
 
-Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bilhete é reservado durante alguns minutos (por omissão 4, `MBWAY_PAYMENT_TIMEOUT_SECONDS`); se o pagamento não for confirmado nesse tempo, a transação expira e o lugar volta a ficar livre.
+Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O lugar fica reservado enquanto o pagamento espera**, como numa loja: a pessoa tem alguns minutos para aprovar (por omissão 4, `MBWAY_PAYMENT_TIMEOUT_SECONDS`, que é o `expires_at`), mas o lugar só se liberta quando o MB WAY diz que o pagamento terminou (pago, recusado ou expirado), não quando o prazo passa. Para a pessoa seguinte, os lugares reservados contam como ocupados: com 2 bilhetes e 2 pessoas no checkout, a terceira recebe `409` «esgotado». Quando uma modalidade parece esgotada, o backend pergunta primeiro ao MB WAY pelos pagamentos com o prazo já ultrapassado (os abandonados) e liberta os que já terminaram. Se a pessoa já tem um pagamento anterior à espera, o novo pedido pergunta ao MB WAY por ele antes de decidir.
 
 | | |
 | --- | --- |
@@ -39,7 +39,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. O bi
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |
-| `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando expira, falha ou é recusado) |
+| `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
 | `422` | corpo inválido (telemóvel, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
@@ -73,7 +73,7 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 | `403` | email por verificar |
 | `404` | referência inexistente ou de outro utilizador |
 
-Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Só quando o fornecedor ainda responde `pending` é que o prazo local decide: se já tiver passado, a chamada devolve (e grava) o estado `expired`. Se o fornecedor estiver temporariamente inacessível, a API mantém o estado atual para o *polling* não falhar.
+Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Se o fornecedor ainda responde `pending`, ou está inacessível, a transação **continua `pending` e com o lugar reservado, mesmo depois do prazo** (`expires_at`): só o MB WAY pode terminar um pagamento. O frontend deve tratar `pending` depois de `expires_at` como «ainda a confirmar» e não como erro. O backend pergunta ao MB WAY **no máximo uma vez por pagamento a cada 5 segundos** (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`); entre duas perguntas devolve o estado guardado. Por isso o polling de 2 em 2 segundos é seguro, mas um pagamento pago só aparece como `confirmed` até 5 segundos depois se o callback não chegar (o callback confirma logo). Na prática o MB WAY dá o pagamento por expirado ao fim dos 4 minutos. Há uma exceção: se o MB WAY **não consegue dizer** (responde algo que não se lê, ou nunca guardámos a referência dele), o pagamento dá-se por expirado `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` (30 minutos) depois do prazo, com um erro no log, para não prender o lugar para sempre. Um MB WAY inacessível ou que responde «à espera» nunca provoca isto.
 
 ### `GET /api/payment/callback`
 
@@ -95,7 +95,7 @@ O parâmetro `requestId` (ou `tid`) que a ifthenpay também envia é aceite mas 
 | `404` | referência desconhecida |
 | `429` | mais de 60 pedidos por minuto do mesmo IP (`RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE`) |
 
-O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. A ifthenpay só chama o callback quando o dinheiro foi pago, por isso o callback confirma a transação e emite o bilhete, também quando ela chega depois do prazo ou até depois de a transação ter ficado `failed` ou `expired` localmente (um pagamento tardio), **se ainda houver lugar**; fica um aviso (`Late MB WAY payment`) nos logs. Há duas exceções, em que o bilhete **não** se emite e a transação passa a `refund_due` (o log regista um erro `needs a refund`, ver `deploy.md`, «Pagamentos a reembolsar»; o callback responde `200` na mesma, para a ifthenpay parar de repetir): a pessoa **já tem um bilhete** de outro pagamento (um bilhete por pessoa), ou o pagamento chegou depois de o lugar ter sido libertado e a modalidade **esgotou** entretanto (não se vende o que não há). Um `refund_due` não volta a ser reavaliado por callbacks repetidos. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado, estado e bilhete na mesma operação. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
+O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. A ifthenpay só chama o callback quando o dinheiro foi pago, por isso o callback confirma a transação e emite o bilhete, também depois do prazo (o lugar continua reservado) e até se a transação tiver sido marcada `failed` ou `expired`, **se ainda houver lugar**. Como o lugar está reservado e uma pessoa só pode ter um pagamento à espera, o caso contrário não devia acontecer; se acontecer (um pagamento dado por terminado que afinal foi pago, com a modalidade esgotada entretanto, ou uma pessoa que já tem bilhete), o bilhete **não** se emite: a transação passa a `refund_due`, o log regista um erro `needs a refund` (ver `deploy.md`, «Pagamentos a reembolsar») e o callback responde `200` na mesma, para a ifthenpay parar de repetir. Um `refund_due` não volta a ser reavaliado. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado, tudo na mesma operação. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
 
 A chave anti-phishing transita no *query string* do pedido; o backend remove-a dos logs de acesso do uvicorn e o nginx já esconde o caminho `/api/payment/callback`.
 
@@ -106,10 +106,10 @@ A chave anti-phishing transita no *query string* do pedido; o backend remove-a d
 | `pending` | à espera que o utilizador confirme no MB WAY (ou a ser confirmado) |
 | `confirmed` | pago |
 | `failed` | o gateway recusou ou falhou |
-| `expired` | passou o prazo sem confirmação |
-| `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou): vai ser reembolsado. Não ocupa stock |
+| `expired` | o MB WAY deu o pagamento por terminado sem ser pago (normalmente aos 4 minutos) |
+| `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado): vai ser reembolsado. Não ocupa stock. Não devia acontecer |
 
-`failed` e `expired` não são definitivos: se o dinheiro chegar depois, o callback confirma a transação e emite o bilhete (havendo lugar). Por isso, quando o polling devolve `expired` ou `failed`, antes de dizer à pessoa para tentar outra vez o frontend deve consultar `GET /api/users/me` (se `qr_code` já não for `null`, mostra o bilhete). Se mesmo assim tentar pagar outra vez, o `POST /payment/initiate` responde `409` («já tens bilhete») e a pessoa é levada ao bilhete. Com `refund_due`, mostra-se: «Recebemos o teu pagamento, mas já não há bilhetes (ou já tens um). Vamos reembolsar-te» e o contacto da organização.
+`failed` e `expired` quase nunca mudam, mas se o dinheiro chegar depois o callback confirma a transação e emite o bilhete (havendo lugar). Por isso, quando o polling devolve `expired` ou `failed`, antes de dizer à pessoa para tentar outra vez o frontend deve consultar `GET /api/users/me` (se `qr_code` já não for `null`, mostra o bilhete). Se mesmo assim tentar pagar outra vez, o `POST /payment/initiate` responde `409` («já tens bilhete») e a pessoa é levada ao bilhete. Com `refund_due`, mostra-se: «Recebemos o teu pagamento, mas já não há bilhetes (ou já tens um). Vamos reembolsar-te» e o contacto da organização.
 
 Fluxo típico no frontend:
 
@@ -137,9 +137,9 @@ O pagamento não depende do browser: depois de `POST /payment/initiate` o pedido
 | Situação | O que acontece | O que o frontend faz |
 | --- | --- | --- |
 | Fecha o browser e **aprova** no MB WAY | O ifthenpay chama o callback, a transação passa a `confirmed` e o bilhete é emitido, tenha ou não o site aberto. | Ao voltar a entrar, `GET /api/users/me` devolve o `qr_code` (deixa de ser `null`): mostrar o bilhete. |
-| Fecha o browser e **não aprova** | A transação continua `pending` até passar o prazo (4 minutos); a primeira consulta depois disso devolve (e grava) `expired`. | Pode comprar outra vez. |
-| Volta antes de o prazo acabar e tenta comprar outra vez | `POST /payment/initiate` responde `409` com `You already have a ticket or a payment in progress`: o pagamento em curso conta como a compra dessa pessoa até confirmar, falhar ou expirar. | Ir para o ecrã de espera com a referência guardada (ver abaixo); se não houver referência, mostrar «Tens um pagamento em curso, tenta daqui a uns minutos» e consultar `/users/me`. |
-| Aprova depois de a transação já estar `expired` ou `failed` | O callback confirma-a e emite o bilhete **se ainda houver lugar**. Se a modalidade esgotou, ou a pessoa já tem um bilhete, fica `refund_due` e é reembolsada. O ifthenpay não deixa aprovar depois dos 4 minutos, por isso é raro. | Quem consulta a transação antiga vê `confirmed` (e o bilhete em `/users/me`) ou `refund_due`. |
+| Fecha o browser e **não aprova** | A transação continua `pending` e o lugar reservado até o MB WAY a dar por terminada (normalmente ao fim dos 4 minutos). A próxima consulta, um novo pedido de compra da pessoa, ou o pedido de outra pessoa quando a modalidade parece esgotada, pergunta ao MB WAY e grava `expired`. | Pode comprar outra vez depois disso. |
+| Volta e tenta comprar outra vez enquanto o pagamento anterior ainda espera | `POST /payment/initiate` pergunta ao MB WAY pelo pagamento anterior; se ele ainda espera, responde `409` com `You already have a ticket or a payment in progress`; se já terminou como pago, o `409` é por já ter bilhete; se terminou sem pagar, o novo pedido é aceite. | Ir para o ecrã de espera com a referência guardada (ver abaixo); se não houver referência, mostrar «Tens um pagamento em curso, tenta daqui a uns minutos» e consultar `/users/me`. |
+| Aprova depois de a transação já estar `expired` ou `failed` | Não devia acontecer (o MB WAY não deixa aprovar depois de terminar). Se acontecer, o callback confirma-a e emite o bilhete **se ainda houver lugar**; se não, ou se a pessoa já tem bilhete, fica `refund_due` e é reembolsada. | Quem consulta a transação antiga vê `confirmed` (e o bilhete em `/users/me`) ou `refund_due`. |
 
 Hoje não existe um endpoint que devolva a referência do pagamento em curso. Até haver (está planeado), o frontend deve **guardar a `reference` no `sessionStorage`** logo que recebe o `201` e, ao abrir o ecrã de espera, consultar `GET /payment/transactions/{reference}` com ela. Sem a referência (outro dispositivo, armazenamento limpo), resta o `409` acima e esperar que o prazo passe.
 
@@ -182,7 +182,9 @@ make set-price tier=geral price=3500
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
 | `MBWAY_CALLBACK_KEY` | vazio | chave anti-phishing do callback da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
-| `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | validade do pagamento pendente (4 minutos) |
+| `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | prazo para a pessoa aprovar o pagamento (4 minutos). É o `expires_at`; não é o momento em que o lugar se liberta. No modo `simulated` é também quando o simulador dá o pagamento por expirado |
+| `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` | `1800` | quanto tempo depois do prazo um pagamento que o MB WAY não consegue resolver (resposta ilegível ou sem referência) mantém o lugar antes de ser dado por expirado |
+| `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS` | `5` | no máximo uma pergunta ao MB WAY por pagamento neste intervalo (0 = sempre). A memória é por processo; o backend corre um |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |
