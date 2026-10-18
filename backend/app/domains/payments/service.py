@@ -22,7 +22,11 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
-from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.payments.schemas import (
+    PaymentInitiateRequest,
+    TicketTierRead,
+    TransactionRead,
+)
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import (
     PaymentNotConfirmedError,
@@ -611,6 +615,96 @@ def get_transaction(
         _sync_provider_status(db, transaction, gateway)
 
     return transaction
+
+
+def account_payment_overview(db: Session, user: User) -> dict:
+    """What the account page needs to know about the person's purchase.
+
+    The active ticket (with its modality), the payment that is waiting, and a payment
+    that arrived without a ticket and will be refunded. Each is ``None`` if absent.
+    """
+    ticket = db.execute(
+        select(Ticket, TicketTierPrice)
+        .join(Transaction, Transaction.reference == Ticket.transaction_reference)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Ticket.user_id == user.id,
+            Ticket.payment_status == PaymentStatus.PAID,
+        )
+        .order_by(Ticket.id.desc())
+        .limit(1)
+    ).first()
+    waiting = db.execute(
+        select(Transaction, TicketTierPrice)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    ).first()
+    refund = db.scalar(
+        select(Transaction)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.REFUND_DUE,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    )
+    return {
+        "ticket": None
+        if ticket is None
+        else {
+            "reference": ticket[0].transaction_reference,
+            "tier": ticket[1].tier.value,
+            "tier_name": ticket[1].name,
+            "holder_name": user.name,
+            "paid_at": ticket[0].paid_at,
+        },
+        "pending_payment": None
+        if waiting is None
+        else {
+            "reference": waiting[0].reference,
+            "tier": waiting[1].tier.value,
+            "tier_name": waiting[1].name,
+            "amount_cents": waiting[0].amount_cents,
+            "expires_at": waiting[0].expires_at,
+        },
+        "refund_due": None
+        if refund is None
+        else {"reference": refund.reference, "amount_cents": refund.amount_cents},
+    }
+
+
+def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
+    """The modalities with their price and whether each can be bought right now.
+
+    ``sale_open`` is false while payments are off or the modality has no price.
+    ``available`` is also false when every seat is taken or reserved for a payment
+    that is waiting. Read-only: it does not ask the provider about anything.
+    """
+    order = {tier: index for index, tier in enumerate(TicketTier)}
+    rows = sorted(db.scalars(select(TicketTierPrice)), key=lambda r: order[r.tier])
+    payments_on = settings.PAYMENTS_MODE != "off"
+    result = []
+    for row in rows:
+        sale_open = payments_on and row.price_cents is not None
+        has_room = row.inventory_limit is None or (
+            row.inventory_limit - _reserved_quantity(db, row) >= 1
+        )
+        result.append(
+            TicketTierRead(
+                tier=row.tier,
+                name=row.name,
+                price_cents=row.price_cents,
+                is_student=row.is_student,
+                sale_open=sale_open,
+                available=sale_open and has_room,
+            )
+        )
+    return result
 
 
 def ticket_tier_of(db: Session, transaction: Transaction) -> TicketTier:
