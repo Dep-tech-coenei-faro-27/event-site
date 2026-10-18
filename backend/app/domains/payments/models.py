@@ -26,12 +26,18 @@ class TicketTier(StrEnum):
 
 
 class TransactionStatus(StrEnum):
-    """Lifecycle of a payment. Pending ones expire after the MB WAY window."""
+    """Lifecycle of a payment. Pending ones expire after the MB WAY window.
+
+    ``refund_due`` is a payment that arrived but cannot get a ticket (the modality
+    sold out meanwhile, or the person already has a ticket): the money goes back by
+    hand. It holds no stock.
+    """
 
     PENDING = "pending"
     CONFIRMED = "confirmed"
     FAILED = "failed"
     EXPIRED = "expired"
+    REFUND_DUE = "refund_due"
 
 
 class TicketTierPrice(Base):

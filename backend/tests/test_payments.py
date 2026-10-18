@@ -795,3 +795,55 @@ def test_other_people_are_not_blocked_by_someone_elses_payment(
     authenticate(auth_client, email_sender, db_session, email="rui@example.com")
 
     assert _initiate(auth_client).status_code == 201
+
+
+def test_a_refund_due_transaction_is_stored_and_read_by_its_owner(
+    auth_client, email_sender, db_session, gateway
+):
+    """The new status exists in the database constraint and in the API."""
+    user = authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    db_session.add(
+        Transaction(
+            reference="ENEI-REFUND0001",
+            user_id=user.id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.REFUND_DUE,
+            phone="910000000",
+            provider="fake",
+            expires_at=datetime.now(UTC) - timedelta(minutes=10),
+        )
+    )
+    db_session.commit()
+
+    response = auth_client.get(transaction_url("ENEI-REFUND0001"))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "refund_due"
+    assert gateway.status_calls == []  # a finished payment is not asked about again
+
+
+def test_a_refund_due_payment_holds_no_stock(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    tickets[TicketTier.GERAL].inventory_limit = 1
+    db_session.add(
+        Transaction(
+            reference="ENEI-REFUND0001",
+            user_id=user.id,
+            ticket_tier_id=tickets[TicketTier.GERAL].id,
+            amount_cents=5000,
+            quantity=1,
+            status=TransactionStatus.REFUND_DUE,
+            phone="910000000",
+            provider="fake",
+            expires_at=datetime.now(UTC) - timedelta(minutes=10),
+        )
+    )
+    db_session.commit()
+
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201

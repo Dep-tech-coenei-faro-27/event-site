@@ -165,6 +165,21 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
   `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
+## Pagamentos a reembolsar
+
+Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um (pagou duas vezes, por exemplo) ou a modalidade esgotou antes de o pagamento chegar. Não ocupa stock. O backend regista um erro `Payment ENEI-... needs a refund` e estes pagamentos têm de ser reembolsados à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
+
+```bash
+$COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SELECT t.reference, t.user_id, t.amount_cents, t.confirmed_at
+FROM transactions t
+WHERE t.status = 'refund_due'
+ORDER BY t.confirmed_at;
+SQL
+```
+
+Depois do reembolso a pessoa é avisada por fora do sistema.
+
 ## Promover o Primeiro Administrador
 
 Como o sistema não possui uma rota nativa de criação de administradores de raiz, a promoção da primeira conta é feita de

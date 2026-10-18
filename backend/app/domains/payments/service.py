@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -17,7 +18,10 @@ from app.domains.payments.models import (
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
 from app.domains.tickets.models import PaymentStatus, Ticket
-from app.domains.tickets.service import issue_ticket_for_paid_transaction
+from app.domains.tickets.service import (
+    PaymentNotConfirmedError,
+    issue_ticket_for_paid_transaction,
+)
 from app.domains.users.models import StudentVerificationStatus, User
 
 logger = logging.getLogger(__name__)
@@ -144,6 +148,22 @@ def _refuse_if_user_already_buying(db: Session, user: User, now: datetime) -> No
         )
 
 
+def _settle_pending(
+    db: Session, transaction: Transaction, status: TransactionStatus
+) -> None:
+    """Move a pending transaction to ``failed`` or ``expired``.
+
+    The row is locked and read again first: a callback may have confirmed the
+    payment while we were talking to the provider, and a confirmed payment must
+    never be overwritten by a stale ``expired`` or ``failed``.
+    """
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status is TransactionStatus.PENDING:
+        transaction.status = status
+    db.commit()
+    db.refresh(transaction)
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -214,8 +234,7 @@ def initiate_payment(
             email=payload.email or user.email,
         )
     except PaymentGatewayError:
-        transaction.status = TransactionStatus.FAILED
-        db.commit()
+        _settle_pending(db, transaction, TransactionStatus.FAILED)
         raise
 
     transaction.provider_reference = payment.provider_reference
@@ -231,16 +250,49 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     callback and the status poll go through here, so the ticket is issued no
     matter how the confirmation arrives. Idempotent: a repeated call returns the
     same transaction and never duplicates the ticket.
+
+    The transaction row stays locked until the ticket is committed, so two
+    confirmations of the same payment (poll and poll, or poll and callback) run one
+    after the other. The status and the ticket are saved together, so a failure
+    cannot leave a confirmed payment without its ticket.
     """
+    db.refresh(transaction, with_for_update=True)
     if transaction.status is not TransactionStatus.CONFIRMED:
         transaction.status = TransactionStatus.CONFIRMED
         transaction.confirmed_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(transaction)
 
-    issue_ticket_for_paid_transaction(
-        db, user_id=transaction.user_id, transaction_reference=transaction.reference
-    )
+    try:
+        issue_ticket_for_paid_transaction(
+            db,
+            user_id=transaction.user_id,
+            transaction_reference=transaction.reference,
+        )
+    except IntegrityError:
+        # Lost a race on the ticket: if this very payment already has its ticket,
+        # someone else confirmed it a moment ago and there is nothing left to do.
+        db.rollback()
+        db.refresh(transaction)
+        issued = db.scalar(
+            select(Ticket.id).where(
+                Ticket.transaction_reference == transaction.reference
+            )
+        )
+        if issued is not None:
+            return transaction
+        raise
+    except PaymentNotConfirmedError:
+        # The ticket of this payment was cancelled (a refund). A repeated callback
+        # must not bring it back, and ifthenpay must stop retrying.
+        db.commit()
+        logger.warning(
+            "Payment %s confirmed again but its ticket is cancelled; left as is",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+        return transaction
+    # Saves the status when the ticket already existed and nothing else committed.
+    db.commit()
+    db.refresh(transaction)
     return transaction
 
 
@@ -283,9 +335,7 @@ def _sync_provider_status(
         confirm_transaction(db, transaction)
         return
 
-    transaction.status = provider_status
-    db.commit()
-    db.refresh(transaction)
+    _settle_pending(db, transaction, provider_status)
 
 
 def handle_payment_callback(
