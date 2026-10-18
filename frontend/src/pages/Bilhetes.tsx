@@ -216,7 +216,7 @@ export default function Bilhetes() {
                     classNameLead={leadClass}
                 />
                 <div className="min-[701px]:relative min-[701px]:left-1/2 min-[701px]:w-[min(1440px,calc(100vw-40px))] min-[701px]:-translate-x-1/2">
-                    <div className="grid auto-rows-fr grid-cols-1 items-stretch gap-[18px] min-[621px]:grid-cols-2 min-[701px]:grid-cols-4">
+                    <div className="grid auto-rows-fr grid-cols-[minmax(0,400px)] items-stretch justify-center gap-[18px] min-[621px]:grid-cols-[repeat(2,minmax(0,400px))] min-[1080px]:grid-cols-4">
                         {tickets.map((ticket) => (
                             <TicketCard key={ticket.title} {...ticket} />
                         ))}
