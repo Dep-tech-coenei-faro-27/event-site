@@ -402,6 +402,7 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
             db,
             user_id=transaction.user_id,
             transaction_reference=transaction.reference,
+            ticket_tier=ticket_tier_of(db, transaction),
         )
     except IntegrityError:
         # Lost a race: either the same payment was confirmed by someone else in
@@ -442,7 +443,11 @@ def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -
 
     The dedupe key makes a repeated callback or poll a no-op, and a failure to
     queue raises so ifthenpay retries the callback and the email is queued then.
+    The ticket row is locked first: the transaction lock is gone once the ticket is
+    committed, and two confirmations of the same payment must not both try to queue
+    the email at once.
     """
+    db.scalar(select(Ticket.id).where(Ticket.id == ticket.id).with_for_update())
     user = db.get(User, transaction.user_id)
     tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
     enqueue_email(

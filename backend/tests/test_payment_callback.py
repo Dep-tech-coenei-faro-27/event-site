@@ -629,3 +629,27 @@ def test_confirmed_payment_queues_the_ticket_email_with_the_qr_once(
     assert "Passe geral" in email.html_body
     png = base64.b64decode(email.inline_images[TICKET_QR_CID])
     assert png.startswith(b"\x89PNG")
+
+
+def test_issued_ticket_keeps_the_modality_transaction_and_holder(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+
+    auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    assert ticket.ticket_tier == TicketTier.GERAL
+    assert ticket.user_id == transaction.user_id

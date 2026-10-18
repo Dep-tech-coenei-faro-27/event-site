@@ -14,6 +14,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.domains.payments.models import TicketTier
 
 
 class PaymentStatus(StrEnum):
@@ -46,6 +47,19 @@ class Ticket(Base):
     )
     transaction_reference: Mapped[str] = mapped_column(
         String(100), unique=True, index=True, nullable=False
+    )
+    # The modality bought, as a value and not a foreign key: inserting a ticket must
+    # not lock the modality row that a late payment locks to check the stock.
+    ticket_tier: Mapped[TicketTier | None] = mapped_column(
+        SAEnum(
+            TicketTier,
+            name="ck_tickets_ticket_tier",
+            native_enum=False,
+            create_constraint=True,
+            values_callable=lambda enum: [member.value for member in enum],
+            length=20,
+        ),
+        nullable=True,
     )
     payment_status: Mapped[PaymentStatus] = mapped_column(
         SAEnum(

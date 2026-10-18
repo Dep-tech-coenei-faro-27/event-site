@@ -4,6 +4,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.core.qr import generate_qr_payload
+from app.domains.payments.models import TicketTier
 from app.domains.tickets.models import PaymentStatus, Ticket
 
 
@@ -59,10 +60,11 @@ def confirm_ticket_payment_and_issue_qr(db: Session, ticket_id: int) -> Ticket:
 
 
 def issue_ticket_for_paid_transaction(
-    db: Session, *, user_id: int, transaction_reference: str
+    db: Session, *, user_id: int, transaction_reference: str, ticket_tier: TicketTier
 ) -> Ticket:
     """Issue the ticket for a paid transaction and sign its unique QR payload.
 
+    The ticket keeps its holder (``user_id``), the transaction and the modality.
     Idempotent by ``transaction_reference``: re-issuing for the same reference
     returns the existing ticket and never overwrites an already signed QR, so a
     repeated payment callback cannot duplicate a ticket.
@@ -76,6 +78,7 @@ def issue_ticket_for_paid_transaction(
         ticket = Ticket(
             user_id=user_id,
             transaction_reference=transaction_reference,
+            ticket_tier=ticket_tier,
             payment_status=PaymentStatus.PAID,
             paid_at=datetime.now(UTC),
         )
@@ -86,6 +89,7 @@ def issue_ticket_for_paid_transaction(
     elif ticket.payment_status == PaymentStatus.PAID and ticket.qr_payload:
         return ticket
 
+    ticket.ticket_tier = ticket.ticket_tier or ticket_tier
     ticket.payment_status = PaymentStatus.PAID
     ticket.paid_at = ticket.paid_at or datetime.now(UTC)
     ticket.qr_payload = generate_qr_payload(ticket.id)
