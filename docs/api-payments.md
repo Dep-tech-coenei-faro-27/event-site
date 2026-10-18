@@ -95,7 +95,7 @@ O parâmetro `requestId` (ou `tid`) que a ifthenpay também envia é aceite mas 
 | `404` | referência desconhecida |
 | `429` | mais de 60 pedidos por minuto do mesmo IP (`RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE`) |
 
-O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. Só confirma transações ainda `pending`: se a transação já estiver `failed` ou `expired`, responde `200` (para a ifthenpay parar de repetir) mas **não** altera o estado nem emite bilhete — deixa um aviso com a referência nos logs para tratamento manual. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
+O callback é **idempotente**: confirmar a mesma referência duas vezes devolve `200` nas duas, sem duplicar o bilhete. A ifthenpay só chama o callback quando o dinheiro foi pago, por isso o callback confirma a transação e emite o bilhete, também quando ela chega depois do prazo ou até depois de a transação ter ficado `failed` ou `expired` localmente (um pagamento tardio), **se ainda houver lugar**; fica um aviso (`Late MB WAY payment`) nos logs. Há duas exceções, em que o bilhete **não** se emite e a transação passa a `refund_due` (o log regista um erro `needs a refund`, ver `deploy.md`, «Pagamentos a reembolsar»; o callback responde `200` na mesma, para a ifthenpay parar de repetir): a pessoa **já tem um bilhete** de outro pagamento (um bilhete por pessoa), ou o pagamento chegou depois de o lugar ter sido libertado e a modalidade **esgotou** entretanto (não se vende o que não há). Um `refund_due` não volta a ser reavaliado por callbacks repetidos. Ao confirmar, o backend marca a transação como `confirmed` e emite o bilhete com o QR assinado, estado e bilhete na mesma operação. A ifthenpay repete a chamada até receber `200`, por isso qualquer outro código é tratado como falha e volta a ser tentado.
 
 A chave anti-phishing transita no *query string* do pedido; o backend remove-a dos logs de acesso do uvicorn e o nginx já esconde o caminho `/api/payment/callback`.
 
@@ -108,6 +108,8 @@ A chave anti-phishing transita no *query string* do pedido; o backend remove-a d
 | `failed` | o gateway recusou ou falhou |
 | `expired` | passou o prazo sem confirmação |
 | `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou): vai ser reembolsado. Não ocupa stock |
+
+`failed` e `expired` não são definitivos: se o dinheiro chegar depois, o callback confirma a transação e emite o bilhete (havendo lugar). Por isso, quando o polling devolve `expired` ou `failed`, antes de dizer à pessoa para tentar outra vez o frontend deve consultar `GET /api/users/me` (se `qr_code` já não for `null`, mostra o bilhete). Se mesmo assim tentar pagar outra vez, o `POST /payment/initiate` responde `409` («já tens bilhete») e a pessoa é levada ao bilhete. Com `refund_due`, mostra-se: «Recebemos o teu pagamento, mas já não há bilhetes (ou já tens um). Vamos reembolsar-te» e o contacto da organização.
 
 Fluxo típico no frontend:
 
@@ -137,7 +139,7 @@ O pagamento não depende do browser: depois de `POST /payment/initiate` o pedido
 | Fecha o browser e **aprova** no MB WAY | O ifthenpay chama o callback, a transação passa a `confirmed` e o bilhete é emitido, tenha ou não o site aberto. | Ao voltar a entrar, `GET /api/users/me` devolve o `qr_code` (deixa de ser `null`): mostrar o bilhete. |
 | Fecha o browser e **não aprova** | A transação continua `pending` até passar o prazo (4 minutos); a primeira consulta depois disso devolve (e grava) `expired`. | Pode comprar outra vez. |
 | Volta antes de o prazo acabar e tenta comprar outra vez | `POST /payment/initiate` responde `409` com `You already have a ticket or a payment in progress`: o pagamento em curso conta como a compra dessa pessoa até confirmar, falhar ou expirar. | Ir para o ecrã de espera com a referência guardada (ver abaixo); se não houver referência, mostrar «Tens um pagamento em curso, tenta daqui a uns minutos» e consultar `/users/me`. |
-| Aprova depois de a transação já estar `expired` ou `failed` | O callback responde `200` mas **não** emite bilhete (fica um aviso nos logs para tratamento manual, normalmente reembolso). O ifthenpay não deixa aprovar depois dos 4 minutos, por isso é raro. | — |
+| Aprova depois de a transação já estar `expired` ou `failed` | O callback confirma-a e emite o bilhete **se ainda houver lugar**. Se a modalidade esgotou, ou a pessoa já tem um bilhete, fica `refund_due` e é reembolsada. O ifthenpay não deixa aprovar depois dos 4 minutos, por isso é raro. | Quem consulta a transação antiga vê `confirmed` (e o bilhete em `/users/me`) ou `refund_due`. |
 
 Hoje não existe um endpoint que devolva a referência do pagamento em curso. Até haver (está planeado), o frontend deve **guardar a `reference` no `sessionStorage`** logo que recebe o `201` e, ao abrir o ecrã de espera, consultar `GET /payment/transactions/{reference}` com ela. Sem a referência (outro dispositivo, armazenamento limpo), resta o `409` acima e esperar que o prazo passe.
 
