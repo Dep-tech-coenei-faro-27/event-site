@@ -1,8 +1,11 @@
 import base64
 import hashlib
 import hmac
+import io
 import secrets
 from dataclasses import dataclass
+
+import segno
 
 import app.core.config as config
 
@@ -71,3 +74,10 @@ def verify_qr_payload(payload: str) -> VerifiedQRPayload:
         nonce=nonce,
         raw_payload=payload.strip(),
     )
+
+
+def render_qr_png(payload: str) -> bytes:
+    """Render a QR payload as a black and white PNG for the ticket email."""
+    buffer = io.BytesIO()
+    segno.make(payload, error="m").save(buffer, kind="png", scale=8, border=4)
+    return buffer.getvalue()

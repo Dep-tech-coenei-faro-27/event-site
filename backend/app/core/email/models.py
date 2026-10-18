@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, DateTime, Integer, String, Text, func
+from sqlalchemy import JSON, CheckConstraint, DateTime, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -28,6 +28,8 @@ class EmailOutbox(Base):
     subject: Mapped[str] = mapped_column(String(255))
     # Emptied once the email is sent: it can hold links that sign someone in.
     html_body: Mapped[str] = mapped_column(Text)
+    # Content-ID -> base64 PNG shown inline (the ticket QR). Emptied once sent too.
+    inline_images: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
     # An optional key that stops the same email being queued twice.
     dedupe_key: Mapped[str | None] = mapped_column(
         String(100), unique=True, nullable=True

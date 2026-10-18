@@ -4,6 +4,8 @@ from html import escape
 VERIFICATION_EMAIL_SUBJECT = "Confirma o teu email"
 PASSWORD_RESET_SUBJECT = "Recuperação de Password"
 PASSWORD_CHANGED_SUBJECT = "A tua password foi alterada"
+TICKET_EMAIL_SUBJECT = "O teu bilhete para o ENEI 2027"
+TICKET_QR_CID = "ticket-qr"
 
 
 def build_verification_email_html(first_name: str, verify_url: str) -> str:
@@ -74,6 +76,34 @@ def build_password_changed_email_html(first_name: str) -> str:
         </p>
         <p style="margin:0;font-size:14px;line-height:1.6;color:#71717a;">
           Se foste tu, não precisas de fazer nada. Se não foste tu, usa a opção de recuperar a password no site para escolheres uma nova e fala connosco.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
+"""
+
+
+def build_ticket_email_html(first_name: str, tier_name: str, reference: str) -> str:
+    safe_name = escape(first_name)
+    safe_tier = escape(tier_name)
+    safe_reference = escape(reference)
+    return f"""\
+<html>
+  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
+        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
+        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3f3f46;">
+          O teu pagamento foi confirmado. Este é o teu bilhete <strong>{safe_tier}</strong>: mostra o código QR à entrada.
+        </p>
+        <div style="text-align:center;margin:0 0 24px;">
+          <img src="cid:{TICKET_QR_CID}" alt="Código QR do bilhete" width="240" height="240"
+               style="display:inline-block;width:240px;height:240px;" />
+        </div>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#71717a;">
+          Referência da compra: {safe_reference}<br />
+          O bilhete também está disponível na tua conta no site. Não partilhes este código: dá entrada a uma só pessoa.
         </p>
       </div>
     </div>

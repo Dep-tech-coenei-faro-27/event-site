@@ -1,9 +1,12 @@
+import base64
 import logging
 
 import pytest
 from sqlalchemy import func, select
 
 from app.core.config import settings
+from app.core.email.models import EmailOutbox
+from app.core.email.templates import TICKET_EMAIL_SUBJECT, TICKET_QR_CID
 from app.core.qr import verify_qr_payload
 from app.domains.payments.gateway import MBWayPayment, get_mbway_gateway
 from app.domains.payments.models import TicketTier, Transaction, TransactionStatus
@@ -344,3 +347,32 @@ def test_callback_is_public_and_needs_no_authentication(
     )
 
     assert response.status_code == 200
+
+
+def test_confirmed_payment_queues_the_ticket_email_with_the_qr_once(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    params = {
+        "key": callback_key,
+        "orderId": payment["reference"],
+        "amount": "50.00",
+    }
+
+    auth_client.get(CALLBACK_URL, params=params)
+    auth_client.get(CALLBACK_URL, params=params)
+
+    emails = db_session.scalars(
+        select(EmailOutbox).where(EmailOutbox.subject == TICKET_EMAIL_SUBJECT)
+    ).all()
+    assert len(emails) == 1
+    email = emails[0]
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    assert email.dedupe_key == f"ticket:{ticket.id}"
+    assert f"cid:{TICKET_QR_CID}" in email.html_body
+    assert payment["reference"] in email.html_body
+    assert "Passe geral" in email.html_body
+    png = base64.b64decode(email.inline_images[TICKET_QR_CID])
+    assert png.startswith(b"\x89PNG")

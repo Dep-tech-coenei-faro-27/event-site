@@ -8,6 +8,7 @@ outage. Delivery is at least once: a crash between sending and recording can sen
 the same email again.
 """
 
+import base64
 import logging
 import threading
 from collections.abc import Callable
@@ -50,6 +51,7 @@ def enqueue_email(
     subject: str,
     html_body: str,
     *,
+    inline_images: dict[str, bytes] | None = None,
     dedupe_key: str | None = None,
     now: datetime | None = None,
 ) -> EmailOutbox:
@@ -66,6 +68,7 @@ def enqueue_email(
         to_email=to_email,
         subject=subject[:255],
         html_body=html_body,
+        inline_images=_encode_images(inline_images),
         dedupe_key=dedupe_key,
         status=EmailStatus.PENDING,
         attempts=0,
@@ -85,6 +88,18 @@ def enqueue_email(
         return existing
     db.refresh(row)
     return row
+
+
+def _encode_images(images: dict[str, bytes] | None) -> dict[str, str] | None:
+    if not images:
+        return None
+    return {cid: base64.b64encode(png).decode("ascii") for cid, png in images.items()}
+
+
+def _decode_images(images: dict[str, str] | None) -> dict[str, bytes] | None:
+    if not images:
+        return None
+    return {cid: base64.b64decode(data) for cid, data in images.items()}
 
 
 def _scrub(message: str, to_email: str) -> str:
@@ -131,8 +146,12 @@ def deliver_due(
         if row is None:
             continue
         to_email, subject, html_body = row.to_email, row.subject, row.html_body
+        images = _decode_images(row.inline_images)
         try:
-            transport.send_html(to_email, subject, html_body)
+            if images:
+                transport.send_html(to_email, subject, html_body, images)
+            else:
+                transport.send_html(to_email, subject, html_body)
         except Exception as exc:
             row.attempts += 1
             row.locked_until = None
@@ -167,6 +186,7 @@ def deliver_due(
             row.last_error = None
             # The body can hold sign-in or verification links: do not keep it.
             row.html_body = ""
+            row.inline_images = None
             sent += 1
         db.commit()
     return DeliveryReport(claimed=len(ids), sent=sent, retried=retried, failed=failed)
@@ -280,10 +300,18 @@ class OutboxEmailSender(EmailSender):
         self._session_factory = session_factory
         self._wake = wake
 
-    def send_html(self, to_email: str, subject: str, html_body: str) -> None:
+    def send_html(
+        self,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        inline_images: dict[str, bytes] | None = None,
+    ) -> None:
         try:
             with self._session_factory() as db:
-                enqueue_email(db, to_email, subject, html_body)
+                enqueue_email(
+                    db, to_email, subject, html_body, inline_images=inline_images
+                )
         except Exception as exc:
             logger.error("Could not queue email %r: %s", subject, type(exc).__name__)
             raise EmailDeliveryError("could not queue the email") from exc

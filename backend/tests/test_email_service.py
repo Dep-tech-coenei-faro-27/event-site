@@ -283,3 +283,31 @@ def test_unknown_security_mode_is_rejected():
             from_email="from@example.com",
             security="plaintext-please",
         )
+
+
+def test_send_html_attaches_inline_images_as_related_parts(monkeypatch):
+    servers = []
+    monkeypatch.setattr(smtplib, "SMTP_SSL", _make_server(servers))
+    png = b"\x89PNG\r\n\x1a\nfake"
+
+    sender = SmtpEmailSender(
+        host="smtp.example.com",
+        port=465,
+        username="",
+        password="",
+        from_email="no-reply@example.com",
+    )
+    sender.send_html(
+        "to@example.com",
+        "Bilhete",
+        '<img src="cid:ticket-qr" />',
+        {"ticket-qr": png},
+    )
+
+    message = servers[0].sent_message
+    assert message.get_content_type() == "multipart/related"
+    html, image = list(message.iter_parts())
+    assert html.get_content_type() == "text/html"
+    assert image.get_content_type() == "image/png"
+    assert image["Content-ID"] == "<ticket-qr>"
+    assert image.get_content() == png

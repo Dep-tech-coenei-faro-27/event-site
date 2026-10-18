@@ -44,12 +44,20 @@ class SmtpEmailSender(EmailSender):
         self.start_tls = security == "starttls"
         self.tls_context = tls_context or ssl.create_default_context()
 
-    def send_html(self, to_email: str, subject: str, html_body: str) -> None:
+    def send_html(
+        self,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        inline_images: dict[str, bytes] | None = None,
+    ) -> None:
         message = EmailMessage()
         message["Subject"] = subject
         message["From"] = self.from_email
         message["To"] = to_email
         message.set_content(html_body, subtype="html")
+        for cid, png in (inline_images or {}).items():
+            message.add_related(png, maintype="image", subtype="png", cid=f"<{cid}>")
 
         try:
             if self.security == "ssl":

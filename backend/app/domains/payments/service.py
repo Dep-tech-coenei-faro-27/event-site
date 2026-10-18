@@ -8,6 +8,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email.outbox import enqueue_email
+from app.core.email.templates import (
+    TICKET_EMAIL_SUBJECT,
+    TICKET_QR_CID,
+    build_ticket_email_html,
+)
+from app.core.qr import render_qr_png
 from app.domains.payments.gateway import MBWayGateway, PaymentGatewayError
 from app.domains.payments.models import (
     TicketTier,
@@ -16,6 +23,7 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import PaymentInitiateRequest, TransactionRead
+from app.domains.payments.tiers import TIER_SPECS
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import issue_ticket_for_paid_transaction
 from app.domains.users.models import StudentVerificationStatus, User
@@ -238,10 +246,29 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
         db.commit()
         db.refresh(transaction)
 
-    issue_ticket_for_paid_transaction(
+    ticket = issue_ticket_for_paid_transaction(
         db, user_id=transaction.user_id, transaction_reference=transaction.reference
     )
+    _queue_ticket_email(db, transaction, ticket)
     return transaction
+
+
+def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -> None:
+    """Queue the email with the ticket QR, once per ticket.
+
+    The dedupe key makes a repeated callback or poll a no-op, and a failure to
+    queue raises so ifthenpay retries the callback and the email is queued then.
+    """
+    user = db.get(User, transaction.user_id)
+    tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
+    enqueue_email(
+        db,
+        user.email,
+        TICKET_EMAIL_SUBJECT,
+        build_ticket_email_html(user.name, tier_name, transaction.reference),
+        inline_images={TICKET_QR_CID: render_qr_png(ticket.qr_payload)},
+        dedupe_key=f"ticket:{ticket.id}",
+    )
 
 
 def _sync_provider_status(

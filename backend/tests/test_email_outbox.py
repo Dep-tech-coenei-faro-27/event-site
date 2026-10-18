@@ -452,3 +452,31 @@ def test_two_requests_with_the_same_dedupe_key_queue_one_email(db, test_engine):
 
     assert errors == []
     assert db.scalar(select(func.count()).select_from(EmailOutbox)) == 1
+
+
+class ImageTransport(EmailSender):
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, dict[str, bytes] | None]] = []
+
+    def send_html(self, to_email, subject, html_body, inline_images=None):
+        self.sent.append((to_email, inline_images))
+
+
+def test_inline_images_reach_the_transport_and_are_cleared_once_sent(db):
+    png = b"\x89PNG\r\n\x1a\nfake"
+    row = enqueue_email(
+        db,
+        "a@example.com",
+        "Bilhete",
+        '<img src="cid:ticket-qr" />',
+        inline_images={"ticket-qr": png},
+        now=NOW,
+    )
+    transport = ImageTransport()
+
+    deliver_due(db, transport, now=NOW)
+
+    assert transport.sent == [("a@example.com", {"ticket-qr": png})]
+    db.refresh(row)
+    assert row.status == EmailStatus.SENT
+    assert row.inline_images is None
