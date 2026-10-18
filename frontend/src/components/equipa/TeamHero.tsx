@@ -6,11 +6,13 @@ const IMG_W = 1920;
 const IMG_H = 1080;
 const VISIBLE = 0.8; // corta os 20% de baixo
 
+// `w-full max-w-full`: com `aspect-ratio` e `min-height`, a largura mínima deriva da altura
+// mínima (36rem × 1920/864 = 1280 px) e a página ganhava scroll horizontal entre 701 e 1279 px.
 export default function TeamHero() {
   return (
     <header
       style={{ "--hero-ratio": `${IMG_W} / ${IMG_H * VISIBLE}` } as React.CSSProperties}
-      className="relative isolate flex min-h-[30rem] items-end overflow-hidden bg-azul-base pb-10 pt-24 text-white md:min-h-[36rem] md:pb-28 md:[aspect-ratio:var(--hero-ratio)]"
+      className="relative isolate flex w-full max-w-full min-h-[30rem] items-end overflow-hidden bg-azul-base pb-10 pt-24 text-white md:min-h-[36rem] md:pb-28 md:[aspect-ratio:var(--hero-ratio)]"
     >
       {/* Imagem de fundo: largura total, ancorada ao topo */}
       <img
