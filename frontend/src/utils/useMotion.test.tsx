@@ -242,3 +242,74 @@ describe("useMotion com prefers-reduced-motion", () => {
     expect(reveal(pathway)).toBe(1);
   });
 });
+
+describe("useMotion nas restantes páginas (pela estrutura, sem classes do protótipo)", () => {
+  function Generic() {
+    return (
+      <main>
+        <section>
+          <div className="mx-auto">
+            <div className="heading">título</div>
+            <div className="grid grid-cols-3">
+              <article>a</article>
+              <article>b</article>
+              <article>c</article>
+              <img alt="" aria-hidden="true" className="deco-na-grelha pointer-events-none" />
+            </div>
+            <div className="flex flex-col">
+              <p>i1</p>
+              <p>i2</p>
+            </div>
+            <img alt="" aria-hidden="true" className="pointer-events-none opacity-[0.07]" />
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  function mountAt(path: string) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Layer />
+        <Generic />
+      </MemoryRouter>,
+    );
+  }
+
+  it("anima o bloco de título e cada item das grelhas e das listas, mas não as grelhas em si", () => {
+    stubEnvironment(false);
+    mountAt("/parcerias");
+    expect(document.querySelector(".heading")).toHaveAttribute("data-motion-item");
+    document.querySelectorAll("article, p").forEach((el) => expect(el).toHaveAttribute("data-motion-item"));
+    expect(document.querySelector(".grid")).not.toHaveAttribute("data-motion-item");
+    expect(document.querySelector(".flex-col")).not.toHaveAttribute("data-motion-item");
+  });
+
+  it("deixa em paz os elementos decorativos (a marca de água tem opacidade própria)", () => {
+    stubEnvironment(false);
+    mountAt("/conta");
+    document.querySelectorAll("img[aria-hidden]").forEach((img) => expect(img).not.toHaveAttribute("data-motion-item"));
+    expect(document.querySelectorAll("img[aria-hidden]")).toHaveLength(2);
+  });
+
+  it("não aplica estes grupos à página inicial (tem os seus próprios)", () => {
+    stubEnvironment(false);
+    mountAt("/");
+    expect(document.querySelectorAll("[data-motion-item]")).toHaveLength(0);
+  });
+
+  it("cada item revela-se com o scroll e reverte ao voltar atrás", () => {
+    stubEnvironment(false);
+    mountAt("/equipa");
+    const card = document.querySelector("article")!;
+    place(card, 1400);
+    scroll();
+    expect(reveal(card)).toBe(0);
+    place(card, 600);
+    scroll();
+    expect(reveal(card)).toBeGreaterThan(0);
+    place(card, 1400);
+    scroll();
+    expect(reveal(card)).toBe(0);
+  });
+});
