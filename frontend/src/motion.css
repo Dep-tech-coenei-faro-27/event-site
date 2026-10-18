@@ -51,6 +51,12 @@ body.motion-page-leave {
     border-color var(--motion-default) var(--motion-ease-out),
     box-shadow var(--motion-default) var(--motion-ease-out);
 }
+/* Botões da barra de topo na forma rectangular do desenho novo (sem tocar nas classes do Navbar). */
+.site-header a.rounded-full,
+.site-header button.rounded-full {
+  border-radius: 3px;
+}
+
 .site-header.motion-header--scrolled {
   border-bottom-color: rgba(var(--accent-rgb), 0.28);
 }

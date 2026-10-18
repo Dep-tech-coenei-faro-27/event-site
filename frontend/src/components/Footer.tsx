@@ -13,7 +13,7 @@ interface SocialLink {
 const socials: SocialLink[] = [
   {
     label: 'Instagram',
-    href: '#',
+    href: 'https://www.instagram.com/eneiconf/',
     icon: (
       <>
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -24,12 +24,12 @@ const socials: SocialLink[] = [
   },
   {
     label: 'Facebook',
-    href: '#',
+    href: 'https://www.facebook.com/eneiconf/?locale=pt_PT',
     icon: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
   },
   {
     label: 'LinkedIn',
-    href: '#',
+    href: 'https://pt.linkedin.com/company/eneiconf',
     icon: (
       <>
         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
@@ -105,7 +105,9 @@ export default function Footer() {
                   <a
                     key={label}
                     href={href}
-                    aria-label={label}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${label} (abre noutro separador)`}
                     className={`flex h-[42px] w-[42px] items-center justify-center rounded-[2px] border ${LINE} bg-transparent transition-all hover:border-branco/30 hover:bg-branco/5 hover:text-branco`}
                   >
                     <svg
