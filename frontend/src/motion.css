@@ -51,10 +51,24 @@ body.motion-page-leave {
     border-color var(--motion-default) var(--motion-ease-out),
     box-shadow var(--motion-default) var(--motion-ease-out);
 }
-/* Botões da barra de topo na forma rectangular do desenho novo (sem tocar nas classes do Navbar). */
-.site-header a.rounded-full,
-.site-header button.rounded-full {
+/* Botão da conta e avatar na forma rectangular do desenho novo (sem tocar nas classes do Navbar). */
+.site-header .rounded-full {
   border-radius: 3px;
+}
+/* O avatar da conta encosta às bordas do botão (sem folga à volta). */
+.site-header a[aria-label^="Abrir área pessoal"] {
+  min-height: 44px;
+  padding: 0 16px 0 0;
+  overflow: hidden;
+  align-items: stretch;
+}
+.site-header a[aria-label^="Abrir área pessoal"] > span[aria-hidden="true"] {
+  width: 44px;
+  height: auto;
+  border-width: 0 1px 0 0;
+}
+.site-header a[aria-label^="Abrir área pessoal"] > span:last-child {
+  align-self: center;
 }
 
 .site-header.motion-header--scrolled {
