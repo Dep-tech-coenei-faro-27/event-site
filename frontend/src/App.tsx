@@ -48,6 +48,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/equipa" element={<Equipa />} />
               <Route path="/bilhetes" element={<Bilhetes />} />
+              {/* Sem ProtectedRoute: sem sessão, a página mostra «Conta necessária». */}
+              <Route path="/bilhetes/checkout" element={<CheckoutPage />} />
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/parcerias" element={<Parcerias />} />
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
@@ -66,7 +68,6 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/conta/alterar-palavra-passe" element={<ChangePasswordPage />} />
-                <Route path="/bilhetes/checkout" element={<CheckoutPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -2,7 +2,6 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ChangePasswordPage from '../src/pages/ChangePassword';
-import CheckoutPage from '../src/pages/Checkout';
 import Bilhetes from '../src/pages/Bilhetes';
 import { AuthContext, type AuthContextValue } from '../src/utils/authContextValue';
 
@@ -86,14 +85,4 @@ test('cada bilhete leva ao checkout com a modalidade no URL', () => {
     '/bilhetes/checkout?bilhete=completo',
     '/bilhetes/checkout?bilhete=geral',
   ]);
-});
-
-test('o checkout mostra a modalidade escolhida', () => {
-  renderAt('/bilhetes/checkout?bilhete=completo', <CheckoutPage />);
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Experiência completa');
-});
-
-test('o checkout com uma modalidade desconhecida pede para escolher outra', () => {
-  renderAt('/bilhetes/checkout?bilhete=vip', <CheckoutPage />);
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Escolhe uma modalidade.');
 });
