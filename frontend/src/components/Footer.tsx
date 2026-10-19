@@ -10,10 +10,12 @@ interface SocialLink {
   icon: ReactNode;
 }
 
-const socials: SocialLink[] = [
+// Preencher `href` com o endereço oficial de cada rede. Sem endereço, o ícone não aparece
+// (nada de ligações para «#»).
+const allSocials: SocialLink[] = [
   {
     label: 'Instagram',
-    href: '#',
+    href: '',
     icon: (
       <>
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -24,12 +26,12 @@ const socials: SocialLink[] = [
   },
   {
     label: 'Facebook',
-    href: '#',
+    href: '',
     icon: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
   },
   {
     label: 'LinkedIn',
-    href: '#',
+    href: '',
     icon: (
       <>
         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
@@ -39,6 +41,8 @@ const socials: SocialLink[] = [
     ),
   },
 ];
+
+const socials = allSocials.filter((s) => s.href);
 
 // Títulos e listas: 14px / 1.06 e links com gap de 9px no mobile (como no styles.css original)
 const headingClass =
@@ -96,6 +100,7 @@ export default function Footer() {
               />
             </div>
 
+            {socials.length > 0 && (
             <div>
               <span className={labelClass}>Segue o ENEI</span>
               <div className="flex gap-[7px] md:gap-2.5">
@@ -103,6 +108,8 @@ export default function Footer() {
                   <a
                     key={label}
                     href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={label}
                     className="flex h-[42px] w-[42px] items-center justify-center rounded border border-branco/10 bg-transparent transition-all hover:border-branco/30 hover:bg-branco/5 hover:text-branco md:h-10 md:w-10"
                   >
@@ -119,6 +126,7 @@ export default function Footer() {
                 ))}
               </div>
             </div>
+            )}
           </div>
         </div>
 
