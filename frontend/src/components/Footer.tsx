@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
+import MobileTicketBar from './MobileTicketBar';
 import logoNeei from '../assets/neei-logo.webp';
 import { EVENT_DATES } from '../data/Event';
 
@@ -52,6 +53,7 @@ const labelClass =
 
 export default function Footer() {
   return (
+    <>
     <footer className={`site-footer border-t ${LINE} bg-azul-noite pb-6 pt-16 font-poppins text-cinza-texto`}>
       <div className="mx-auto w-[calc(100%-28px)] max-w-[1180px] md:w-[calc(100%-40px)]">
         {/* Três blocos: identidade, ligações (Explorar e Participar) e organização e redes */}
@@ -137,5 +139,7 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+    <MobileTicketBar />
+    </>
   );
 }
