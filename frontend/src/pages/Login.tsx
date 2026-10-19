@@ -1,4 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
+import { useLocation, type Location } from "react-router-dom";
+import eneiLogo from "../assets/ENEI-logo.svg";
 import Eyebrow from "../components/EyeBrow";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
@@ -15,10 +17,19 @@ const points = [
 ];
 
 
+// Página para onde voltar depois de entrar: a que o ProtectedRoute guardou em `state.from`.
+// Só caminhos internos (nunca «//outro-site»).
+function redirectTarget(state: unknown): string {
+  const from = (state as { from?: Location } | null)?.from;
+  const path = from ? `${from.pathname}${from.search}${from.hash}` : "";
+  return path.startsWith("/") && !path.startsWith("//") ? path : "/perfil";
+}
+
 export default function LoginPage() {
 
     usePageMeta("Entrar · ENEI 2027", "Entra na tua conta ENEI 2027 para acompanhares a tua inscrição.");
 
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -46,7 +57,7 @@ export default function LoginPage() {
         body: { email, password, remember_me: rememberMe },
       });
       // 200 → cookie de sessão já guardado pelo browser
-      window.location.href = "/perfil"; // TODO: alterar para a url correta
+      window.location.href = redirectTarget(location.state);
     } catch (err) {
       if (!(err instanceof ApiError)) {
         setError("Não foi possível contactar o servidor.");
@@ -101,7 +112,7 @@ export default function LoginPage() {
           <div className="mx-auto grid w-[min(calc(100%-20px),1180px)] overflow-hidden rounded-[4px] border border-[rgba(26,178,255,0.42)] bg-azul-painel shadow-[0_18px_38px_-28px_rgba(0,0,0,0.95),0_8px_20px_-18px_rgba(26,178,255,0.28)] min-[621px]:w-[min(calc(100%-40px),1180px)] min-[901px]:min-h-[600px] min-[901px]:grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)]">
             <aside className="relative flex min-h-[310px] flex-col justify-between overflow-hidden border-b border-[rgba(26,178,255,0.42)] bg-[linear-gradient(150deg,rgba(26,178,255,0.2),transparent_58%)] bg-azul-superficie px-[22px] py-[30px] min-[621px]:min-h-[360px] min-[621px]:p-[clamp(38px,5vw,64px)] min-[901px]:border-b-0 min-[901px]:border-r">
               <img
-                src="/assets/ENEI-logo.svg"
+                src={eneiLogo}
                 alt=""
                 aria-hidden="true"
                 className="pointer-events-none absolute bottom-7 right-[34px] h-[206px] w-[86px] object-contain opacity-[0.07]"
