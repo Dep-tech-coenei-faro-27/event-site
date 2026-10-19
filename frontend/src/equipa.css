@@ -1,0 +1,401 @@
+/*
+ * Páginas `equipa` no desenho novo (ui-ux). Gerado por `scripts/ui-port/genpage.py` a partir do
+ * `core.css` e `motion.css` do protótipo, limitado a `body[data-page="equipa"]` (cada página define esse atributo com
+ * `useBodyPage("equipa")`). Não editar à mão: os ajustes vão no fim, em «Ajustes», ou noutro ficheiro.
+ */
+
+body[data-page="equipa"] main {
+  padding-top: 64px; /* a barra de topo é fixa (64 px no telemóvel, 76 px a partir de 768 px) */
+  overflow-x: clip;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  body[data-page="equipa"] main {
+    padding-top: 76px;
+  }
+}
+body[data-page="equipa"] main p {
+  margin: 1em 0;
+}
+/* O protótipo não usa o reset do Tailwind: as listas e as definições têm o aspeto por omissão do browser
+   (as regras com classe, mais específicas, sobrepõem-se). */
+body[data-page="equipa"] main ul,
+body[data-page="equipa"] main ol {
+  list-style: revert;
+  margin: 1em 0;
+  padding-inline-start: 40px;
+}
+body[data-page="equipa"] main ul ul,
+body[data-page="equipa"] main ol ol,
+body[data-page="equipa"] main ul ol,
+body[data-page="equipa"] main ol ul {
+  margin: 0;
+}
+body[data-page="equipa"] main dl {
+  margin: 1em 0;
+}
+body[data-page="equipa"] main dd {
+  margin-inline-start: 40px;
+}
+body[data-page="equipa"] main h1,
+body[data-page="equipa"] main h2,
+body[data-page="equipa"] main h3 {
+  font-family: Poppins, sans-serif;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  margin: 0;
+}
+body[data-page="equipa"] main h1 {
+  font-weight: 700; /* o Tailwind faz os títulos herdarem o peso do texto; o protótipo usa negrito */
+}
+body[data-page="equipa"] main h2 {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+}
+body[data-page="equipa"] main h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body[data-page="equipa"] main .section {
+  padding: clamp(72px, 9vw, 124px) 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+body[data-page="equipa"] main .section > .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="equipa"] main .section::before {
+  content: none;
+}
+body[data-page="equipa"] main .section--surface,
+body[data-page="equipa"] main .section--panel {
+  background: var(--bg);
+}
+body[data-page="equipa"] main main > .section:nth-of-type(odd) {
+  background: var(--surface);
+}
+body[data-page="equipa"] main main > .section:nth-of-type(odd)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px
+    96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px
+    repeat;
+  opacity: 0.026;
+}
+body[data-page="equipa"] main main > .section:has(.cta) {
+  background: var(--bg);
+}
+body[data-page="equipa"] main main > .section:has(.cta)::before {
+  content: none;
+}
+body[data-page="equipa"] main .eyebrow {
+  margin: 0 0 14px;
+  color: var(--accent-strong);
+  font:
+    700 11px/1.4 Montserrat,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+body[data-page="equipa"] main .lead {
+  max-width: 720px;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 20px);
+}
+body[data-page="equipa"] main .cta .btn--dark {
+  background: var(--panel);
+}
+body[data-page="equipa"] main .cta .btn--dark:hover {
+  background: var(--panel-strong);
+}
+body[data-page="equipa"] main .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+body[data-page="equipa"] main .page-hero {
+  padding: clamp(84px, 10vw, 140px) 0 clamp(70px, 8vw, 110px);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(0, 170, 255, 0.18),
+      transparent 45%
+    ),
+    var(--bg);
+}
+body[data-page="equipa"] main .page-hero::after {
+  content: none;
+}
+body[data-page="equipa"] main .page-hero .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="equipa"] main .page-hero h1 {
+  font-size: clamp(38px, 6vw, 68px);
+  max-width: 900px;
+}
+body[data-page="equipa"] main .section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 44px;
+}
+body[data-page="equipa"] main .section-heading .lead {
+  max-width: 560px;
+  margin: 0;
+}
+body[data-page="equipa"] main .hidden {
+  display: none !important;
+}
+body[data-page="equipa"] main .team-department {
+  min-width: 0;
+}
+body[data-page="equipa"] main .team-department__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-accent);
+}
+body[data-page="equipa"] main .team-department__header h2 {
+  margin-top: 5px;
+  font-size: clamp(24px, 3vw, 34px);
+}
+body[data-page="equipa"] main .team-department__header > p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+}
+body[data-page="equipa"] main .team-members {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+body[data-page="equipa"] main .team-member {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel);
+}
+body[data-page="equipa"] main .team-member img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  background: #EEF3F7;
+  filter: saturate(0.94);
+}
+body[data-page="equipa"] main .team-member > div {
+  min-height: 92px;
+  padding: 16px 17px 17px;
+  border-top: 1px solid var(--line);
+}
+body[data-page="equipa"] main .team-member h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+body[data-page="equipa"] main .team-member p {
+  position: relative;
+  margin: 8px 0 0;
+  padding-left: 17px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+body[data-page="equipa"] main .team-member p::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.48em;
+  width: 9px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+body[data-page="equipa"] main .cta {
+  padding: clamp(44px, 7vw, 80px);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    125deg,
+    #006FA6,
+    #00AAFF 58%,
+    #00C5FF
+  );
+  color: white;
+}
+body[data-page="equipa"] main .cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #FFFFFF;
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top /
+    140px 140px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px
+    repeat;
+  opacity: 0.075;
+}
+body[data-page="equipa"] main .cta > * {
+  position: relative;
+  z-index: 2;
+}
+body[data-page="equipa"] main .cta p {
+  max-width: 650px;
+  color: rgba(255, 255, 255, 0.84);
+}
+body[data-page="equipa"] main .cta .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.68);
+  background: rgba(3, 16, 31, 0.72);
+  color: #FFFFFF;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+body[data-page="equipa"] main .cta .btn--secondary:hover {
+  border-color: #FFFFFF;
+  background: rgba(3, 16, 31, 0.9);
+}
+html body[data-page="equipa"][data-page] main .page-hero {
+  background:
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(var(--accent-rgb), 0.2),
+      transparent 36%
+    ),
+    var(--bg);
+}
+html body[data-page="equipa"][data-page] main .page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000000 45%,
+    transparent
+  );
+}
+html body[data-page="equipa"][data-page] main .page-hero {
+  min-height: min(700px, calc(100vh - var(--nav)));
+  padding-block: clamp(100px, 13vw, 180px) clamp(70px, 8vw, 110px);
+  display: grid;
+  align-items: end;
+  border-bottom: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 13, 33, 0.24) 8%,
+      rgba(5, 13, 33, 0.4) 44%,
+      rgba(5, 13, 33, 0.96) 100%
+    ),
+    url("./assets/equipa.webp") center 38% / cover no-repeat;
+}
+html body[data-page="equipa"][data-page] main .page-hero::before {
+  opacity: 0.38;
+}
+html body[data-page="equipa"][data-page] main .page-hero .container {
+  width: min(calc(100% - 40px), var(--container));
+  padding: clamp(24px, 4vw, 48px);
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(90deg, rgba(5, 13, 33, 0.78), transparent 76%);
+  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.55);
+}
+html body[data-page="equipa"][data-page] main .page-hero h1 {
+  max-width: 760px;
+}
+html body[data-page="equipa"][data-page] main .page-hero .lead {
+  color: rgba(255, 255, 255, 0.8);
+}
+html body[data-page="equipa"][data-page] main .team-directory {
+  padding-top: clamp(72px, 9vw, 118px);
+}
+@media (max-width: 700px) {
+  body[data-page="equipa"] main .team-members {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  body[data-page="equipa"] main .team-members {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  body[data-page="equipa"] main .section-heading {
+    display: block;
+  }
+  body[data-page="equipa"] main .section-heading .lead {
+    margin-top: 16px;
+  }
+  body[data-page="equipa"] main .cta {
+    margin-inline: -4px;
+    padding: 34px 24px;
+  }
+  body[data-page="equipa"] main .team-department__header {
+    display: block;
+    margin-bottom: 16px;
+  }
+  body[data-page="equipa"] main .team-department__header > p {
+    margin-top: 10px;
+    text-align: left;
+    font-size: 14px;
+  }
+  body[data-page="equipa"] main .team-member {
+    border-radius: 2px;
+  }
+  body[data-page="equipa"] main .team-member > div {
+    min-height: 86px;
+    padding: 13px;
+  }
+  body[data-page="equipa"] main .team-member h3 {
+    font-size: 15px;
+  }
+  html body[data-page="equipa"][data-page] main .page-hero {
+    min-height: 560px;
+    padding-block: 90px 48px;
+    background-position: 50% 34%;
+  }
+  html body[data-page="equipa"][data-page] main .page-hero .container {
+    width: calc(100% - 28px);
+    padding: 22px;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="equipa"] main .team-member {
+    transition:
+      border-color var(--motion-default) var(--motion-ease-out),
+      box-shadow var(--motion-default) var(--motion-ease-out),
+      transform var(--motion-default) var(--motion-ease-emphasized);
+  }
+  body[data-page="equipa"] main .team-member:hover {
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+    transform: translateY(-3px);
+  }
+}
