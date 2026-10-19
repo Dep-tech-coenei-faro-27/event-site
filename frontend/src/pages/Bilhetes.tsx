@@ -1,310 +1,174 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import Eyebrow from '../components/EyeBrow';
-import SectionHeading from '../components/SectionHeading';
-import azulejoPattern from '../assets/azulejo-pattern-transparent.webp';
-import { checkoutPath, TICKET_NAMES, type TicketSlug } from '../data/Tickets';
+import { Link } from "react-router-dom";
+import "../bilhetes.css";
+import "../bilhetes.overrides.css";
+import { useBodyPage } from "../utils/useBodyPage";
+import { usePageMeta } from "../utils/usePageMeta";
 
-
-interface Ticket {
-    slug: TicketSlug;
-    category: string;
-    title: string;
-    price: string;
-    features: string[];
-    featured?: boolean;
-}
-
-interface Step {
-    label: string;
-    title: string;
-    text: string;
-}
-
-interface ChecklistColumn {
-    title: string;
-    items: string[];
-}
-
-
-const tickets: Ticket[] = [
-    {
-        slug: 'acesso',
-        category: 'ESTUDANTE',
-        title: TICKET_NAMES.acesso,
-        price: 'Acesso',
-        features: ['Entrada no evento', 'Programa geral', 'Sem refeições ou estadia'],
-    },
-    {
-        slug: 'refeicoes',
-        category: 'ESTUDANTE',
-        title: TICKET_NAMES.refeicoes,
-        price: 'Acesso + refeições',
-        features: ['Entrada no evento', 'Refeições incluídas', 'Sem estadia'],
-    },
-    {
-        slug: 'completo',
-        category: 'ESTUDANTE',
-        title: TICKET_NAMES.completo,
-        price: 'Experiência completa',
-        features: ['Entrada no evento', 'Refeições incluídas', 'Alojamento coletivo'],
-        featured: true,
-    },
-    {
-        slug: 'geral',
-        category: 'NÃO ESTUDANTE',
-        title: TICKET_NAMES.geral,
-        price: 'Passe geral',
-        features: ['Acesso ao programa', 'Programa completo', 'Condições dedicadas'],
-    },
-];
-
-const checklist: ChecklistColumn[] = [
-    { title: 'Dados pessoais', items: ['Nome completo', 'Email', 'Contacto'] },
-    { title: 'Participação', items: ['Instituição', 'Curso', 'Necessidades alimentares'] },
-];
-
-const steps: Step[] = [
-    { label: 'PASSO 01', title: 'Compara', text: 'Consulta as modalidades e escolhe a experiência certa.' },
-    { label: 'PASSO 02', title: 'Compra', text: 'Preenche os teus dados e seleciona as opções da participação.' },
-    { label: 'PASSO 03', title: 'Acompanha', text: 'Gere o bilhete e a informação do participante na tua conta.' },
-];
-
-
-const wrap = 'mx-auto w-[calc(100%-28px)] max-w-[1180px] min-[621px]:w-[calc(100%-40px)]';
-const sectionY = 'py-[clamp(72px,9vw,124px)]';
-
-const h2Class = 'text-[clamp(30px,4vw,52px)] leading-[1.06] tracking-[-0.045em] text-branco';
-const h3Class = 'font-poppins text-xl font-bold leading-[1.06] tracking-[-0.045em] text-branco';
-const leadClass = '!text-[clamp(17px,2vw,20px)] text-cinza-texto';
-
-const btnPrimary = 'btn btn--primary';
-const btnSecondary = 'btn btn--secondary';
-
-const patternMask = (size: number, position = 'center'): CSSProperties => ({
-    WebkitMaskImage: `url(${azulejoPattern})`,
-    maskImage: `url(${azulejoPattern})`,
-    WebkitMaskSize: `${size}px ${size}px`,
-    maskSize: `${size}px ${size}px`,
-    WebkitMaskPosition: position,
-    maskPosition: position,
-    WebkitMaskRepeat: 'repeat',
-    maskRepeat: 'repeat',
-});
-
-const gridLines: CSSProperties = {
-    backgroundImage:
-        'linear-gradient(rgba(26,178,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(26,178,255,0.035) 1px, transparent 1px)',
-    backgroundSize: '64px 64px',
-    WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 45%, transparent)',
-    maskImage: 'linear-gradient(90deg, transparent, #000 45%, transparent)',
-};
-
-
-interface SectionProps {
-    id?: string;
-    surface?: boolean; 
-    contentClassName?: string;
-    children: ReactNode;
-}
-
-const Section = ({ id, surface = false, contentClassName = '', children }: SectionProps) => (
-    <section
-        id={id}
-        className={`relative scroll-mt-24 overflow-hidden ${sectionY} ${surface ? 'bg-azul-superficie' : 'bg-azul-base'}`}
-    >
-        {surface && (
-            <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.026]"
-                style={patternMask(96, 'left top')}
-            />
-        )}
-        <div className={`${wrap} relative z-10 ${contentClassName}`}>{children}</div>
-    </section>
-);
-
-const CheckList = ({ items }: { items: string[] }) => (
-    <ul className="my-5 grid gap-[9px] text-cinza-texto">
-        {items.map((item) => (
-            <li key={item} className="relative pl-7">
-                <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    className="absolute left-0 top-[0.26em] h-[17px] w-[17px] fill-none stroke-acento-principal stroke-[2.25] [stroke-linecap:round] [stroke-linejoin:round]"
-                >
-                    <path d="m5 12 4 4L19 6" />
-                </svg>
-                {item}
-            </li>
-        ))}
-    </ul>
-);
-
-const TicketCard = ({ slug, category, title, price, features, featured = false }: Ticket) => (
-    <article
-        className={`relative flex flex-col overflow-hidden rounded-b-[18px] border border-t-[5px] bg-azul-painel px-[26px] py-[30px] min-[621px]:min-h-[390px] min-[701px]:min-h-[430px] ${featured
-                ? 'border-[rgba(229,191,120,0.38)] border-t-areia bg-[linear-gradient(160deg,rgba(229,191,120,0.11),transparent_52%)] shadow-[0_22px_48px_rgba(229,191,120,0.1)]'
-                : 'border-gelo/10 border-t-acento-principal'
-            }`}
-    >
-        {/* Padrão azulejo (1,8%) */}
-        <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.018]"
-            style={patternMask(96)}
-        />
-
-        {featured && (
-            <span className="absolute right-[18px] top-[18px] z-20 rounded-full border border-[rgba(229,191,120,0.58)] bg-[rgba(229,191,120,0.12)] px-2.5 py-1.5 font-montserrat text-[9px] font-bold uppercase leading-none tracking-[0.1em] text-areia-clara">
-                Recomendado
-            </span>
-        )}
-
-        <div className="relative z-10 flex flex-1 flex-col">
-            <p className="m-0 mb-3.5 font-montserrat text-[11px] font-bold uppercase leading-[1.4] tracking-[0.16em] text-acento-forte">
-                {category}
-            </p>
-            <h3 className={`${h3Class} min-[621px]:min-h-[2.15em]`}>{title}</h3>
-            <div className="my-[18px] font-poppins text-[34px] font-bold leading-[normal] text-acento-forte min-[621px]:flex min-[621px]:min-h-[3.05em] min-[621px]:items-start">
-                {price}
-            </div>
-
-            <div className="flex-1">
-                <CheckList items={features} />
-            </div>
-
-            <Link to={checkoutPath(slug)} className={`${btnSecondary} mt-auto w-full`}>
-                Escolher bilhete
-            </Link>
-        </div>
-    </article>
-);
-
-
+/** `ui-ux/bilhetes/index.html` no React. CSS gerado em `bilhetes.css` (ver `scripts/ui-port/genpage.py`). */
 export default function Bilhetes() {
-    return (
-        <div className="leading-[1.65]">
-            {/* HERO */}
-            <header className="relative grid min-h-[560px] items-center overflow-hidden border-b border-gelo/10 bg-azul-base bg-[radial-gradient(circle_at_78%_12%,rgba(26,178,255,0.2),transparent_36%)] pb-[clamp(70px,8vw,110px)] pt-[calc(64px+clamp(84px,10vw,140px))] md:pt-[calc(76px+clamp(84px,10vw,140px))]">
-                <span aria-hidden="true" className="pointer-events-none absolute inset-0" style={gridLines} />
+  useBodyPage("bilhetes");
+  usePageMeta('Bilhetes · ENEI 2027', 'Bilhetes e preparação para o ENEI 2027.');
 
-                <div className={`${wrap} relative z-10`}>
-                    <div className="relative pl-6 min-[621px]:pl-[clamp(24px,6vw,82px)]">
-                        <span
-                            aria-hidden="true"
-                            className="absolute inset-y-0 left-0 w-[5px] rounded-full bg-acento-principal shadow-[0_0_34px_rgba(26,178,255,0.45)] min-[621px]:w-2"
-                        />
-                        <SectionHeading
-                            eyebrow={<Eyebrow text="BILHETES" />}
-                            title="Garante o teu lugar no ENEI 2027."
-                            lead="Escolhe a modalidade certa e prepara tudo o que precisas para viver o ENEI 2027."
-                            className="mb-0 max-w-[900px]"
-                            classNameTitle="text-[clamp(38px,6vw,68px)] leading-[1.06] tracking-[-0.045em] text-branco"
-                            classNameLead={leadClass}
-                        />
-                        <div className="mt-[30px] flex flex-wrap gap-3">
-                            <a href="#tipos" className={btnSecondary}>Ver modalidades</a>
-                            <a href="#tipos" className={btnPrimary}>Comprar bilhete</a>
-                        </div>
-                    </div>
-                </div>
-            </header>
+  return (
+    <>
 
-            {/* MODALIDADES */}
-            <Section id="tipos" surface>
-                <SectionHeading
-                    eyebrow={<Eyebrow text="MODALIDADES" />}
-                    title="Escolhe a experiência certa."
-                    lead="Quatro formas de participar, desde o acesso ao programa até à experiência completa."
-                    className="mb-[42px]"
-                    classNameTitle={h2Class}
-                    classNameLead={leadClass}
-                />
-                <div className="min-[701px]:relative min-[701px]:left-1/2 min-[701px]:w-[min(1440px,calc(100vw-40px))] min-[701px]:-translate-x-1/2">
-                    <div className="grid auto-rows-fr grid-cols-[minmax(0,400px)] items-stretch justify-center gap-[18px] min-[621px]:grid-cols-[repeat(2,minmax(0,400px))] min-[1080px]:grid-cols-4">
-                        {tickets.map((ticket) => (
-                            <TicketCard key={ticket.title} {...ticket} />
-                        ))}
-                    </div>
-                </div>
-            </Section>
+      <header className="page-hero" id="conteudo">
+      <div className="container">
+      <p className="eyebrow">&lt;BILHETES /&gt;</p>
+      <h1>Garante o teu lugar no ENEI 2027.</h1>
+      <p className="lead">
+      Escolhe a modalidade certa e prepara tudo o que precisas para viver
+      o ENEI 2027.
+      </p>
+      <div className="actions">
+      <a href="#tipos" className="btn btn--secondary">Ver modalidades</a><Link to="/bilhetes/checkout" className="btn btn--primary">Comprar bilhete</Link>
+      </div>
+      </div>
+      </header>
+      <section className="section section--surface" id="tipos">
+      <div className="container">
+      <p className="eyebrow">&lt;MODALIDADES /&gt;</p>
+      <h2>Escolhe a experiência certa.</h2>
+      <p className="lead">
+      Quatro formas de participar, desde o acesso ao programa até à
+      experiência completa.
+      </p>
+      <div className="grid grid--4" style={{ marginTop: "42px" }}>
+      <article className="ticket-card">
+      <p className="eyebrow">ESTUDANTE</p>
+      <h3>Apenas acesso</h3>
+      <div className="price">Acesso</div>
+      <ul className="feature-list">
+      <li>Entrada no evento</li>
+      <li>Programa geral</li>
+      <li>Sem refeições ou estadia</li>
+      </ul>
+      <Link to="/bilhetes/checkout?bilhete=acesso" className="btn btn--secondary">
+      Escolher bilhete
+      </Link>
+      </article>
+      <article className="ticket-card">
+      <p className="eyebrow">ESTUDANTE</p>
+      <h3>Acesso + refeições</h3>
+      <div className="price">Acesso + refeições</div>
+      <ul className="feature-list">
+      <li>Entrada no evento</li>
+      <li>Refeições incluídas</li>
+      <li>Sem estadia</li>
+      </ul>
+      <Link to="/bilhetes/checkout?bilhete=refeicoes" className="btn btn--secondary">
+      Escolher bilhete
+      </Link>
+      </article>
+      <article className="ticket-card ticket-card--featured">
+      <span className="ticket-badge">Recomendado</span>
+      <p className="eyebrow">ESTUDANTE</p>
+      <h3>Experiência completa</h3>
+      <div className="price">Experiência completa</div>
+      <ul className="feature-list">
+      <li>Entrada no evento</li>
+      <li>Refeições incluídas</li>
+      <li>Alojamento coletivo</li>
+      </ul>
+      <Link to="/bilhetes/checkout?bilhete=completo" className="btn btn--secondary">
+      Escolher bilhete
+      </Link>
+      </article>
+      <article className="ticket-card">
+      <p className="eyebrow">NÃO ESTUDANTE</p>
+      <h3>Passe geral</h3>
+      <div className="price">Passe geral</div>
+      <ul className="feature-list">
+      <li>Acesso ao programa</li>
+      <li>Programa completo</li>
+      <li>Condições dedicadas</li>
+      </ul>
+      <Link to="/bilhetes/checkout?bilhete=geral" className="btn btn--secondary">
+      Escolher bilhete
+      </Link>
+      </article>
+      </div>
+      </div>
+      </section>
+      <section className="section">
+      <div className="container">
+      <p className="eyebrow">&lt;INSCRIÇÃO /&gt;</p>
+      <h2>Prepara a tua inscrição</h2>
+      <p className="lead">
+      Tem estes elementos contigo para completar o processo de forma
+      simples.
+      </p>
+      <div className="registration-checklist" style={{ marginTop: "38px" }}>
+      <article className="checklist-column">
+      <h3>Dados pessoais</h3>
+      <ul className="feature-list">
+      <li>Nome completo</li>
+      <li>Email</li>
+      <li>Contacto</li>
+      </ul>
+      </article>
+      <article className="checklist-column">
+      <h3>Participação</h3>
+      <ul className="feature-list">
+      <li>Instituição</li>
+      <li>Curso</li>
+      <li>Necessidades alimentares</li>
+      </ul>
+      </article>
+      <article className="checklist-column checklist-column--notice">
+      <h3>Canal oficial</h3>
+      <p>
+      Usa apenas a área pessoal do ENEI para enviar dados e acompanhar
+      o bilhete.
+      </p>
+      </article>
+      </div>
+      </div>
+      </section>
+      <section className="section section--panel">
+      <div className="container split">
+      <div>
+      <p className="eyebrow">&lt;PROCESSO /&gt;</p>
+      <h2>Um processo simples</h2>
+      <p className="lead">
+      Do primeiro passo à chegada ao evento, tudo fica organizado na tua
+      conta.
+      </p>
+      </div>
+      <div className="timeline">
+      <div className="timeline-item">
+      <small>PASSO 01</small>
+      <h3>Compara</h3>
+      <p>Consulta as modalidades e escolhe a experiência certa.</p>
+      </div>
+      <div className="timeline-item">
+      <small>PASSO 02</small>
+      <h3>Compra</h3>
+      <p>
+      Preenche os teus dados e seleciona as opções da participação.
+      </p>
+      </div>
+      <div className="timeline-item">
+      <small>PASSO 03</small>
+      <h3>Acompanha</h3>
+      <p>Gere o bilhete e a informação do participante na tua conta.</p>
+      </div>
+      </div>
+      </div>
+      </section>
+      <section className="section section--surface">
+      <div className="container center">
+      <h2>Precisas de ajuda?</h2>
+      <p className="lead">
+      Consulta as respostas sobre modalidades, alojamento, transportes e
+      participação.
+      </p>
+      <div className="actions" style={{ justifyContent: "center" }}>
+      <Link to="/informacao-ajuda" className="btn btn--primary">Informação &amp; Ajuda</Link>
+      </div>
+      </div>
+      </section>
 
-            {/* INSCRIÇÃO */}
-            <Section>
-                <SectionHeading
-                    eyebrow={<Eyebrow text="INSCRIÇÃO" />}
-                    title="Prepara a tua inscrição"
-                    lead="Tem estes elementos contigo para completar o processo de forma simples."
-                    className="mb-[38px]"
-                    classNameTitle={h2Class}
-                    classNameLead={leadClass}
-                />
-                <div className="grid grid-cols-1 divide-y divide-gelo/10 border-y border-acento-principal/[0.42] min-[621px]:grid-cols-3 min-[621px]:divide-x min-[621px]:divide-y-0">
-                    {checklist.map(({ title, items }) => (
-                        <article key={title} className="min-w-0 p-7">
-                            <h3 className={h3Class}>{title}</h3>
-                            <CheckList items={items} />
-                        </article>
-                    ))}
-                    <article className="min-w-0 bg-acento-principal/5 p-7">
-                        <h3 className={h3Class}>Canal oficial</h3>
-                        <p className="mt-2.5 text-sm text-cinza-texto">
-                            Usa apenas a área pessoal do ENEI para enviar dados e acompanhar o bilhete.
-                        </p>
-                    </article>
-                </div>
-            </Section>
-
-            {/* PROCESSO */}
-            <Section
-                surface
-                contentClassName="grid grid-cols-1 items-center gap-[clamp(40px,8vw,100px)] min-[701px]:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]"
-            >
-                <SectionHeading
-                    eyebrow={<Eyebrow text="PROCESSO" />}
-                    title="Um processo simples"
-                    lead="Do primeiro passo à chegada ao evento, tudo fica organizado na tua conta."
-                    className="mb-0"
-                    classNameTitle={h2Class}
-                    classNameLead={leadClass}
-                />
-
-                <div className="relative grid gap-6">
-                    <span
-                        aria-hidden="true"
-                        className="absolute bottom-2.5 left-[17px] top-2.5 w-px -translate-x-1/2 bg-acento-principal/[0.42]"
-                    />
-                    {steps.map(({ label, title, text }) => (
-                        <div key={label} className="relative pl-[54px]">
-                            <span
-                                aria-hidden="true"
-                                className="absolute left-[17px] top-1 box-border h-5 w-5 -translate-x-1/2 rounded-full border-[3px] border-azul-base bg-acento-principal shadow-[0_0_0_1px_#1AB2FF]"
-                            />
-                            <small className="font-montserrat font-bold tracking-[0.08em] text-acento-forte">{label}</small>
-                            <h3 className={h3Class}>{title}</h3>
-                            <p className="mt-1.5 text-cinza-texto">{text}</p>
-                        </div>
-                    ))}
-                </div>
-            </Section>
-
-            {/* AJUDA */}
-            <Section surface={false}>
-                <SectionHeading
-                    align="center"
-                    title="Precisas de ajuda?"
-                    lead="Consulta as respostas sobre modalidades, alojamento, transportes e participação."
-                    className="mb-0"
-                    classNameTitle={h2Class}
-                    classNameLead={leadClass}
-                />
-                <div className="mt-[30px] flex justify-center">
-                    <Link to="/informacao-ajuda" className={btnPrimary}>
-                        Informação &amp; Ajuda
-                    </Link>
-                </div>
-            </Section>
-        </div>
-    );
+    </>
+  );
 }
