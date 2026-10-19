@@ -1,10 +1,17 @@
+import io
+
 import pytest
+import zxingcpp
+from PIL import Image, ImageDraw, ImageFilter
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.qr import (
+    QR_BORDER,
+    QR_SCALE,
     InvalidQRPayloadError,
     generate_qr_payload,
+    render_qr_png,
     verify_qr_payload,
 )
 from app.db.base import Base
@@ -145,3 +152,65 @@ def test_qr_signature_verification_and_tamper_resistance():
     tampered_sig = signature[:-1] + ("a" if signature[-1] != "a" else "b")
     with pytest.raises(InvalidQRPayloadError):
         verify_qr_payload(f"{prefix}.{ticket_id}.{nonce}.{tampered_sig}")
+
+
+def _decodes_to(image, payload: str) -> bool:
+    return any(r.text == payload for r in zxingcpp.read_barcodes(image))
+
+
+def _rendered_qr(payload: str):
+    return Image.open(io.BytesIO(render_qr_png(payload))).convert("L")
+
+
+def test_rendered_qr_is_pure_black_and_white_with_quiet_zone():
+    """Requirement: QR legível impresso a preto e branco."""
+    payload = generate_qr_payload(ticket_id=123456)
+    image = _rendered_qr(payload)
+
+    histogram = image.histogram()
+    assert histogram[0] and histogram[255]
+    assert sum(histogram[1:255]) == 0  # sem cinzentos
+    # Zona de silêncio de 4 módulos em branco à volta do símbolo
+    quiet = QR_BORDER * QR_SCALE
+    width, height = image.size
+    for box in (
+        (0, 0, width, quiet),
+        (0, height - quiet, width, height),
+        (0, 0, quiet, height),
+        (width - quiet, 0, width, height),
+    ):
+        assert image.crop(box).getextrema() == (255, 255)
+
+    assert _decodes_to(image, payload)
+    assert verify_qr_payload(payload).ticket_id == 123456
+
+
+@pytest.mark.parametrize("size_px", [240, 160, 120])
+def test_rendered_qr_survives_a_poor_print(size_px: int):
+    """Impressão fraca: reduzido (até ~3 cm), desfocado e com toner cinzento."""
+    payload = generate_qr_payload(ticket_id=123456)
+    image = _rendered_qr(payload).resize((size_px, size_px), Image.BILINEAR)
+    image = image.filter(ImageFilter.GaussianBlur(1.0))
+    image = image.point(lambda v: int(255 - (255 - v) * 0.6))
+
+    assert _decodes_to(image, payload)
+
+
+def test_rendered_qr_survives_a_crease_over_the_centre():
+    """Um vinco ou mancha branca no meio do bilhete não impede a leitura."""
+    payload = generate_qr_payload(ticket_id=123456)
+    image = _rendered_qr(payload)
+    width = image.size[0]
+    side = int(width * 0.3)
+    centre = width // 2
+    ImageDraw.Draw(image).rectangle(
+        (
+            centre - side // 2,
+            centre - side // 2,
+            centre + side // 2,
+            centre + side // 2,
+        ),
+        fill=255,
+    )
+
+    assert _decodes_to(image, payload)
