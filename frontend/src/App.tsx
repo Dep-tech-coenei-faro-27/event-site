@@ -25,6 +25,14 @@ import Termos from './pages/TermosCondicoes';
 import ScrollToTop from './components/ScrollToTop';
 import { useMotion } from './utils/useMotion';
 import ProtectedRoute from './components/ProtectedRoute';
+import Checkout from './pages/checkout/Checkout';
+import CheckoutWaiting from './pages/checkout/CheckoutWaiting';
+import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
+import CheckoutError from './pages/checkout/CheckoutError';
+import SessionEnded from './pages/estados/SessionEnded';
+import LinkExpired from './pages/estados/LinkExpired';
+import TooManyAttempts from './pages/estados/TooManyAttempts';
+import UnverifiedAccount from './pages/estados/UnverifiedAccount';
 import { AuthProvider } from './utils/AuthContext';
 
 // Um erro numa página mostra o ecrã de erro dentro do layout (com Navbar e Footer) e
@@ -57,6 +65,10 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/equipa" element={<Equipa />} />
               <Route path="/bilhetes" element={<Bilhetes />} />
+              <Route path="/bilhetes/checkout" element={<Checkout />} />
+              <Route path="/bilhetes/checkout/aguardar" element={<CheckoutWaiting />} />
+              <Route path="/bilhetes/checkout/sucesso" element={<CheckoutSuccess />} />
+              <Route path="/bilhetes/checkout/erro" element={<CheckoutError />} />
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/parcerias" element={<Parcerias />} />
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
@@ -71,6 +83,10 @@ function App() {
               <Route path="/conta/verificar" element={<VerifyEmailPage />} />
               <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
               <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+              <Route path="/conta/por-verificar" element={<UnverifiedAccount />} />
+              <Route path="/conta/link-expirado" element={<LinkExpired />} />
+              <Route path="/conta/demasiadas-tentativas" element={<TooManyAttempts />} />
+              <Route path="/conta/sessao-terminada" element={<SessionEnded />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
