@@ -292,6 +292,34 @@ describe("useMotion nas restantes páginas (pela estrutura, sem classes do prot�
     expect(document.querySelectorAll("img[aria-hidden]")).toHaveLength(2);
   });
 
+  it("põe o traço de separação no topo de cada secção da página, e só nas do topo", () => {
+    stubEnvironment(false);
+    const { container } = render(
+      <MemoryRouter initialEntries={["/agenda"]}>
+        <Layer />
+        <main>
+          <div>
+            <header className="hero">hero</header>
+            <section className="uma">
+              <div>
+                <section className="aninhada">dentro</section>
+              </div>
+            </section>
+            <section className="duas">
+              <article>
+                <section className="no-cartao">dentro do cartão</section>
+              </article>
+            </section>
+          </div>
+        </main>
+      </MemoryRouter>,
+    );
+    const traced = [...container.querySelectorAll(".motion-section")].map((el) => el.className.split(" ")[0]);
+    expect(traced).toEqual(["uma", "duas"]);
+    expect(container.querySelectorAll(".motion-section__trace")).toHaveLength(2);
+    expect(container.querySelector(".hero .motion-section__trace")).toBeNull();
+  });
+
   it("não aplica estes grupos à página inicial (tem os seus próprios)", () => {
     stubEnvironment(false);
     mountAt("/");

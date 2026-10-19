@@ -141,6 +141,10 @@ body.motion-page-leave {
   --motion-x: 32px;
   --motion-y: 0px;
 }
+/* O traço é absoluto: a secção tem de ser a referência (nas páginas em Tailwind era `static`). */
+.motion-section {
+  position: relative;
+}
 .motion-section__trace {
   position: absolute;
   inset: 0 auto auto 0;

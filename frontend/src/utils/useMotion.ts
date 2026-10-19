@@ -185,7 +185,15 @@ export function useMotion() {
 
     // O traço no topo de cada secção cresce com a secção a entrar.
     const traces: HTMLElement[] = [];
-    document.querySelectorAll<HTMLElement>("main > .section").forEach((section) => {
+    // Na página inicial são as `.section` do protótipo; nas restantes, as secções do topo da página (o
+    // React não tem a classe `.section`): as que não estão dentro de outra secção, cabeçalho ou cartão.
+    const sections =
+      pathname === "/"
+        ? document.querySelectorAll<HTMLElement>("main > .section")
+        : [...document.querySelectorAll<HTMLElement>("main section")].filter(
+            (section) => !section.parentElement?.closest("section, header, article"),
+          );
+    sections.forEach((section) => {
       section.classList.add("motion-section");
       const trace = document.createElement("span");
       trace.className = "motion-section__trace";
