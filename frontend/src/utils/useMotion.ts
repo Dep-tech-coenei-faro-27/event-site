@@ -159,8 +159,10 @@ export function useMotion() {
 
     const tracked: Tracked[] = [];
     const seen = new Set<HTMLElement>();
-    // A página inicial tem os seus próprios grupos (os do protótipo); as outras usam também a estrutura.
-    const groups = pathname === "/" ? REVEAL_GROUPS : [...REVEAL_GROUPS, ...PAGE_GROUPS];
+    // As páginas feitas com as classes do protótipo (a inicial e as que já passaram ao desenho novo) usam só os
+    // grupos do protótipo; as outras (em Tailwind) usam também a estrutura.
+    const fromPrototype = pathname === "/" || document.querySelector("main .page-hero, main > .section") !== null;
+    const groups = fromPrototype ? REVEAL_GROUPS : [...REVEAL_GROUPS, ...PAGE_GROUPS];
     groups.forEach(([selector, direction]) => {
       document.querySelectorAll<HTMLElement>(selector).forEach((element, index) => {
         if (seen.has(element)) return;
@@ -187,8 +189,7 @@ export function useMotion() {
     const traces: HTMLElement[] = [];
     // Na página inicial são as `.section` do protótipo; nas restantes, as secções do topo da página (o
     // React não tem a classe `.section`): as que não estão dentro de outra secção, cabeçalho ou cartão.
-    const sections =
-      pathname === "/"
+    const sections = fromPrototype
         ? document.querySelectorAll<HTMLElement>("main > .section")
         : [...document.querySelectorAll<HTMLElement>("main section")].filter(
             (section) => !section.parentElement?.closest("section, header, article"),

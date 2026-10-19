@@ -320,6 +320,30 @@ describe("useMotion nas restantes páginas (pela estrutura, sem classes do prot�
     expect(container.querySelector(".hero .motion-section__trace")).toBeNull();
   });
 
+  it("numa página feita com as classes do protótipo usa só os grupos do protótipo (não duplica pela estrutura)", () => {
+    stubEnvironment(false);
+    const { container } = render(
+      <MemoryRouter initialEntries={["/bilhetes"]}>
+        <Layer />
+        <main>
+          <header className="page-hero">hero</header>
+          <section className="section">
+            <div className="container">
+              <div className="heading">título</div>
+              <div className="grid">
+                <article className="ticket-card">a</article>
+                <article className="ticket-card">b</article>
+              </div>
+            </div>
+          </section>
+        </main>
+      </MemoryRouter>,
+    );
+    const animated = [...container.querySelectorAll("[data-motion-item]")];
+    expect(animated.map((el) => el.className)).toEqual(["ticket-card", "ticket-card"]);
+    expect(container.querySelectorAll(".motion-section__trace")).toHaveLength(1);
+  });
+
   it("não aplica estes grupos à página inicial (tem os seus próprios)", () => {
     stubEnvironment(false);
     mountAt("/");
