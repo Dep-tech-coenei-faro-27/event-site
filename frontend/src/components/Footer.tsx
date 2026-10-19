@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
-import MobileTicketBar from './MobileTicketBar';
 import logoNeei from '../assets/neei-logo.webp';
 import { EVENT_DATES } from '../data/Event';
 
@@ -139,7 +138,6 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-    <MobileTicketBar />
     </>
   );
 }
