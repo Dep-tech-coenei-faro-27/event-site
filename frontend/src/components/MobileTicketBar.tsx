@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 
-// Páginas onde a barra não aparece (no protótipo faltava nas de compra e nos estados do sistema).
+// Páginas onde a barra não aparece: a inicial (o protótipo tem-na, a organização não a quer), as de compra
+// e os estados do sistema (no protótipo também faltava).
 const HIDDEN_ON = [
+  "/",
   "/bilhetes",
   "/conta/por-verificar",
   "/conta/link-expirado",
@@ -15,7 +17,7 @@ const HIDDEN_ON = [
  */
 export default function MobileTicketBar() {
   const { pathname } = useLocation();
-  if (HIDDEN_ON.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return null;
+  if (HIDDEN_ON.some((path) => pathname === path || (path !== "/" && pathname.startsWith(`${path}/`)))) return null;
 
   return (
     <aside className="mobile-ticket" aria-label="Bilhetes">

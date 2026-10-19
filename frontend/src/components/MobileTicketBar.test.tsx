@@ -19,6 +19,11 @@ describe("barra «Bilhetes» do telemóvel", () => {
     expect(screen.getByRole("link", { name: "Bilhetes" })).toHaveAttribute("href", "/bilhetes");
   });
 
+  it("não aparece na página inicial (o protótipo tem-na, a organização decidiu não a manter)", () => {
+    at("/");
+    expect(screen.queryByRole("complementary", { name: "Bilhetes" })).toBeNull();
+  });
+
   it.each(["/bilhetes", "/bilhetes/checkout", "/bilhetes/checkout/aguardar", "/conta/sessao-terminada", "/conta/link-expirado"])(
     "não aparece em %s (compra e estados do sistema)",
     (path) => {
