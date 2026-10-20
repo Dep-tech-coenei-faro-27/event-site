@@ -78,6 +78,11 @@ jobs:
             MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
             MBWAY_CALLBACK_KEY=${{ secrets.MBWAY_CALLBACK_KEY }}
             EOF
+            # Limite de pedidos de pagamento por minuto; só entra quando a Variable existe
+            # (vazio reprova a validação e o código tem o seu valor por omissão).
+            if [ -n "${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" ]; then
+              echo "RATE_LIMIT_PAYMENT_PER_MINUTE=${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" >> .env
+            fi
             # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
             # e o default do código é "off".
             if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then

@@ -188,6 +188,11 @@ class Settings(BaseSettings):
             domains.append(domain)
         return domains
 
+    @field_validator("MBWAY_KEY", "MBWAY_AUTH_TOKEN", "MBWAY_CALLBACK_KEY")
+    @classmethod
+    def strip_provider_secrets(cls, value: str) -> str:
+        return value.strip()
+
     @model_validator(mode="after")
     def build_database_url(self) -> "Settings":
         self.DATABASE_URL = (

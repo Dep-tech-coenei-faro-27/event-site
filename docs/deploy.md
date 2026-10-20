@@ -64,7 +64,7 @@ e é o passo 2 acima que o apanha.
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
-- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS` e `PAYMENTS_MODE`.
+- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`, `CORS_ALLOW_CREDENTIALS`.
 
 Regras para criar os valores:
@@ -164,6 +164,8 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 - Para testar a confirmação do pagamento sem ifthenpay, com `simulated` define
   `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
+
+Em produção, `PAYMENTS_MODE=live` sem `MBWAY_KEY` (em falta, vazia ou só com espaços em branco) faz o backend recusar arrancar.
 
 ## Pagamentos a reembolsar
 
