@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Emails de conta · ENEI 2027</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #030710;
+        --surface: #07152e;
+        --panel: #0a1b39;
+        --line: rgba(136, 185, 224, 0.2);
+        --accent: #1ab2ff;
+        --accent-soft: #8edaff;
+        --text: #f7f9fc;
+        --muted: #a7b3c8;
+        --success: #2bd27f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background:
+          linear-gradient(rgba(3, 7, 16, 0.93), rgba(3, 7, 16, 0.97)),
+          url("./enei-email-tile.png") center / 220px repeat,
+          var(--bg);
+        color: var(--text);
+        font-family: Poppins, Arial, Helvetica, sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page-shell {
+        width: min(calc(100% - 32px), 1180px);
+        margin: 0 auto;
+        padding: 48px 0 96px;
+      }
+
+      .preview-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.64fr);
+        gap: 40px;
+        align-items: end;
+        margin-bottom: 42px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--accent);
+        font:
+          700 12px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.12em;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(44px, 7vw, 82px);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+        text-wrap: balance;
+      }
+
+      .preview-heading > p:last-child {
+        margin: 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.55;
+        text-wrap: pretty;
+      }
+
+      .email-index {
+        position: sticky;
+        z-index: 5;
+        top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 28px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        background: rgba(3, 7, 16, 0.88);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+      }
+
+      .email-index a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        color: var(--muted);
+        font:
+          700 12px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+      }
+
+      .email-index a:hover,
+      .email-index a:focus-visible {
+        border-color: var(--accent);
+        color: var(--text);
+        outline: none;
+      }
+
+      .email-preview {
+        scroll-margin-top: 92px;
+        margin-top: 26px;
+        border: 1px solid rgba(26, 178, 255, 0.28);
+        background: rgba(3, 7, 16, 0.82);
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.28);
+      }
+
+      .email-preview__label {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font:
+          700 10px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.1em;
+      }
+
+      .email-preview__label strong {
+        color: var(--accent);
+      }
+
+      .mail-stage {
+        padding: clamp(18px, 4vw, 46px);
+        background: #07101f;
+      }
+
+      .email-shell {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        border: 1px solid rgba(26, 178, 255, 0.28);
+        border-collapse: collapse;
+        background: var(--surface);
+      }
+
+      .email-brand {
+        padding: 28px 34px;
+        background:
+          linear-gradient(rgba(7, 21, 46, 0.92), rgba(7, 21, 46, 0.92)),
+          url("./enei-email-tile.png") center / 180px repeat,
+          #07152e;
+      }
+
+      .email-brand__lockup {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .email-brand__mark {
+        width: 42px;
+        height: 48px;
+        flex: 0 0 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .email-brand__mark img {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: 46px;
+      }
+
+      .email-brand__copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .email-brand__copy strong {
+        font:
+          800 20px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.02em;
+      }
+
+      .email-brand__copy span {
+        color: var(--accent-soft);
+        font:
+          700 9px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.12em;
+      }
+
+      .email-body {
+        padding: clamp(32px, 7vw, 58px);
+      }
+
+      .email-kicker {
+        margin: 0 0 16px;
+        color: var(--accent);
+        font:
+          700 10px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.12em;
+      }
+
+      .email-title {
+        max-width: 12ch;
+        margin: 0;
+        color: var(--text);
+        font-size: clamp(34px, 7vw, 54px);
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+      }
+
+      .email-copy {
+        max-width: 52ch;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      .email-action {
+        display: inline-block;
+        margin-top: 28px;
+        padding: 16px 24px;
+        background: var(--accent);
+        color: #03111f;
+        font:
+          800 12px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.05em;
+        text-decoration: none;
+      }
+
+      .email-action--secondary {
+        border: 1px solid var(--accent);
+        background: transparent;
+        color: var(--text);
+      }
+
+      .email-detail {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        margin-top: 34px;
+        border: 1px solid var(--line);
+        background: var(--line);
+      }
+
+      .email-detail div {
+        min-width: 0;
+        padding: 18px;
+        background: var(--panel);
+      }
+
+      .email-detail span,
+      .email-detail strong {
+        display: block;
+      }
+
+      .email-detail span {
+        margin-bottom: 7px;
+        color: var(--muted);
+        font:
+          600 10px Montserrat,
+          Arial,
+          sans-serif;
+        letter-spacing: 0.08em;
+      }
+
+      .email-detail strong {
+        color: var(--text);
+        overflow-wrap: anywhere;
+        font-size: 13px;
+      }
+
+      .email-fallback {
+        margin: 28px 0 0;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .email-fallback a {
+        color: var(--accent-soft);
+        overflow-wrap: anywhere;
+      }
+
+      .email-alert {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        margin-top: 30px;
+        padding: 18px;
+        border: 1px solid rgba(43, 210, 127, 0.42);
+        background: rgba(43, 210, 127, 0.07);
+      }
+
+      .email-alert__icon {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--success);
+        border-radius: 50%;
+        color: var(--success);
+        font-weight: 800;
+      }
+
+      .email-alert strong,
+      .email-alert span {
+        display: block;
+      }
+
+      .email-alert span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .email-footer {
+        padding: 24px 34px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 760px) {
+        .preview-heading {
+          grid-template-columns: 1fr;
+        }
+
+        .email-index {
+          position: static;
+        }
+
+        .email-index a {
+          flex: 1 1 100%;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page-shell {
+          width: min(calc(100% - 20px), 1180px);
+          padding-top: 28px;
+        }
+
+        .mail-stage {
+          padding: 10px;
+        }
+
+        .email-brand,
+        .email-body,
+        .email-footer {
+          padding-right: 22px;
+          padding-left: 22px;
+        }
+
+        .email-detail {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Design preview only. Production email templates should use inline styles,
+         CID-hosted assets and escaped backend values. -->
+    <main class="page-shell">
+      <header class="preview-heading">
+        <div>
+          <p class="eyebrow">EMAILS DE CONTA</p>
+          <h1>Uma linguagem para cada momento.</h1>
+        </div>
+        <p>
+          Verificação, recuperação e segurança usam a mesma identidade do
+          bilhete, com uma ação principal inequívoca e informação operacional
+          curta.
+        </p>
+      </header>
+
+      <nav class="email-index" aria-label="Escolher email">
+        <a href="#verificacao">Verificação de email</a>
+        <a href="#recuperacao">Recuperação de password</a>
+        <a href="#alterada">Password alterada</a>
+      </nav>
+
+      <section
+        class="email-preview"
+        id="verificacao"
+        aria-labelledby="verificacao-label"
+      >
+        <div class="email-preview__label">
+          <strong id="verificacao-label">01 · VERIFICAÇÃO</strong>
+          <span>Assunto: Confirma o teu email</span>
+        </div>
+        <div class="mail-stage">
+          <article class="email-shell">
+            <header class="email-brand">
+              <div class="email-brand__lockup">
+                <div class="email-brand__mark" aria-hidden="true">
+                  <img
+                    src="../assets/ENEI-logo.svg"
+                    alt=""
+                    width="19"
+                    height="46"
+                  />
+                </div>
+                <div class="email-brand__copy">
+                  <strong>ENEI</strong><span>FARO · 1–4 ABRIL</span>
+                </div>
+              </div>
+            </header>
+            <div class="email-body">
+              <p class="email-kicker">FALTA UM PASSO</p>
+              <h2 class="email-title">Confirma o teu email.</h2>
+              <p class="email-copy">
+                Olá, [FIRST_NAME]. Confirma que este endereço te pertence para
+                ativares a conta e poderes comprar o teu bilhete ENEI 2027.
+              </p>
+              <a class="email-action" href="#">CONFIRMAR EMAIL</a>
+              <div class="email-detail">
+                <div><span>VALIDADE</span><strong>24 horas</strong></div>
+                <div><span>CONTA</span><strong>[EMAIL_ADDRESS]</strong></div>
+              </div>
+              <p class="email-fallback">
+                Se o botão não funcionar, abre este endereço no browser:<br />
+                <a href="#">[VERIFICATION_URL]</a>
+              </p>
+            </div>
+            <footer class="email-footer">
+              Se não criaste esta conta, ignora esta mensagem. Nenhuma ação será
+              feita sem confirmação.
+            </footer>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="email-preview"
+        id="recuperacao"
+        aria-labelledby="recuperacao-label"
+      >
+        <div class="email-preview__label">
+          <strong id="recuperacao-label">02 · RECUPERAÇÃO</strong>
+          <span>Assunto: Recupera o acesso à tua conta</span>
+        </div>
+        <div class="mail-stage">
+          <article class="email-shell">
+            <header class="email-brand">
+              <div class="email-brand__lockup">
+                <div class="email-brand__mark" aria-hidden="true">
+                  <img
+                    src="../assets/ENEI-logo.svg"
+                    alt=""
+                    width="19"
+                    height="46"
+                  />
+                </div>
+                <div class="email-brand__copy">
+                  <strong>ENEI</strong><span>FARO · 1–4 ABRIL</span>
+                </div>
+              </div>
+            </header>
+            <div class="email-body">
+              <p class="email-kicker">RECUPERAÇÃO DE CONTA</p>
+              <h2 class="email-title">Escolhe uma nova password.</h2>
+              <p class="email-copy">
+                Olá, [FIRST_NAME]. Recebemos um pedido para redefinir a
+                password. Usa o botão abaixo apenas se foste tu a iniciar o
+                pedido.
+              </p>
+              <a class="email-action" href="#">REDEFINIR PASSWORD</a>
+              <div class="email-detail">
+                <div><span>VALIDADE</span><strong>30 minutos</strong></div>
+                <div><span>PEDIDO</span><strong>[REQUEST_TIME]</strong></div>
+              </div>
+              <p class="email-fallback">
+                Se o botão não funcionar, abre este endereço no browser:<br />
+                <a href="#">[PASSWORD_RESET_URL]</a>
+              </p>
+            </div>
+            <footer class="email-footer">
+              Não partilhes este link. Se não pediste a recuperação, ignora a
+              mensagem e a password mantém-se igual.
+            </footer>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="email-preview"
+        id="alterada"
+        aria-labelledby="alterada-label"
+      >
+        <div class="email-preview__label">
+          <strong id="alterada-label">03 · SEGURANÇA</strong>
+          <span>Assunto: A tua password foi alterada</span>
+        </div>
+        <div class="mail-stage">
+          <article class="email-shell">
+            <header class="email-brand">
+              <div class="email-brand__lockup">
+                <div class="email-brand__mark" aria-hidden="true">
+                  <img
+                    src="../assets/ENEI-logo.svg"
+                    alt=""
+                    width="19"
+                    height="46"
+                  />
+                </div>
+                <div class="email-brand__copy">
+                  <strong>ENEI</strong><span>FARO · 1–4 ABRIL</span>
+                </div>
+              </div>
+            </header>
+            <div class="email-body">
+              <p class="email-kicker">ALTERAÇÃO CONFIRMADA</p>
+              <h2 class="email-title">A password foi alterada.</h2>
+              <p class="email-copy">
+                Olá, [FIRST_NAME]. A nova password da tua conta já está ativa.
+                Se reconheces esta alteração, não precisas de fazer mais nada.
+              </p>
+              <div class="email-alert">
+                <div class="email-alert__icon" aria-hidden="true">✓</div>
+                <div>
+                  <strong>Conta protegida</strong
+                  ><span
+                    >As outras sessões podem ser terminadas por segurança.</span
+                  >
+                </div>
+              </div>
+              <div class="email-detail">
+                <div>
+                  <span>ALTERADA EM</span><strong>[CHANGE_TIME]</strong>
+                </div>
+                <div>
+                  <span>DISPOSITIVO</span><strong>[DEVICE_NAME]</strong>
+                </div>
+              </div>
+              <a class="email-action email-action--secondary" href="#"
+                >PROTEGER A MINHA CONTA</a
+              >
+              <p class="email-fallback">
+                Se o botão não funcionar, abre este endereço no browser:<br />
+                <a href="#">[ACCOUNT_RECOVERY_URL]</a>
+              </p>
+            </div>
+            <footer class="email-footer">
+              Não foste tu? Redefine imediatamente a password e contacta o apoio
+              ENEI.
+            </footer>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -531,7 +531,9 @@ body[data-page="checkout"] {
 
 .payment-status--waiting,
 .payment-status--success,
-.payment-status--error {
+.payment-status--error,
+.payment-status--warning,
+.payment-status--calm {
   --status-color: var(--accent-strong);
 }
 
@@ -545,6 +547,14 @@ body[data-page="checkout"] {
 
 .payment-status--error {
   --status-signal: theme("colors.enei.error");
+}
+
+.payment-status--warning {
+  --status-signal: #f4c542;
+}
+
+.payment-status--calm {
+  --status-signal: #79e5d6;
 }
 
 .payment-status__icon {
@@ -643,6 +653,30 @@ body[data-page="checkout"] {
   margin-top: 18px;
 }
 
+.payment-status__actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.payment-status__actions .btn {
+  margin-top: 0;
+}
+
+.payment-status__countdown {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.payment-status__countdown strong {
+  color: var(--status-signal);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
 .payment-result-mbway {
   width: 116px;
   height: 54px;
@@ -739,6 +773,10 @@ body[data-page="checkout"] {
     width: 96px;
     height: 46px;
     margin-bottom: 24px;
+  }
+
+  .payment-status__actions {
+    grid-template-columns: 1fr;
   }
 }
 

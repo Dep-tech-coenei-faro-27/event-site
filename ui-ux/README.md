@@ -71,6 +71,14 @@ Then open `http://127.0.0.1:4174/`.
 - `/bilhetes/checkout/aguardar/` — pending payment
 - `/bilhetes/checkout/sucesso/` — successful payment
 - `/bilhetes/checkout/erro/` — failed payment
+- `/bilhetes/checkout/nao-verificado/` — email verification required
+- `/bilhetes/checkout/esgotado/` — selected ticket sold out
+- `/bilhetes/checkout/ja-tem-bilhete/` — participant already has a ticket
+- `/bilhetes/checkout/demasiadas-tentativas/` — rate-limited checkout
+- `/bilhetes/checkout/erro-servico/` — payment service unavailable
+- `/bilhetes/checkout/vendas-em-breve/` — ticket sales not open yet
+- `/bilhetes/checkout/pedido-pendente/` — existing purchase still processing
+- `/ticket-email/enei-account-emails-preview.html` — account email designs
 - `/conta/` — login
 - `/conta/criar/` — registration
 - `/conta/recuperar/` — password recovery

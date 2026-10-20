@@ -1,0 +1,64 @@
+ENEI 2027 — EMAIL DE VERIFICAÇÃO
+
+Olá, [FIRST_NAME].
+
+Confirma que este endereço te pertence para ativares a conta e poderes comprar o teu bilhete ENEI 2027.
+
+Confirmar email:
+[VERIFICATION_URL]
+
+Este link é válido durante 24 horas.
+
+Se não criaste esta conta, ignora esta mensagem. Nenhuma ação será feita sem confirmação.
+
+— ENEI 2027 · Faro · 1–4 abril
+
+
+ENEI 2027 — RECUPERAÇÃO DE PASSWORD
+
+Olá, [FIRST_NAME].
+
+Recebemos um pedido para redefinir a password da tua conta. Usa o endereço abaixo apenas se foste tu a iniciar o pedido.
+
+Redefinir password:
+[PASSWORD_RESET_URL]
+
+Este link é válido durante 30 minutos.
+
+Se não pediste a recuperação, ignora esta mensagem e a password mantém-se igual.
+
+— ENEI 2027 · Faro · 1–4 abril
+
+
+ENEI 2027 — PASSWORD ALTERADA
+
+Olá, [FIRST_NAME].
+
+A password da tua conta foi alterada em [CHANGE_TIME], no dispositivo [DEVICE_NAME].
+
+Se reconheces esta alteração, não precisas de fazer mais nada.
+
+Se não foste tu, protege imediatamente a conta:
+[ACCOUNT_RECOVERY_URL]
+
+— ENEI 2027 · Faro · 1–4 abril
+
+
+ENEI 2027 — BILHETE CONFIRMADO
+
+Olá, [FIRST_NAME].
+
+A tua compra está confirmada. Guarda esta mensagem e apresenta o código QR à entrada do ENEI 2027.
+
+Titular: [ATTENDEE_NAME]
+Modalidade: [TICKET_TYPE]
+Referência: [TICKET_REFERENCE]
+Datas: [EVENT_DATES]
+Local: [EVENT_LOCATION]
+
+Consultar o bilhete:
+[TICKET_URL]
+
+O bilhete é pessoal e intransmissível. Não partilhes o email nem o código QR.
+
+— ENEI 2027 · Faro · 1–4 abril
