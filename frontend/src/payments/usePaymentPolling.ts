@@ -9,6 +9,10 @@ import type { Account, Transaction } from "./types";
 // O ecrã de espera do MB WAY: pergunta ao backend pelo estado do pagamento até ele terminar.
 // As regras vêm de docs/api-payments.md:
 //  - de 2 em 2 segundos (o backend só pergunta ao MB WAY de 5 em 5, o resto é estado guardado);
+//  - com um fluxo de eventos aberto (Server-Sent Events, `GET .../events`) o servidor avisa na hora
+//    em que o pagamento muda: cada aviso faz uma consulta imediata e, enquanto o fluxo está vivo,
+//    consulta-se só de 10 em 10 segundos (rede de segurança). Se o fluxo falhar ou não existir
+//    volta-se aos 2 segundos, por isso o ecrã nunca depende dele;
 //  - `pending` depois de `expires_at` NÃO é erro: o lugar continua reservado até o MB WAY dar
 //    o pagamento por terminado, por isso é «ainda a confirmar»;
 //  - `failed` e `expired` podem ainda passar a pago (callback tardio): antes de dizer «sem
@@ -17,6 +21,8 @@ import type { Account, Transaction } from "./types";
 //  - uma falha de rede não é o fim: o pagamento não depende do browser, continua a tentar.
 
 export const POLL_INTERVAL_MS = 2000;
+/** Consulta de segurança enquanto o fluxo de eventos está vivo. */
+export const LIVE_POLL_INTERVAL_MS = 10_000;
 const MAX_BACKOFF_MS = 10_000;
 /** Falhas seguidas a partir das quais se avisa a pessoa de que se perdeu a ligação. */
 const CONNECTION_LOST_AFTER = 3;
@@ -70,14 +76,23 @@ export function usePaymentPolling(
     let running = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
+    let live = false; // o fluxo de eventos está aberto
+    let refreshAgain = false; // chegou um aviso durante uma consulta
+    let source: EventSource | undefined;
     const controller = new AbortController();
 
     const publish = (watch: PaymentWatch) => {
       if (!stopped) setStored({ ...watch, reference: ref });
     };
+    const closeSource = () => {
+      source?.close();
+      source = undefined;
+      live = false;
+    };
     const stop = () => {
       stopped = true;
       clearTimeout(timer);
+      closeSource();
     };
     const finish = () => {
       stop();
@@ -86,6 +101,43 @@ export function usePaymentPolling(
     const schedule = (ms: number) => {
       if (!stopped) timer = setTimeout(tick, ms);
     };
+    const normalDelay = () => (live ? Math.max(LIVE_POLL_INTERVAL_MS, intervalMs) : intervalMs);
+
+    // O servidor avisa quando o pagamento muda: uma consulta já, em vez de esperar pela próxima.
+    function openSource() {
+      if (typeof EventSource === "undefined" || stopped || source) return;
+      try {
+        source = new EventSource(`/api/payment/transactions/${encodeURIComponent(ref)}/events`);
+      } catch {
+        return;
+      }
+      source.onopen = () => {
+        live = true;
+        // O servidor envia logo o estado atual (que já faz uma consulta): a seguinte pode ser a lenta.
+        if (!stopped && !running) {
+          clearTimeout(timer);
+          schedule(normalDelay());
+        }
+      };
+      source.addEventListener("status", () => {
+        if (stopped) return;
+        if (running) {
+          refreshAgain = true;
+          return;
+        }
+        clearTimeout(timer);
+        schedule(0);
+      });
+      source.onerror = () => {
+        // Sem fluxo (a reconectar ou recusado) volta-se ao ritmo normal de consulta.
+        live = false;
+        if (source && source.readyState === EventSource.CLOSED) source = undefined;
+        if (!stopped && !running) {
+          clearTimeout(timer);
+          schedule(intervalMs);
+        }
+      };
+    }
 
     async function tick() {
       if (stopped || running) return;
@@ -103,7 +155,7 @@ export function usePaymentPolling(
             phase: overdue ? "confirming" : "waiting",
             transaction,
           });
-          schedule(intervalMs);
+          schedule(normalDelay());
           return;
         }
 
@@ -151,7 +203,7 @@ export function usePaymentPolling(
           }
           if (error.status === 429) {
             // Respeitar o servidor: nunca antes do que ele pediu.
-            schedule(Math.max(retryAfterSeconds(error.retryAfter) * 1000, intervalMs));
+            schedule(Math.max(retryAfterSeconds(error.retryAfter) * 1000, normalDelay()));
             return;
           }
           if (error.status >= 400 && error.status < 500 && error.status !== 408) {
@@ -171,6 +223,11 @@ export function usePaymentPolling(
         schedule(Math.min(intervalMs * 2 ** failures, MAX_BACKOFF_MS));
       } finally {
         running = false;
+        if (refreshAgain && !stopped) {
+          refreshAgain = false;
+          clearTimeout(timer);
+          schedule(0);
+        }
       }
     }
 
@@ -181,10 +238,12 @@ export function usePaymentPolling(
     };
     document.addEventListener("visibilitychange", onVisibility);
     schedule(0);
+    openSource();
 
     return () => {
       stopped = true;
       clearTimeout(timer);
+      closeSource();
       controller.abort();
       document.removeEventListener("visibilitychange", onVisibility);
     };
