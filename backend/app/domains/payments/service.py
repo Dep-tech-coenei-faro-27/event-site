@@ -697,6 +697,11 @@ def handle_payment_callback(
     if transaction is None:
         raise CallbackTransactionNotFoundError("Unknown transaction reference")
 
+    if transaction.provider == "stripe":
+        # A Stripe payment is only ever confirmed by reading it from Stripe: the
+        # ifthenpay key must not be able to settle it, whatever is configured.
+        raise CallbackTransactionNotFoundError("Unknown transaction reference")
+
     if not _callback_amount_matches(amount, transaction.amount_cents):
         raise CallbackAmountMismatchError(
             "Callback amount does not match the transaction"

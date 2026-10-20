@@ -76,6 +76,7 @@ jobs:
             MBWAY_KEY=${{ secrets.MBWAY_KEY }}
             MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
             MBWAY_CALLBACK_KEY=${{ secrets.MBWAY_CALLBACK_KEY }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
             EOF
             # Limite de pedidos de pagamento por minuto; só entra quando a Variable existe
             # (vazio reprova a validação e o código tem o seu valor por omissão).
@@ -86,6 +87,10 @@ jobs:
             # e o default do código é "off".
             if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
               echo "PAYMENTS_MODE=${{ vars.PAYMENTS_MODE }}" >> .env
+            fi
+            # Gateway real (stripe ou ifthenpay); só entra quando a Variable existe: o código tem "stripe" por omissão.
+            if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
+              echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env
             fi
             # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
             if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then

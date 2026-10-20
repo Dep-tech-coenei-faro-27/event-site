@@ -199,8 +199,9 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 | --- | --- |
 | `off` (por omissão) | a bilheteira não vende: `/payment/initiate` responde `503`. |
 | `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
-| `live` | usa o gateway ifthenpay real. Exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`; sem eles o backend recusa arrancar. |
+| `live` | usa o gateway real escolhido por `PAYMENTS_PROVIDER`: **`stripe`** (por omissão) exige `STRIPE_SECRET_KEY` (`sk_...`); `ifthenpay` exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`. Sem as credenciais do gateway escolhido o backend recusa arrancar. |
 
+- **Stripe (MB WAY):** o servidor cria e confirma um *PaymentIntent* com o telemóvel do nosso formulário (`+351` + 9 algarismos) e a pessoa aprova na app MB WAY, exatamente como com a ifthenpay: não há redirecionamento nem Stripe.js. A referência do fornecedor é o id do *PaymentIntent* (`pi_...`) e o estado lê-se com `GET /v1/payment_intents/{id}`: `succeeded` é `confirmed`, `requires_action` e `processing` são `pending`, `requires_payment_method` com o erro `payment_intent_payment_attempt_expired` é `expired` e com qualquer outro erro (recusa da pessoa ou do MB WAY) é `failed`, `canceled` é `failed`. Um estado que não se reconhece é erro e não espera. Cada pagamento usa a chave de idempotência `enei-<referência>`, por isso um pedido repetido não cria uma segunda cobrança, e a referência do pagamento vai nos metadados. O email da pessoa não é enviado ao Stripe. No sandbox, os telemóveis `911111112` (confirma ao fim de uns 30 s), `911111113`, `911111114`, `911111115` (expira) e `911111116` (recusa a pessoa) reproduzem cada caso.
 - Para testar o ecrã de sucesso sem um gateway real, usa-se `PAYMENTS_MODE=simulated` com `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0: o pagamento passa a `confirmed` ao fim desses segundos (ver abaixo). O modo de confirmação só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
 - Para testar o erro `502`, o frontend pode apontar um `MBWAY_BASE_URL` inválido em modo `live`.
 - Em `prod` com `PAYMENTS_MODE=simulated` o backend registra um aviso no arranque: os pagamentos não são reais.
@@ -225,6 +226,9 @@ make set-price tier=geral price=3500
 | --- | --- | --- |
 | `STUDENT_EMAIL_DOMAINS` | vazio | domínios de email institucional que verificam o estudante automaticamente (lista separada por vírgulas) |
 | `PAYMENTS_MODE` | `off` | `off`, `simulated` ou `live` (ver acima) |
+| `PAYMENTS_PROVIDER` | `stripe` | gateway usado em `PAYMENTS_MODE=live`: `stripe` ou `ifthenpay` |
+| `STRIPE_SECRET_KEY` | vazio | chave secreta do Stripe (`sk_test_...` no sandbox, `sk_live_...` em produção). Obrigatória com `PAYMENTS_MODE=live` e `PAYMENTS_PROVIDER=stripe`. Nunca vai para o git nem para os logs. |
+| `STRIPE_API_VERSION` | `2026-08-26.dahlia` | versão da API do Stripe fixada em cada pedido, para uma versão nova não mudar o comportamento sem o decidirmos |
 | `MBWAY_KEY` | vazio | chave MB WAY da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_BASE_URL` | `https://api.ifthenpay.com/spg/payment/mbway` | endpoint REST da ifthenpay. Em `live` tem de ser `https`. |
 | `MBWAY_AUTH_TOKEN` | vazio | token de autenticação, se a conta o exigir |
