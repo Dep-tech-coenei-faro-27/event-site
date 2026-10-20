@@ -83,6 +83,10 @@ function CheckoutForm() {
     return <Navigate to="/bilhetes/checkout/aguardar" replace />;
   }
 
+  // Enquanto não se sabe se a pessoa já tem bilhete ou um pagamento à espera não se mostra o formulário: senão aparecia
+  // durante um instante e logo a seguir a página saltava para o perfil ou para a espera (parecia um erro do site).
+  if (!account && !loadFailed) return <div className="checkout-page" aria-busy="true" style={{ minHeight: "60vh" }} />;
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setPhoneTouched(true);

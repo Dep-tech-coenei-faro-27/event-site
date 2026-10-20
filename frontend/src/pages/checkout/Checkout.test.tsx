@@ -150,6 +150,27 @@ describe("checkout", () => {
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/perfil"));
   });
 
+  it("não mostra o formulário enquanto não sabe se a pessoa já tem bilhete (sem piscar antes de ir para a conta)", async () => {
+    let resolveAccount: (value: Account) => void = () => undefined;
+    mocks.getAccount.mockReturnValue(new Promise<Account>((resolve) => (resolveAccount = resolve)));
+    renderAt();
+    await waitFor(() => expect(mocks.getAccount).toHaveBeenCalled());
+    expect(screen.queryByRole("heading", { name: /escolhe a modalidade/i })).toBeNull();
+    expect(document.querySelector("[aria-busy='true']")).not.toBeNull();
+
+    resolveAccount(
+      account({ ticket: { reference: "R", tier: "geral", tier_name: "Passe geral", holder_name: "Ana", paid_at: null } }),
+    );
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/perfil"));
+    expect(screen.queryByRole("heading", { name: /escolhe a modalidade/i })).toBeNull();
+  });
+
+  it("se a conta não carregar mostra o formulário e o aviso em vez de ficar à espera para sempre", async () => {
+    mocks.getAccount.mockRejectedValue(new NetworkError());
+    renderAt();
+    expect(await screen.findByRole("heading", { name: /escolhe a modalidade/i })).toBeInTheDocument();
+  });
+
   it("quem tem um pagamento à espera retoma-o em vez de pagar outra vez", async () => {
     mocks.getAccount.mockResolvedValue(
       account({
