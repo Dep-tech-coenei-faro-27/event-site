@@ -1,12 +1,17 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
+from starlette.responses import StreamingResponse
 
 from app.core.config import settings
 from app.core.rate_limit import RateLimit, client_ip, enforce_rate_limit
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_verified_user
+from app.domains.payments.events import events
 from app.domains.payments.gateway import (
     MBWayGateway,
     PaymentGatewayError,
@@ -25,6 +30,7 @@ from app.domains.payments.service import (
     list_ticket_tiers,
     to_read,
 )
+from app.domains.payments.stream import authorize, event_stream
 from app.domains.users.models import User
 
 router = APIRouter(prefix="/payment", tags=["payment"])
@@ -104,6 +110,29 @@ def read_transaction(
             detail="Transaction not found",
         )
     return to_read(db, transaction)
+
+
+@router.get("/transactions/{reference}/events")
+async def stream_transaction_events(
+    reference: str, request: Request
+) -> StreamingResponse:
+    """Live status of a payment (Server-Sent Events): the current status first, then
+    every change, until the payment is decided. Replaces asking again every 2 s."""
+    user_id = await run_in_threadpool(authorize, request, reference)
+    events.bind_loop(asyncio.get_running_loop())
+    queue = events.subscribe(reference, user_id, settings.PAYMENT_EVENTS_MAX_PER_USER)
+    if queue is None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many open streams",
+        )
+    return StreamingResponse(
+        event_stream(reference, user_id, queue),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        # Also frees the stream if the response never starts (idempotent).
+        background=BackgroundTask(events.unsubscribe, reference, user_id, queue),
+    )
 
 
 @router.get(

@@ -4,7 +4,7 @@ import { ApiError, NetworkError } from "../utils/http";
 import * as api from "./api";
 import { saveReference, loadReference } from "./reference";
 import type { Account, Transaction } from "./types";
-import { POLL_INTERVAL_MS, usePaymentPolling } from "./usePaymentPolling";
+import { LIVE_POLL_INTERVAL_MS, POLL_INTERVAL_MS, usePaymentPolling } from "./usePaymentPolling";
 
 vi.mock("./api");
 
@@ -427,5 +427,132 @@ describe("usePaymentPolling", () => {
     expect(result.current.transaction).toBeNull();
     await advance(0);
     expect(result.current.transaction?.reference).toBe("ENEI-OUTRA00001");
+  });
+});
+
+
+// O fluxo de eventos (Server-Sent Events): avisa na hora e deixa a consulta de segurança mais devagar.
+class FakeEventSource {
+  static CLOSED = 2;
+  static instances: FakeEventSource[] = [];
+  url: string;
+  readyState = 0;
+  onopen: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  closed = false;
+  private listeners: Record<string, (() => void)[]> = {};
+  constructor(url: string) {
+    this.url = url;
+    FakeEventSource.instances.push(this);
+  }
+  addEventListener(type: string, fn: () => void) {
+    (this.listeners[type] ??= []).push(fn);
+  }
+  close() {
+    this.closed = true;
+    this.readyState = FakeEventSource.CLOSED;
+  }
+  open() {
+    this.readyState = 1;
+    this.onopen?.();
+  }
+  emit(type: string) {
+    this.listeners[type]?.forEach((fn) => fn());
+  }
+  fail(closed = false) {
+    if (closed) this.readyState = FakeEventSource.CLOSED;
+    this.onerror?.();
+  }
+}
+
+describe("usePaymentPolling com o fluxo de eventos", () => {
+  beforeEach(() => {
+    FakeEventSource.instances = [];
+    vi.stubGlobal("EventSource", FakeEventSource);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const source = () => FakeEventSource.instances[0];
+
+  it("abre o fluxo do pagamento (cookie de sessão, mesmo endereço)", async () => {
+    getTransaction.mockResolvedValue(tx());
+    renderHook(() => usePaymentPolling(REF));
+    await advance(0);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(source().url).toBe(`/api/payment/transactions/${REF}/events`);
+  });
+
+  it("com o fluxo vivo consulta só de 10 em 10 segundos", async () => {
+    getTransaction.mockResolvedValue(tx());
+    renderHook(() => usePaymentPolling(REF));
+    await advance(0);
+    act(() => source().open());
+    expect(getTransaction).toHaveBeenCalledTimes(1);
+    await advance(POLL_INTERVAL_MS * 4);
+    expect(getTransaction).toHaveBeenCalledTimes(1); // nada aos 2, 4, 6 nem 8 s
+    await advance(LIVE_POLL_INTERVAL_MS);
+    expect(getTransaction).toHaveBeenCalledTimes(2);
+  });
+
+  it("um aviso do servidor faz uma consulta imediata e mostra o resultado", async () => {
+    getTransaction.mockResolvedValueOnce(tx());
+    const { result } = renderHook(() => usePaymentPolling(REF));
+    await advance(0);
+    act(() => source().open());
+    expect(result.current.phase).toBe("waiting");
+
+    getTransaction.mockResolvedValue(tx({ status: "confirmed" }));
+    act(() => source().emit("status"));
+    await advance(0);
+
+    expect(getTransaction).toHaveBeenCalledTimes(2);
+    expect(result.current.phase).toBe("confirmed");
+    expect(source().closed).toBe(true); // estado final: fecha o fluxo
+  });
+
+  it("um aviso que chega durante uma consulta não se perde", async () => {
+    let release: (value: Transaction) => void = () => undefined;
+    getTransaction.mockReturnValueOnce(new Promise<Transaction>((resolve) => (release = resolve)));
+    getTransaction.mockResolvedValue(tx({ status: "confirmed" }));
+    const { result } = renderHook(() => usePaymentPolling(REF));
+    await advance(0); // a primeira consulta fica pendurada
+    act(() => source().emit("status")); // o aviso chega agora
+    await act(async () => release(tx()));
+    await advance(0);
+
+    expect(getTransaction).toHaveBeenCalledTimes(2);
+    expect(result.current.phase).toBe("confirmed");
+  });
+
+  it("se o fluxo falha volta a consultar de 2 em 2 segundos", async () => {
+    getTransaction.mockResolvedValue(tx());
+    renderHook(() => usePaymentPolling(REF));
+    await advance(0);
+    act(() => source().open());
+    getTransaction.mockClear();
+
+    act(() => source().fail());
+    await advance(POLL_INTERVAL_MS);
+    expect(getTransaction).toHaveBeenCalledTimes(1);
+    await advance(POLL_INTERVAL_MS);
+    expect(getTransaction).toHaveBeenCalledTimes(2);
+  });
+
+  it("fecha o fluxo ao sair da página", async () => {
+    getTransaction.mockResolvedValue(tx());
+    const { unmount } = renderHook(() => usePaymentPolling(REF));
+    await advance(0);
+    unmount();
+    expect(source().closed).toBe(true);
+  });
+
+  it("sem suporte para eventos o ecrã consulta de 2 em 2 segundos como sempre", async () => {
+    vi.stubGlobal("EventSource", undefined);
+    getTransaction.mockResolvedValue(tx());
+    renderHook(() => usePaymentPolling(REF));
+    await advance(POLL_INTERVAL_MS * 2);
+    expect(getTransaction).toHaveBeenCalledTimes(3);
+    expect(FakeEventSource.instances).toHaveLength(0);
   });
 });

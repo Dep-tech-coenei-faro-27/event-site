@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
     MBWayGateway,
     PaymentGatewayError,
@@ -175,6 +176,7 @@ def _settle_pending(
         transaction.status = status
     db.commit()
     db.refresh(transaction)
+    notify(transaction.reference, transaction.status)
 
 
 ABANDONED_CHECKS_PER_REQUEST = 10
@@ -355,6 +357,7 @@ def _record_refund_due(
     transaction.confirmed_at = transaction.confirmed_at or datetime.now(UTC)
     db.commit()
     db.refresh(transaction)
+    notify(transaction.reference, transaction.status)
     logger.error(
         "Payment %s needs a refund: %s. Refund it by hand.",
         transaction.reference,
@@ -426,6 +429,7 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     # Saves the status when the ticket already existed and nothing else committed.
     db.commit()
     db.refresh(transaction)
+    notify(transaction.reference, transaction.status)
     return transaction
 
 
@@ -526,6 +530,19 @@ def _sync_provider_status(
     _settle_pending(db, transaction, provider_status)
 
 
+def refresh_pending_payment(db: Session, reference: str, gateway: MBWayGateway) -> None:
+    """Ask the provider about a payment somebody is waiting for and persist the answer.
+
+    Used by the live status stream: when the provider reports a change the payment is
+    updated (and the streams are told) without anyone polling. Throttled like a poll.
+    """
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    if transaction is not None and transaction.status is TransactionStatus.PENDING:
+        _sync_provider_status(db, transaction, gateway)
+
+
 def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
     """Cancel a ticket and free its seat: the payment becomes ``refunded``.
 
@@ -552,6 +569,8 @@ def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
             transaction.status = TransactionStatus.REFUNDED
         db.commit()
         db.refresh(ticket)
+        if transaction is not None:
+            notify(transaction.reference, transaction.status)
     return ticket
 
 
