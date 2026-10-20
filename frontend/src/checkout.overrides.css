@@ -1,0 +1,60 @@
+/*
+ * Ajustes à mão sobre o `checkout.css` (que é gerado: não se edita). O protótipo tem a barra de topo
+ * normal e deixa o espaço dela no `<body>`; no React a barra é fixa e o espaço reserva-se no `main`
+ * (ver a tipografia no início do `checkout.css`), por isso as páginas de resultado não podem somar os dois.
+ */
+body[data-page="checkout"].payment-result-page {
+  padding-top: 0;
+}
+html body[data-page="checkout"][data-page].payment-result-page main {
+  padding-top: 0;
+  background: none;
+}
+html body[data-page="checkout"][data-page] main .payment-result-main {
+  min-height: 100vh;
+  padding-top: calc(var(--nav) + clamp(48px, 8vw, 100px));
+}
+@media (max-width: 620px) {
+  html body[data-page="checkout"][data-page] main .payment-result-main {
+    min-height: 0;
+    padding-top: calc(64px + 28px);
+  }
+}
+
+/* Falha ao iniciar o pagamento (o protótipo não desenha este caso). */
+html body[data-page="checkout"][data-page] main .checkout-error {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-left: 3px solid #ee9185;
+  background: rgba(238, 145, 133, 0.09);
+  color: #f6d2cd;
+  font-size: 14px;
+  line-height: 1.5;
+}
+html body[data-page="checkout"][data-page] main .checkout-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* O anel do ecrã de espera roda como no protótipo. O gerador deixava cair este @keyframes (só guardava os
+   que tinham o nome de uma classe usada), por isso o `animation: payment-spin` não fazia nada. */
+@keyframes payment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* NIF opcional: o desenho do protótipo não o tem; usa o mesmo campo e a mesma ajuda do telemóvel. */
+html body[data-page="checkout"][data-page] main .checkout-nif {
+  margin-top: 18px;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid="true"] {
+  border-color: #ee9185;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid="true"] + small {
+  color: #f6d2cd;
+}

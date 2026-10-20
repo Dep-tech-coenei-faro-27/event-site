@@ -38,6 +38,14 @@ describe("describeInitiateError (uma linha por erro de docs/api-payments.md)", (
     expect(f).toMatchObject({ kind: "invalid-input", field: "phone", action: "fix-field" });
   });
 
+  it("422 do NIF aponta o campo", () => {
+    const f = describeInitiateError(
+      api(422, [{ type: "value_error", loc: ["body", "nif"], msg: "nif check digit is not valid" }]),
+    );
+    expect(f).toMatchObject({ kind: "invalid-input", field: "nif", action: "fix-field" });
+    expect(f.message).toMatch(/NIF/);
+  });
+
   it("422 de modalidade desconhecida manda escolher outra", () => {
     const f = describeInitiateError(
       api(422, [{ type: "enum", loc: ["body", "ticket_tier"], msg: "x" }]),
