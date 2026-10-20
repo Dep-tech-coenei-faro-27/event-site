@@ -283,6 +283,7 @@ def initiate_payment(
         quantity=payload.quantity,
         status=TransactionStatus.PENDING,
         phone=payload.phone,
+        nif=payload.nif,
         provider=gateway.name,
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )

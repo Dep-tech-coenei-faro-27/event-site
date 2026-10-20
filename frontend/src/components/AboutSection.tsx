@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import AboutSectionCard from './AboutSectionCards';
 import Eyebrow from './EyeBrow';
 
@@ -19,12 +20,12 @@ export default function AboutSection() {
             ao ecossistema empresarial e a novas comunidades.
           </p>
 
-          <button
-            type="button"
-            className="px-7 py-3.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 text-white font-montserrat font-semibold text-sm transition-all duration-200 cursor-pointer"
-          >
+          <Link
+              to="/sobre"
+              className="px-7 py-3.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 text-white font-montserrat font-semibold text-sm transition-all duration-200 cursor-pointer"
+            >
             Conhecer o ENEI
-          </button>
+          </Link>
         </div>
 
         {/* Coluna Direita: Cartões com Borda Esquerda */}

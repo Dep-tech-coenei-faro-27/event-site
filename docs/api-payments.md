@@ -58,16 +58,17 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 
 | | |
 | --- | --- |
-| Corpo | `ticket_tier`, `phone`, `email` (opcional), `quantity` (opcional, tem de ser `1`) |
+| Corpo | `ticket_tier`, `phone`, `email` (opcional), `nif` (opcional), `quantity` (opcional, tem de ser `1`) |
 | `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral` |
 | `phone` | telemóvel português. Aceita espaços e o indicativo (`912 345 678`, `+351 912345678`, `00351912345678`); é normalizado e guardado como `912345678` |
 | `email` | se faltar, usa o email da conta |
+| `nif` | opcional, para a fatura. Aceita espaços, pontos, hífenes e o prefixo `PT` (`123 456 789`, `PT123456789`); vazio ou em falta é aceite e fica sem NIF. Se vier preenchido tem de ter 9 algarismos (só `0-9`), um primeiro algarismo que exista (sem `0`, e o `4` só como `45`), no máximo 32 caracteres no total e o algarismo de controlo certo (módulo 11), senão `422` **e nenhum lugar fica reservado**. Guarda-se na transação (`transactions.nif`, 9 algarismos), **vive e morre com a transação, como o telemóvel** (não se apaga quando o pagamento falha ou expira; sai quando o registo da compra é removido) e **nunca é devolvido pela API**: nem em `/payment/initiate`, nem em `/payment/transactions/{reference}` |
 | `quantity` | fixo em `1`: um bilhete por pessoa |
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |
 | `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
-| `422` | corpo inválido (telemóvel, quantidade ou modalidade) |
+| `422` | corpo inválido (telemóvel, NIF, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
 | `503` | bilheteira fechada (essa modalidade ainda sem preço) ou pagamentos desligados (`PAYMENTS_MODE=off`) |
@@ -242,7 +243,7 @@ Os textos de `detail` estão em inglês e são para os logs e para distinguir ca
 | `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é para estudantes com a conta verificada.» | Sugerir o passe geral ou o contacto da organização |
 | `409` com `This ticket tier is sold out` | modalidade esgotada | «Esta modalidade esgotou.» | Voltar à escolha de modalidade |
 | `409` com `You already have a ticket or a payment in progress` | já tem bilhete ou pagamento em curso | «Já tens um bilhete ou um pagamento em curso.» (**não** dizer «esgotado») | Se `/users/me` tem `qr_code`, mostrar o bilhete; senão, ir para o ecrã de espera com a referência guardada |
-| `422` | telemóvel, modalidade ou quantidade inválidos | Erro junto ao campo (normalmente o telemóvel) | Deixar corrigir e reenviar |
+| `422` | telemóvel, NIF, modalidade ou quantidade inválidos | Erro junto ao campo (o telemóvel ou o NIF; `loc` diz qual) | Deixar corrigir e reenviar |
 | `429` | mais de 10 pedidos por minuto | «Demasiadas tentativas. Tenta daqui a alguns segundos.» | Desativar o botão durante `Retry-After` segundos (cabeçalho da resposta) |
 | `502` | o MB WAY falhou; a transação fica `failed` | «Não conseguimos iniciar o pagamento. Tenta outra vez.» | Deixar tentar logo: uma transação `failed` não conta como pagamento em curso |
 | `503` com `Ticket sales are not open yet` | modalidade ainda sem preço | «A bilheteira ainda não abriu.» | Sem repetição automática |

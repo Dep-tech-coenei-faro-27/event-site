@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Eyebrow from './EyeBrow';
 
 interface PathItem {
@@ -16,7 +17,7 @@ const paths: PathItem[] = [
     title: 'Vive os quatro dias.',
     description: 'Palestras, atividades, alojamento, refeições e toda a experiência ENEI.',
     linkText: 'Comprar bilhete',
-    href: '#bilhetes',
+    href: '/bilhetes',
   },
   {
     number: '02',
@@ -24,7 +25,7 @@ const paths: PathItem[] = [
     title: 'Liga-te ao talento.',
     description: 'Participa no ecossistema, apresenta oportunidades e cria relações com a comunidade.',
     linkText: 'Conhecer parcerias',
-    href: '#parcerias',
+    href: '/parcerias',
   },
   {
     number: '03',
@@ -32,7 +33,7 @@ const paths: PathItem[] = [
     title: 'Faz parte do encontro.',
     description: 'Conhece a missão, a equipa organizadora e a rede que constrói a edição de Faro.',
     linkText: 'Descobrir o ENEI',
-    href: '#sobre',
+    href: '/sobre',
   },
 ];
 
@@ -87,15 +88,15 @@ export default function ParticipationSection() {
               </div>
 
               {/* Link de Ação com Seta para Cima e Direita */}
-              <a
-                href={item.href}
+              <Link
+                to={item.href}
                 className="group inline-flex items-center gap-1.5 text-sm font-montserrat font-semibold text-white hover:text-[#00AAFF] transition-colors duration-200 mt-auto"
               >
                 <span>{item.linkText}</span>
                 <span className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                   ↗
                 </span>
-              </a>
+              </Link>
             </div>
           ))}
         </div>
