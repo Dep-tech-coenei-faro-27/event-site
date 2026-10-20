@@ -126,6 +126,39 @@ describe("checkout", () => {
     expect(sessionStorage.getItem("enei.payment.reference")).toBe("ENEI-ABC");
   });
 
+  it("o NIF é opcional: sem NIF o pedido não o leva", async () => {
+    mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+    renderAt();
+    await fillAndSubmit();
+    await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+    expect(mocks.initiatePayment.mock.calls[0][0]).toEqual({ ticket_tier: "geral", phone: "912345678" });
+  });
+
+  it("com NIF válido manda-o só com os 9 algarismos", async () => {
+    mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+    renderAt();
+    fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "PT 123 456 789" } });
+    await fillAndSubmit();
+    await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "geral", phone: "912345678", nif: "123456789" });
+  });
+
+  it("um NIF inválido avisa junto ao campo e não deixa pagar nem faz pedido", async () => {
+    renderAt();
+    const field = await screen.findByLabelText(/^NIF/i);
+    fireEvent.change(field, { target: { value: "123456780" } });
+    fireEvent.blur(field);
+    expect(await screen.findByText(/este nif não é válido/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/número de telemóvel/i), { target: { value: "912 345 678" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    const pay = screen.getByRole("button", { name: /pagar com mb way/i });
+    expect(pay).toBeDisabled();
+    fireEvent.click(pay);
+    expect(mocks.initiatePayment).not.toHaveBeenCalled();
+    fireEvent.change(field, { target: { value: "" } });
+    expect(pay).toBeEnabled();
+  });
+
   it("esgotou entretanto: mostra o motivo e fica no formulário", async () => {
     mocks.initiatePayment.mockRejectedValue(new ApiError(409, "x", "This ticket tier is sold out"));
     renderAt();

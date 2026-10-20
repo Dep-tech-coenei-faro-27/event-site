@@ -9,6 +9,7 @@ import { useAuth } from "../../utils/useAuth";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 import CheckoutAccountGate from "./CheckoutAccountGate";
+import { cleanNif, nifError } from "../../utils/nif";
 import { formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 /**
@@ -41,6 +42,8 @@ function CheckoutForm() {
   const [phone, setPhone] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const [nif, setNif] = useState("");
+  const [nifTouched, setNifTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<InitiateFailure | null>(null);
 
@@ -75,7 +78,8 @@ function CheckoutForm() {
 
   const current = tiers?.find((tier) => tier.tier === (selected ?? initial)) ?? null;
   const phoneValid = isPortuguesePhone(phone);
-  const canSubmit = Boolean(current && isOpen(current) && phoneValid && accepted && !submitting);
+  const nifMessage = nifError(nif);
+  const canSubmit = Boolean(current && isOpen(current) && phoneValid && !nifMessage && accepted && !submitting);
 
   if (account?.ticket) return <Navigate to="/perfil" replace />;
   if (account?.pending_payment) {
@@ -90,6 +94,7 @@ function CheckoutForm() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setPhoneTouched(true);
+    setNifTouched(true);
     if (!current || !canSubmit) return;
     setFailure(null);
     setSubmitting(true);
@@ -97,6 +102,7 @@ function CheckoutForm() {
       const transaction = await initiatePayment({
         ticket_tier: current.tier,
         phone: normalizePhone(phone),
+        ...(cleanNif(nif) ? { nif: cleanNif(nif) } : {}),
       });
       saveReference(transaction.reference);
       navigate("/bilhetes/checkout/aguardar");
@@ -244,6 +250,28 @@ function CheckoutForm() {
                   {phoneTouched && !phoneValid
                     ? "Indica um telemóvel português válido (9 dígitos)."
                     : "Utiliza o número associado à tua conta MB Way."}
+                </small>
+              </label>
+
+              <label className="auth-field checkout-nif">
+                <span>NIF (opcional)</span>
+                <input
+                  type="text"
+                  name="nif"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  placeholder="123 456 789"
+                  maxLength={14}
+                  aria-describedby="nif-help"
+                  aria-invalid={nifTouched && Boolean(nifMessage)}
+                  value={nif}
+                  onChange={(event) => setNif(event.target.value)}
+                  onBlur={() => setNifTouched(true)}
+                />
+                <small id="nif-help" role={nifTouched && nifMessage ? "alert" : undefined}>
+                  {nifTouched && nifMessage
+                    ? nifMessage
+                    : "Preenche só se quiseres a fatura com o teu número de contribuinte."}
                 </small>
               </label>
 

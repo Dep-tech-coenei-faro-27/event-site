@@ -48,6 +48,8 @@ export type InitiateRequest = {
   ticket_tier: string;
   /** Telemóvel português; o backend aceita espaços e indicativo e normaliza. */
   phone: string;
+  /** NIF para a fatura (opcional): 9 algarismos com o de controlo certo; o backend recusa os inválidos com 422. */
+  nif?: string;
 };
 
 export type AccountTicket = {
