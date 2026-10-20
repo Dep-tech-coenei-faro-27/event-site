@@ -23,6 +23,7 @@ class TicketTier(StrEnum):
     REFEICOES = "refeicoes"
     COMPLETO = "completo"
     GERAL = "geral"
+    GERAL_REFEICOES = "geral_refeicoes"
 
 
 class TransactionStatus(StrEnum):

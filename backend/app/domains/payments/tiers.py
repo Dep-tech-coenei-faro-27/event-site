@@ -19,4 +19,7 @@ TIER_SPECS: dict[TicketTier, TicketTierSpec] = {
         TicketTier.COMPLETO, "Experiência completa", True
     ),
     TicketTier.GERAL: TicketTierSpec(TicketTier.GERAL, "Passe geral", False),
+    TicketTier.GERAL_REFEICOES: TicketTierSpec(
+        TicketTier.GERAL_REFEICOES, "Passe geral + refeições", False
+    ),
 }

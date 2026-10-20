@@ -63,3 +63,17 @@ def test_set_price_rejects_a_negative_stock(db_session):
 
     with pytest.raises(ValueError):
         set_price(db_session, TicketTier.GERAL, 5000, stock=-1)
+
+
+def test_set_price_creates_the_general_pass_with_meals(db_session):
+    set_price(db_session, TicketTier.GERAL_REFEICOES, 6500)
+
+    row = db_session.scalar(
+        select(TicketTierPrice).where(
+            TicketTierPrice.tier == TicketTier.GERAL_REFEICOES
+        )
+    )
+    assert row is not None
+    assert row.name == "Passe geral + refeições"
+    assert row.price_cents == 6500
+    assert row.is_student is False

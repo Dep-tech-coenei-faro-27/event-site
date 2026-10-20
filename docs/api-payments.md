@@ -18,8 +18,9 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 | `refeicoes` | Acesso + refeições | sim |
 | `completo` | Experiência completa | sim |
 | `geral` | Passe geral | não |
+| `geral_refeicoes` | Passe geral + refeições | não |
 
-> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo variantes **não estudante** com refeições e com a experiência completa (hoje só o passe geral é aberto a não estudantes). O frontend **não deve assumir que são sempre quatro**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
+> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo outras variantes **não estudante** (hoje há o passe geral e o passe geral com refeições). O frontend **não deve assumir que são sempre cinco**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
 
 O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
 
@@ -59,7 +60,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 | | |
 | --- | --- |
 | Corpo | `ticket_tier`, `phone`, `email` (opcional), `nif` (opcional), `quantity` (opcional, tem de ser `1`) |
-| `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral` |
+| `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral`, `geral_refeicoes` |
 | `phone` | telemóvel português. Aceita espaços e o indicativo (`912 345 678`, `+351 912345678`, `00351912345678`); é normalizado e guardado como `912345678` |
 | `email` | se faltar, usa o email da conta |
 | `nif` | opcional, para a fatura. Aceita espaços, pontos, hífenes e o prefixo `PT` (`123 456 789`, `PT123456789`); vazio ou em falta é aceite e fica sem NIF. Se vier preenchido tem de ter 9 algarismos (só `0-9`), um primeiro algarismo que exista (sem `0`, e o `4` só como `45`), no máximo 32 caracteres no total e o algarismo de controlo certo (módulo 11), senão `422` **e nenhum lugar fica reservado**. Guarda-se na transação (`transactions.nif`, 9 algarismos), **vive e morre com a transação, como o telemóvel** (não se apaga quando o pagamento falha ou expira; sai quando o registo da compra é removido) e **nunca é devolvido pela API**: nem em `/payment/initiate`, nem em `/payment/transactions/{reference}` |
