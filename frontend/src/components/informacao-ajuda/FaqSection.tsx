@@ -1,79 +1,69 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import FaqItem from './FaqItem';
 import { CATEGORIES, FAQ_DATA } from './faqData';
-import Eyebrow from '../EyeBrow';
 
-type Props = { query: string };
+type Props = {
+  query: string;
+  category: string;
+  onCategoryChange: (category: string) => void;
+};
 
-export default function FaqSection({ query }: Props) {
-  const [category, setCategory] = useState<string>('todos');
+/** Texto sem acentos e em minúsculas, como a pesquisa do protótipo. */
+const normalize = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
 
+/** Perguntas frequentes (`ui-ux/informacao-ajuda`): categorias à esquerda, lista à direita, pesquisa no cabeçalho. */
+export default function FaqSection({ query, category, onCategoryChange }: Props) {
   const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalize(query);
     return FAQ_DATA.filter(
-      (i) =>
-        (category === 'todos' || i.category === category) &&
-        (!q || `${i.question} ${i.answer}`.toLowerCase().includes(q)),
+      (item) =>
+        (category === 'todos' || item.category === category) &&
+        (!q || normalize(`${item.question} ${item.answer}`).includes(q)),
     );
   }, [query, category]);
 
   return (
-    <section className="bg-[#050d21] py-[clamp(72px,9vw,124px)]">
-      <div className="mx-auto w-[min(calc(100%-28px),1180px)] sm:w-[min(calc(100%-40px),1180px)]">
-        <Eyebrow text='FAQ'/>
-        <h2 className="text-[clamp(30px,4vw,52px)] font-semibold leading-[1.06] tracking-[-0.045em] text-white">
-          Perguntas frequentes
-        </h2>
-
-        {/* Mobile: select */}
-        <label className="mt-6 grid gap-2 sm:hidden">
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8796a9]">Categoria</span>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="h-12 w-full rounded-lg border border-[#1ab2ff]/40 bg-[#0a172f] px-4 text-[13px] font-semibold text-white outline-none focus:border-[#1ab2ff]"
-          >
+    <section className="section">
+      <div className="container faq-layout">
+        <div className="faq-heading">
+          <p className="eyebrow">&lt;FAQ /&gt;</p>
+          <h2>Perguntas frequentes</h2>
+        </div>
+        <label className="faq-mobile-filter">
+          <span>Categoria</span>
+          <select value={category} onChange={(event) => onCategoryChange(event.target.value)}>
             {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
             ))}
           </select>
         </label>
-
-        {/* Desktop: botões */}
-        <div
-          role="group"
-          aria-label="Categorias de ajuda"
-          className="mt-6 hidden grid-cols-3 gap-1 rounded-xl border border-white/10 bg-[#0a172f] p-2 sm:grid lg:grid-cols-6"
-        >
+        <aside className="faq-nav" aria-label="Categorias de ajuda">
           {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              aria-pressed={category === c.id}
-              onClick={() => setCategory(c.id)}
-              className={`min-h-[42px] cursor-pointer rounded-[7px] border px-2.5 py-2 text-xs transition-colors ${
-                category === c.id
-                  ? 'border-[#1ab2ff]/50 bg-[#1ab2ff]/15 text-white'
-                  : 'border-transparent text-[#b1bccd] hover:text-white'
-              }`}
-            >
+            <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => onCategoryChange(c.id)}>
               {c.label}
             </button>
           ))}
-        </div>
-
-        <div className="mt-6 space-y-2">
-          {items.map((item, idx) => (
-            // key inclui a categoria/pesquisa para o primeiro item abrir sempre por defeito
+        </aside>
+        <div className="faq-list">
+          {items.map((item, index) => (
+            // A chave inclui a categoria e a pesquisa: o primeiro item abre sempre por omissão, como no protótipo.
             <FaqItem
               key={`${item.id}-${category}-${query}`}
               question={item.question}
               answer={item.answer}
-              defaultOpen={idx === 0 && !query}
+              category={item.category}
+              defaultOpen={index === 0 && !query}
             />
           ))}
           {items.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[#1ab2ff]/40 p-8 text-center text-[#b1bccd]">
+            <div className="faq-empty">
               Não encontrámos uma resposta. Experimenta outra pesquisa ou contacta a equipa.
             </div>
           )}

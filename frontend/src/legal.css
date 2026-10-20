@@ -1,0 +1,451 @@
+/*
+ * Páginas `legal` no desenho novo (ui-ux). Gerado por `scripts/ui-port/genpage.py` a partir do
+ * `core.css` e `motion.css` do protótipo, limitado a `body[data-page="legal"]` (cada página define esse atributo com
+ * `useBodyPage("legal")`). Não editar à mão: os ajustes vão no fim, em «Ajustes», ou noutro ficheiro.
+ */
+
+body[data-page="legal"] main {
+  padding-top: 64px; /* a barra de topo é fixa (64 px no telemóvel, 76 px a partir de 768 px) */
+  overflow-x: clip;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  body[data-page="legal"] main {
+    padding-top: 76px;
+  }
+}
+body[data-page="legal"] main p {
+  margin: 1em 0;
+}
+/* O protótipo não usa o reset do Tailwind: as listas e as definições têm o aspeto por omissão do browser
+   (as regras com classe, mais específicas, sobrepõem-se). */
+body[data-page="legal"] main ul,
+body[data-page="legal"] main ol {
+  list-style: revert;
+  margin: 1em 0;
+  padding-inline-start: 40px;
+}
+body[data-page="legal"] main ul ul,
+body[data-page="legal"] main ol ol,
+body[data-page="legal"] main ul ol,
+body[data-page="legal"] main ol ul {
+  margin: 0;
+}
+body[data-page="legal"] main dl {
+  margin: 1em 0;
+}
+body[data-page="legal"] main dd {
+  margin-inline-start: 40px;
+}
+body[data-page="legal"] main h1,
+body[data-page="legal"] main h2,
+body[data-page="legal"] main h3 {
+  font-family: Poppins, sans-serif;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  margin: 0;
+}
+body[data-page="legal"] main h1 {
+  font-weight: 700; /* o Tailwind faz os títulos herdarem o peso do texto; o protótipo usa negrito */
+}
+body[data-page="legal"] main h2 {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+}
+body[data-page="legal"] main h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body[data-page="legal"] main .section {
+  padding: clamp(72px, 9vw, 124px) 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+body[data-page="legal"] main .section > .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="legal"] main .section::before {
+  content: none;
+}
+body[data-page="legal"] main main > .section:nth-of-type(odd) {
+  background: var(--surface);
+}
+body[data-page="legal"] main main > .section:nth-of-type(odd)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px
+    96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px
+    repeat;
+  opacity: 0.026;
+}
+body[data-page="legal"] main .eyebrow {
+  margin: 0 0 14px;
+  color: var(--accent-strong);
+  font:
+    700 11px/1.4 Montserrat,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+body[data-page="legal"] main .lead {
+  max-width: 720px;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 20px);
+}
+body[data-page="legal"] main .page-hero {
+  padding: clamp(84px, 10vw, 140px) 0 clamp(70px, 8vw, 110px);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(0, 170, 255, 0.18),
+      transparent 45%
+    ),
+    var(--bg);
+}
+body[data-page="legal"] main .page-hero::after {
+  content: none;
+}
+body[data-page="legal"] main .page-hero .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="legal"] main .page-hero h1 {
+  font-size: clamp(38px, 6vw, 68px);
+  max-width: 900px;
+}
+body[data-page="legal"] main .footer-label {
+  display: block;
+  margin-bottom: 13px;
+  color: var(--subtle);
+  font:
+    700 10px/1 Montserrat,
+    sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+html body[data-page="legal"][data-page] main .page-hero {
+  background:
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(var(--accent-rgb), 0.2),
+      transparent 36%
+    ),
+    var(--bg);
+}
+html body[data-page="legal"][data-page] main .page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000000 45%,
+    transparent
+  );
+}
+body[data-page="legal"] main .legal-page {
+  background: var(--bg);
+}
+body[data-page="legal"] main .legal-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line-accent);
+  background:
+    linear-gradient(
+      100deg,
+      rgba(3, 13, 35, 0.98) 0 46%,
+      rgba(4, 25, 55, 0.9) 100%
+    ),
+    var(--surface);
+}
+body[data-page="legal"] main .legal-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") center / 112px
+    112px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") center / 112px 112px
+    repeat;
+  opacity: 0.035;
+}
+body[data-page="legal"] main .legal-hero .container {
+  position: relative;
+  z-index: 1;
+  min-height: clamp(300px, 38vh, 420px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  padding-right: 0;
+}
+body[data-page="legal"] main .legal-hero h1 {
+  max-width: 820px;
+  font-size: clamp(46px, 6.4vw, 78px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+body[data-page="legal"] main .legal-hero .lead {
+  max-width: 700px;
+  text-wrap: pretty;
+}
+body[data-page="legal"] main .legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0 0;
+}
+body[data-page="legal"] main .legal-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--subtle);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+body[data-page="legal"] main .legal-meta strong,
+body[data-page="legal"] main .legal-meta time {
+  color: white;
+  font-weight: 700;
+}
+body[data-page="legal"] main .legal-section-wrap {
+  overflow: visible;
+  background:
+    linear-gradient(rgba(3, 13, 35, 0.92), rgba(3, 13, 35, 0.92)),
+    url("./assets/azulejo-pattern-transparent.webp") center / 120px 120px repeat;
+}
+body[data-page="legal"] main .legal-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+body[data-page="legal"] main .legal-sidebar {
+  position: sticky;
+  top: calc(var(--nav) + 24px);
+  width: 360px;
+  min-width: 360px;
+  overflow: clip;
+  border: 1px solid var(--line-accent);
+  border-radius: 0;
+  background:
+    linear-gradient(145deg, rgba(var(--accent-rgb), 0.08), transparent 42%),
+    var(--panel);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.2);
+}
+body[data-page="legal"] main .legal-sidebar > .footer-label {
+  display: block;
+  padding: 22px 22px 12px;
+}
+body[data-page="legal"] main .legal-sidebar nav {
+  display: grid;
+  padding: 0 10px 10px;
+}
+body[data-page="legal"] main .legal-sidebar nav a {
+  padding: 13px 14px;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+body[data-page="legal"] main .legal-sidebar nav a:hover,
+body[data-page="legal"] main .legal-sidebar nav a:focus-visible {
+  color: white;
+  background: rgba(var(--accent-rgb), 0.08);
+}
+body[data-page="legal"] main .legal-sidebar nav a[aria-current="page"] {
+  color: white;
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+body[data-page="legal"] main .legal-help {
+  display: block;
+  padding: 18px 22px;
+  border-top: 1px solid var(--line);
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+body[data-page="legal"] main .legal-document {
+  min-width: 0;
+}
+body[data-page="legal"] main .legal-toc {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
+  gap: clamp(24px, 4vw, 48px);
+  margin-bottom: 20px;
+  padding: clamp(24px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+}
+body[data-page="legal"] main .legal-toc__heading h2 {
+  margin-top: 7px;
+  font-size: clamp(23px, 3vw, 30px);
+}
+body[data-page="legal"] main .legal-toc ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+body[data-page="legal"] main .legal-toc a {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+body[data-page="legal"] main .legal-toc li:nth-child(-n + 2) a {
+  border-top: 0;
+}
+body[data-page="legal"] main .legal-toc a:hover,
+body[data-page="legal"] main .legal-toc a:focus-visible {
+  color: white;
+}
+body[data-page="legal"] main .legal-section {
+  scroll-margin-top: calc(var(--nav) + 24px);
+  padding: clamp(28px, 4vw, 40px);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: var(--panel);
+}
+body[data-page="legal"] main .legal-section:first-of-type {
+  border-radius: 0;
+}
+body[data-page="legal"] main .legal-section:last-of-type {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+body[data-page="legal"] main .legal-section h2 {
+  font-size: clamp(23px, 3vw, 30px);
+}
+body[data-page="legal"] main .legal-section p {
+  max-width: 760px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.85;
+}
+body[data-page="legal"] main .legal-contact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  margin-top: 20px;
+  padding: clamp(28px, 4vw, 40px);
+  border: 1px solid var(--line-accent);
+  border-radius: 0;
+  background: var(--panel-strong);
+}
+body[data-page="legal"] main .legal-contact h2 {
+  margin-top: 7px;
+  font-size: clamp(27px, 4vw, 38px);
+}
+body[data-page="legal"] main .legal-contact p:last-child {
+  max-width: 620px;
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+body[data-page="legal"] main .legal-contact .btn {
+  flex: none;
+  border-radius: 0;
+}
+@media (max-width: 1180px) {
+  body[data-page="legal"] main .legal-toc {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  body[data-page="legal"] main .legal-toc ol {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="legal"] main .legal-toc li:nth-child(2) a {
+    border-top: 1px solid var(--line);
+  }
+}
+@media (max-width: 840px) {
+  body[data-page="legal"] main .legal-hero .container {
+    min-height: 340px;
+  }
+  body[data-page="legal"] main .legal-layout {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="legal"] main .legal-sidebar {
+    position: static;
+    width: 100%;
+    min-width: 0;
+  }
+}
+@media (max-width: 640px) {
+  body[data-page="legal"] main .legal-hero {
+    padding-top: 58px;
+    padding-bottom: 52px;
+  }
+  body[data-page="legal"] main .legal-hero .container {
+    min-height: 300px;
+  }
+  body[data-page="legal"] main .legal-hero h1 {
+    max-width: 100%;
+    font-size: clamp(38px, 12vw, 52px);
+  }
+  body[data-page="legal"] main .legal-sidebar nav {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="legal"] main .legal-sidebar nav a {
+    text-align: left;
+  }
+  body[data-page="legal"] main .legal-sidebar nav a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  body[data-page="legal"] main .legal-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  body[data-page="legal"] main .legal-meta span {
+    max-width: 100%;
+  }
+  body[data-page="legal"] main .legal-toc {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="legal"] main .legal-toc ol {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="legal"] main .legal-toc li:nth-child(2) a {
+    border-top: 1px solid var(--line);
+  }
+  body[data-page="legal"] main .legal-contact {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  body[data-page="legal"] main .legal-contact .btn {
+    width: 100%;
+  }
+}

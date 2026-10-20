@@ -1,0 +1,38 @@
+/*
+ * Ajustes à mão sobre o `informacao-ajuda.css` (gerado: não se edita). Diferença ao protótipo decidida pela equipa:
+ * o mapa do OpenStreetMap só se carrega depois de a pessoa o pedir (partilha o endereço IP com um terceiro).
+ */
+body[data-page="informacao-ajuda"] .map-consent {
+  min-height: inherit;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 40px 24px;
+  text-align: center;
+}
+body[data-page="informacao-ajuda"] .map-consent svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body[data-page="informacao-ajuda"] .map-consent p {
+  max-width: 380px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+body[data-page="informacao-ajuda"] .map-consent a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+body[data-page="informacao-ajuda"] .map-consent a:hover {
+  color: #fff;
+}

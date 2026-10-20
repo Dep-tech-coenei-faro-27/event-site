@@ -1,0 +1,50 @@
+/*
+ * Ajustes à mão sobre o `bilhetes.css` (gerado: não se edita). Diferenças ao protótipo decididas com o utilizador:
+ * (o prefixo `html body[...][data-page]` iguala o peso das regras da própria página no ficheiro gerado)
+ * o cartão de bilhete nunca passa de 400 px (a 597 px e a 1071 px, com as colunas do protótipo, ficava com 570 e 500 px).
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+  justify-content: center;
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 400px));
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: minmax(0, 400px);
+  }
+}
+
+/*
+ * Quinta modalidade (passe geral + refeições): o protótipo desenha quatro. A quinta, sozinha numa linha, fica centrada
+ * com a largura de um cartão; a partir de 1481 px (contentor de 1440 px) cabem as cinco numa linha.
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 54px) / 4); /* quatro colunas e três intervalos de 18 px */
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    width: min(calc((100% - 18px) / 2), 400px); /* a largura de uma das duas colunas */
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+@media (min-width: 1481px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
