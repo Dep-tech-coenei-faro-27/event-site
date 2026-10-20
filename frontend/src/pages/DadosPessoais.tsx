@@ -6,39 +6,70 @@ import Eyebrow from "../components/EyeBrow";
 import Field from "../components/Field";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
+import { ApiError, http } from "../utils/http";
 import { useAuth } from "../utils/useAuth";
+import { validationMessages } from "../utils/ValidationErrors";
 
-/** Dados pessoais: usa o mesmo layout (hero + barra lateral) da visão geral. */
+/**
+ * Dados pessoais: usa o mesmo layout (hero + barra lateral) da visão geral.
+ * O backend só deixa mudar o nome (`PUT /api/users/me`; a instituição e o curso são listas fechadas e o
+ * email não se altera), por isso só o nome é editável: o resto mostra-se, não se finge guardar.
+ */
 export default function DadosPessoais() {
-  const { user: me } = useAuth();
+  const { user: me, refresh } = useAuth();
 
   const [name, setName] = useState(me?.name ?? "");
-  const [email, setEmail] = useState(me?.email ?? "");
-  const [institution, setInstitution] = useState("");
-  const [course, setCourse] = useState(me?.course ?? "");
+  const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
 
-  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaveStatus("Dados atualizados.");
+    if (saving) return;
+    setSaveStatus(null);
+    setSaveError(null);
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSaveError("Indica o teu nome.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await http("/users/me", { method: "PUT", body: { name: trimmed } });
+      await refresh();
+      setSaveStatus("Dados atualizados.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        const messages = validationMessages(err.detail);
+        setSaveError(messages.length ? messages.join(" ") : "O nome não é válido.");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setSaveError("Confirma o teu email antes de alterares os dados.");
+      } else if (err instanceof ApiError) {
+        setSaveError("Não foi possível guardar. Tenta novamente.");
+      } else {
+        setSaveError("Não foi possível contactar o servidor.");
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleExportData = () => {
     if (!me) return;
 
+    // Só o que a conta tem hoje no navegador; a exportação completa (pagamentos, NIF...) vem do servidor (#123).
     const payload = {
       exported_at: new Date().toISOString(),
       profile: {
         id: me.id,
-        name: name.trim() || me.name,
-        email: email.trim() || me.email,
+        name: me.name,
+        email: me.email,
         is_verified: me.is_verified,
-        institution: institution.trim() || null,
-        course: course.trim() || me.course || null,
-      },
-      ticket: {
-        qr_code: me.qr_code,
+        institution: me.institution ?? null,
+        course: me.course ?? null,
       },
     };
 
@@ -88,54 +119,29 @@ export default function DadosPessoais() {
             onChange={(e) => {
               setName(e.target.value);
               setSaveStatus(null);
+              setSaveError(null);
             }}
             autoComplete="name"
-            placeholder="Participante Exemplo"
+            required
           />
 
-          <Field
-            label="Email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setSaveStatus(null);
-            }}
-            autoComplete="email"
-            placeholder="participante@exemplo.pt"
-          />
-
+          <Field label="Email" name="email" type="email" value={me?.email ?? ""} readOnly />
           <p className="-mt-2 m-0 text-[12px] text-cinza-texto">
             {me?.is_verified === false
-              ? "O endereço de email aguarda verificação."
-              : "O endereço de email está verificado."}
+              ? "O endereço de email aguarda verificação. Não se pode alterar."
+              : "O endereço de email está verificado. Não se pode alterar."}
           </p>
 
           <div className="grid gap-[18px] min-[621px]:grid-cols-2">
-            <Field
-              label="Instituição"
-              name="institution"
-              type="text"
-              value={institution}
-              onChange={(e) => {
-                setInstitution(e.target.value);
-                setSaveStatus(null);
-              }}
-              placeholder="A tua instituição"
-            />
-            <Field
-              label="Curso"
-              name="course"
-              type="text"
-              value={course}
-              onChange={(e) => {
-                setCourse(e.target.value);
-                setSaveStatus(null);
-              }}
-              placeholder="O teu curso"
-            />
+            <Field label="Instituição" name="institution" type="text" value={me?.institution ?? "—"} readOnly />
+            <Field label="Curso" name="course" type="text" value={me?.course ?? "—"} readOnly />
           </div>
+
+          {saveError && (
+            <p role="alert" className="m-0 text-[13px] text-coral-vivo">
+              {saveError}
+            </p>
+          )}
 
           {saveStatus && (
             <p
@@ -149,7 +155,8 @@ export default function DadosPessoais() {
           <div className="pt-1">
             <PrimaryButton
               type="submit"
-              text="Guardar alterações"
+              text={saving ? "A guardar…" : "Guardar alterações"}
+              disabled={saving}
               className="w-full !h-[52px] !rounded-[2px] !text-[12px] uppercase tracking-[0.06em]"
             />
           </div>
@@ -167,8 +174,7 @@ export default function DadosPessoais() {
             Leva contigo uma cópia dos teus dados.
           </h2>
           <p className="mb-0 mt-2 text-[13px] leading-relaxed text-cinza-texto">
-            Exporta num ficheiro legível os dados do perfil, o estado da
-            verificação e a informação associada ao bilhete.
+            Exporta num ficheiro legível os dados do perfil e o estado da verificação.
           </p>
         </div>
 
