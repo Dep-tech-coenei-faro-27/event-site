@@ -7,11 +7,11 @@ interface TicketQrProps {
   className?: string;
 }
 
-const MIN_SIZE = 132;
+const MIN_SIZE = 168;
 
 export default function TicketQr({
   code,
-  size = 136,
+  size = 200,
   className = "",
 }: TicketQrProps) {
   return (
@@ -22,7 +22,7 @@ export default function TicketQr({
           <QRCodeSVG
             value={code}
             size={size}
-            level="M"
+            level="Q"
             marginSize={0}
             bgColor="#ffffff"
             fgColor="#03101d"
