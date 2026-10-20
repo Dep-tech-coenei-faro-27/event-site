@@ -125,6 +125,9 @@ class Transaction(Base):
         index=True,
     )
     phone: Mapped[str] = mapped_column(String(20))
+    # Optional tax number for the invoice (NIF optional, invoice on request). Personal
+    # data: kept with the transaction for invoicing, never returned by the API.
+    nif: Mapped[str | None] = mapped_column(String(9), nullable=True)
     provider: Mapped[str] = mapped_column(String(30))
     provider_reference: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
