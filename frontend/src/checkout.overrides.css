@@ -35,3 +35,11 @@ html body[data-page="checkout"][data-page] main .checkout-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* O anel do ecrã de espera roda como no protótipo. O gerador deixava cair este @keyframes (só guardava os
+   que tinham o nome de uma classe usada), por isso o `animation: payment-spin` não fazia nada. */
+@keyframes payment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
