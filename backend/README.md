@@ -91,19 +91,25 @@ O comando de limpeza apaga também os tokens revogados que já expiraram.
 
 Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_limits`), partilhados por todos os workers, em janelas fixas:
 
-| Endpoint | Limite |
-| --- | --- |
-| `POST /auth/login` | 5 por minuto por email e IP, 20 por minuto por email (de qualquer IP) e 30 por minuto por IP |
-| `POST /auth/register` | 2 por minuto por IP |
-| `POST /auth/resend-verification-email` | 1 por minuto e 5 por hora por email, e 10 por minuto por IP |
-| `POST /auth/forgot-password` | 1 por minuto e 5 por hora por email, e 10 por minuto por IP |
-| `PUT /auth/password` | 2 por 15 minutos por utilizador |
-| `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP |
-| `POST /payment/initiate` | 10 por minuto por utilizador |
+| Endpoint | Limite | Variável |
+| --- | --- | --- |
+| `POST /auth/login` | 5 por minuto por email e IP | `RATE_LIMIT_LOGIN_PER_MINUTE` |
+| | 20 por minuto por email (de qualquer IP) | `RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE` |
+| | 30 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
+| `POST /auth/register` | 2 por minuto por IP | `RATE_LIMIT_REGISTER_PER_MINUTE` |
+| `POST /auth/resend-verification-email` e `POST /auth/forgot-password` | 1 por minuto por email | `RATE_LIMIT_EMAIL_PER_MINUTE` |
+| | 5 por hora por email | `RATE_LIMIT_EMAIL_PER_HOUR` |
+| | 10 por minuto por IP | `RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE` |
+| `PUT /auth/password` | 2 por 15 minutos por utilizador | `RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES` |
+| `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP | `RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE` |
+| `POST /payment/initiate` | 10 por minuto por utilizador | `RATE_LIMIT_PAYMENT_PER_MINUTE` |
+| `GET /payment/transactions/{reference}` e o seu fluxo `/events` | 120 por minuto por utilizador (partilhado) | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` |
+| `GET /payment/tiers` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` |
+| `GET /payment/callback` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE` |
 
 O limite de login conta o par email e IP, por isso alguém que falhe a password de outra pessoa não a bloqueia: só se bloqueia a si próprio.
 
-Ao exceder o limite a API devolve `429` com o cabeçalho `Retry-After`. Os valores mudam com as variáveis `RATE_LIMIT_*` do `.env` e `RATE_LIMIT_ENABLED=false` desliga os limites (útil em testes de carga). Atrás de um proxy o IP vem de `X-Forwarded-For`, por isso o uvicorn tem de confiar no proxy (`FORWARDED_ALLOW_IPS`).
+Ao exceder o limite a API devolve `429` com o cabeçalho `Retry-After`. Os valores mudam com as variáveis da tabela (no `.env`) e `RATE_LIMIT_ENABLED=false` desliga os limites (útil em testes de carga). Atrás de um proxy o IP vem de `X-Forwarded-For`, por isso o uvicorn tem de confiar no proxy (`FORWARDED_ALLOW_IPS`).
 
 Os emails são enviados em segundo plano (4 *threads*, fila de 200): um servidor SMTP lento ou parado não atrasa os pedidos. Não há repetição automática: se o envio falhar ou a fila encher, o email perde-se e fica registado no log, e o utilizador pode pedir outro.
 
