@@ -113,6 +113,13 @@ class Settings(BaseSettings):
     # time). Many people polling every 2 seconds must not become as many calls to the
     # provider; the callback still confirms a payment at once.
     PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS: int = Field(default=5, ge=0, le=300)
+    # Live payment status (Server-Sent Events): the heartbeat keeps proxies from closing
+    # a quiet stream, how long one stream lives (the browser reconnects), streams per
+    # person, and how often the provider is asked about the payments being waited for.
+    PAYMENT_EVENTS_HEARTBEAT_SECONDS: float = Field(default=15, gt=0, le=60)
+    PAYMENT_EVENTS_MAX_SECONDS: float = Field(default=600, gt=0, le=3600)
+    PAYMENT_EVENTS_MAX_PER_USER: int = Field(default=3, ge=0, le=20)
+    PAYMENT_EVENTS_RECONCILE_SECONDS: float = Field(default=5, gt=0, le=60)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the
