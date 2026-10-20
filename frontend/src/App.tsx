@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
@@ -92,7 +92,7 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/conta/alterar-palavra-passe" element={<ChangePasswordPage />} />
-                <Route path="/conta/perfil" element={<ProfilePage />} />
+                <Route path="/conta/perfil" element={<Navigate to="/perfil" replace />} />
                 <Route path="/conta/dados" element={<DadosPessoais />} />
                 <Route path="/conta/seguranca" element={<Seguranca />} />
               </Route>

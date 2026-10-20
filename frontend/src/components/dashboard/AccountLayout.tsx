@@ -36,7 +36,7 @@ const iconProps = {
 const accountNav = [
   {
     label: 'Visão geral',
-    to: '/conta/perfil',
+    to: '/perfil',
     icon: (
       <svg {...iconProps}>
         <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -93,7 +93,7 @@ export default function AccountLayout({
 
   return (
     <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
-      <main id="conteudo" className="relative overflow-hidden">
+      <div id="conteudo" className="relative overflow-hidden">
         <div
           aria-hidden="true"
           className="azulejo-bg pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.025]"
@@ -124,8 +124,8 @@ export default function AccountLayout({
                   </strong>
                   <p className="m-0 truncate text-[12px] text-cinza-texto">{email || 'participante@exemplo.pt'}</p>
                   <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#d7e3f4]">
-                    <span className="size-2 rounded-full bg-[#10b981]" />
-                    Email verificado
+                    <span className={`size-2 rounded-full ${me?.is_verified ? 'bg-[#10b981]' : 'bg-areia'}`} />
+                    {me?.is_verified ? 'Email verificado' : 'Email por verificar'}
                   </span>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function AccountLayout({
             <div className="grid gap-[18px]">{children}</div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }
