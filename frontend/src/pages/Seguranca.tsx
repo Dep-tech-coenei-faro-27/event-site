@@ -4,6 +4,7 @@ import AccountPanel from "../components/dashboard/AccountPanel";
 import { BORDER, panelTitleClass } from "../components/dashboard/AccountStyles";
 import Eyebrow from "../components/EyeBrow";
 import Field from "../components/Field";
+import PasswordRules from "../components/PasswordRules";
 import SecondaryButton from "../components/SecundaryButton";
 import { http } from "../utils/http";
 import { passwordChangeMessage, passwordFormError } from "../utils/passwordChange";
@@ -108,6 +109,8 @@ export default function Seguranca() {
               required
             />
           </div>
+
+          <PasswordRules password={newPassword} />
 
           {passwordError && (
             <p role="alert" className="m-0 text-[13px] text-coral-vivo">

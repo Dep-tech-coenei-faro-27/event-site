@@ -161,6 +161,19 @@ describe("segurança: a palavra-passe só se diz atualizada se a API a atualizou
     expect(mocks.http).not.toHaveBeenCalled();
   });
 
+  it("as regras da nova palavra-passe verificam-se ao vivo", () => {
+    renderPage(<Seguranca />);
+    const rules = () => screen.getAllByRole("listitem").filter((li) => li.hasAttribute("data-ok"));
+    expect(rules()).toHaveLength(4);
+    expect(rules().every((li) => li.getAttribute("data-ok") === "false")).toBe(true);
+
+    fireEvent.change(screen.getByLabelText(/^nova palavra-passe/i), { target: { value: "abcdefgh" } });
+    expect(rules().map((li) => li.getAttribute("data-ok"))).toEqual(["true", "false", "false", "false"]);
+
+    fireEvent.change(screen.getByLabelText(/^nova palavra-passe/i), { target: { value: "Abcdefg1!" } });
+    expect(rules().every((li) => li.getAttribute("data-ok") === "true")).toBe(true);
+  });
+
   it("não tem o botão de apagar a conta (o backend ainda não o tem)", () => {
     renderPage(<Seguranca />);
     expect(screen.queryByText(/apagar/i)).toBeNull();
