@@ -23,6 +23,7 @@ import Acessibilidade from './pages/Acessibilidade';
 import Privacidade from './pages/Privacidade';
 import Termos from './pages/TermosCondicoes';
 import ScrollToTop from './components/ScrollToTop';
+import { useMotion } from './utils/useMotion';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './utils/AuthContext';
 
@@ -33,11 +34,19 @@ function RouteErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
 }
 
+// Camada de animações do desenho novo (ver utils/useMotion.ts); vive dentro do router para saber
+// em que página está.
+function MotionLayer() {
+  useMotion();
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ScrollToTop />
+        <MotionLayer />
         <div className="flex flex-col min-h-screen bg-[#050d21]">
 
           <Navbar />

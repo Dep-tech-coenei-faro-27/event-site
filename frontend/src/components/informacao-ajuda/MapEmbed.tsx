@@ -43,7 +43,7 @@ export default function MapEmbed({ src, title, privacyHref = '/privacidade' }: M
       <button
         type="button"
         onClick={() => setLoaded(true)}
-        className="inline-flex min-h-[46px] items-center justify-center rounded-full bg-[#1ab2ff] px-6 text-sm font-bold text-[#02101c] transition hover:-translate-y-0.5 hover:bg-[#23caff]"
+        className="btn btn--primary"
       >
         Carregar mapa
       </button>

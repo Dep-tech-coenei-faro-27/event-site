@@ -101,11 +101,9 @@ const wrap = 'mx-auto w-[calc(100%-40px)] max-w-[1180px]';
 const sectionY = 'py-[clamp(72px,9vw,124px)]';
 const h2Class = 'mt-1 font-extrabold text-3xl sm:text-4xl lg:text-5xl leading-[1.08] tracking-tight text-branco';
 
-const btn =
-    'inline-flex min-h-[46px] items-center justify-center rounded-full border px-6 text-sm font-bold transition duration-200 hover:-translate-y-0.5';
-const btnPrimary = `${btn} border-transparent bg-acento-principal text-texto-sobre-ciano hover:bg-acento-forte`;
-const btnCtaDark = `${btn} border-white/15 bg-azul-painel text-branco hover:bg-azul-elevado`;
-const btnCtaSecondary = `${btn} border-white/70 bg-[rgba(3,16,31,0.72)] text-branco shadow-[0_8px_22px_rgba(0,0,0,0.18)] hover:border-white hover:bg-[rgba(3,16,31,0.9)]`;
+const btnPrimary = 'btn btn--primary';
+const btnCtaDark = 'btn btn--dark';
+const btnCtaSecondary = 'btn btn--outline-light';
 
 const galleryImages = [
     { src: talksImage, alt: 'Palestra num auditório do ENEI', className: 'col-span-2 sm:col-span-1 sm:row-span-2' },

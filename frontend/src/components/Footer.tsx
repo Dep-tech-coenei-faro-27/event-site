@@ -10,12 +10,10 @@ interface SocialLink {
   icon: ReactNode;
 }
 
-// Preencher `href` com o endereço oficial de cada rede. Sem endereço, o ícone não aparece
-// (nada de ligações para «#»).
-const allSocials: SocialLink[] = [
+const socials: SocialLink[] = [
   {
     label: 'Instagram',
-    href: '',
+    href: 'https://www.instagram.com/eneiconf/',
     icon: (
       <>
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -26,12 +24,12 @@ const allSocials: SocialLink[] = [
   },
   {
     label: 'Facebook',
-    href: '',
+    href: 'https://www.facebook.com/eneiconf/?locale=pt_PT',
     icon: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
   },
   {
     label: 'LinkedIn',
-    href: '',
+    href: 'https://pt.linkedin.com/company/eneiconf',
     icon: (
       <>
         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
@@ -42,81 +40,80 @@ const allSocials: SocialLink[] = [
   },
 ];
 
-const socials = allSocials.filter((s) => s.href);
-
-// Títulos e listas: 14px / 1.06 e links com gap de 9px no mobile (como no styles.css original)
-const headingClass =
-  'm-0 mb-4 text-[14px] font-bold leading-[1.06] text-branco md:mb-5 md:text-[15px] md:leading-normal';
-const listClass =
-  'm-0 flex list-none flex-col gap-[9px] p-0 text-[14px] leading-[1.65] md:gap-2.5 md:leading-normal';
+// Três colunas só a partir dos 900px: o protótipo usa os 700px, mas as larguras mínimas (260+260+220
+// mais os espaços) não cabem entre os 700 e os ~860px e a página ganhava scroll horizontal.
+// Medidas do rodapé do desenho novo (`ui-ux/src/core.css`, `.site-footer`): títulos e listas a 14px,
+// 9px entre ligações, etiquetas a 10px, linhas com a cor `--line`.
+const LINE = 'border-[rgba(215,227,244,0.1)]';
+const headingClass = 'm-0 mb-4 text-[14px] font-bold leading-[1.06] tracking-[-0.045em] text-branco';
+const listClass = 'm-0 grid list-none gap-[9px] p-0 text-[14px] leading-[1.65]';
 const labelClass =
-  'mb-3 block font-montserrat text-[10px] font-bold uppercase tracking-[0.16em] text-cinza-subtil';
+  'mb-[13px] block font-montserrat text-[10px] font-bold uppercase leading-none tracking-[0.14em] text-cinza-subtil';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-branco/5 bg-azul-noite pb-6 pt-16 font-poppins text-cinza-texto md:pb-8">
+    <footer className={`site-footer border-t ${LINE} bg-azul-noite pb-6 pt-16 font-poppins text-cinza-texto`}>
       <div className="mx-auto w-[calc(100%-28px)] max-w-[1180px] md:w-[calc(100%-40px)]">
-        {/* Mobile: identidade em linha própria, Explorar/Participar lado a lado, ligações em 2 colunas */}
-        <div className="mb-11 grid grid-cols-2 gap-x-6 gap-y-9 md:mb-16 md:gap-10 lg:grid-cols-[2.5fr_0.7fr_0.9fr_1.5fr] lg:gap-4">
+        {/* Três blocos: identidade, ligações (Explorar e Participar) e organização e redes */}
+        <div className="footer-main grid grid-cols-1 items-start gap-9 min-[621px]:grid-cols-2 min-[621px]:gap-11 min-[901px]:gap-[clamp(36px,5vw,76px)] min-[901px]:grid-cols-[minmax(260px,1.15fr)_minmax(260px,0.9fr)_minmax(220px,0.75fr)]">
           {/* Identidade */}
-          <div className="col-span-2 flex flex-col pr-4 md:col-span-1">
+          <div className="footer-identity flex flex-col min-[621px]:col-span-2 min-[901px]:col-span-1">
             <BrandLogo
-              className="mb-6 gap-4 text-[27px] md:text-[32px]"
-              imageClassName="h-[55px] w-[44px] md:h-[60px] md:w-[46px]"
+              className="gap-4 text-[27px] md:text-[30px]"
+              imageClassName="h-[55px] w-[44px] md:h-[60px] md:w-[48px]"
             />
-            <p className="m-0 max-w-[460px] text-[15px] leading-relaxed">
+            <p className="m-0 mt-5 max-w-[410px] text-[15px] leading-[1.65]">
               Encontro Nacional de Estudantes de Informática · Faro, Algarve · {EVENT_DATES}.
             </p>
           </div>
 
-          {/* Explorar */}
-          <div className="flex flex-col">
-            <h4 className={headingClass}>Explorar</h4>
-            <ul className={listClass}>
-              <li><Link to="/sobre" className="transition-colors hover:text-branco">Sobre</Link></li>
-              <li><Link to="/agenda" className="transition-colors hover:text-branco">Agenda</Link></li>
-              <li><Link to="/parcerias" className="transition-colors hover:text-branco">Parcerias</Link></li>
-            </ul>
-          </div>
-
-          {/* Participar */}
-          <div className="flex flex-col">
-            <h4 className={headingClass}>Participar</h4>
-            <ul className={listClass}>
-              <li><Link to="/conta" className="transition-colors hover:text-branco">Entrar</Link></li>
-              <li><Link to="/bilhetes" className="transition-colors hover:text-branco">Bilhetes</Link></li>
-              <li><Link to="/informacao-ajuda" className="transition-colors hover:text-branco">Informação &amp; Ajuda</Link></li>
-            </ul>
+          {/* Explorar e Participar */}
+          <div className="footer-navigation grid grid-cols-2 gap-6 min-[621px]:gap-8">
+            <div>
+              <h3 className={headingClass}>Explorar</h3>
+              <ul className={listClass}>
+                <li><Link to="/sobre" className="transition-colors hover:text-branco">Sobre</Link></li>
+                <li><Link to="/agenda" className="transition-colors hover:text-branco">Agenda</Link></li>
+                <li><Link to="/parcerias" className="transition-colors hover:text-branco">Parcerias</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className={headingClass}>Participar</h3>
+              <ul className={listClass}>
+                <li><Link to="/conta" className="transition-colors hover:text-branco">Entrar</Link></li>
+                <li><Link to="/bilhetes" className="transition-colors hover:text-branco">Bilhetes</Link></li>
+                <li><Link to="/informacao-ajuda" className="transition-colors hover:text-branco">Informação &amp; Ajuda</Link></li>
+              </ul>
+            </div>
           </div>
 
           {/* Organizado por + redes sociais */}
-          <div className="col-span-2 grid grid-cols-2 items-start gap-6 border-t border-branco/10 pt-[26px] md:col-span-1 md:flex md:flex-col md:gap-0 md:border-t-0 md:pt-0 lg:border-l lg:pl-10">
-            <div className="md:mb-8">
-              <span className={labelClass}>Organizado Por</span>
+          <div className={`footer-connect grid grid-cols-2 items-start gap-6 border-t ${LINE} pt-[26px] min-[621px]:grid-cols-1 min-[621px]:gap-7 min-[621px]:border-t-0 min-[621px]:pt-0 min-[621px]:border-l min-[621px]:pl-[clamp(24px,4vw,50px)]`}>
+            <div className="w-fit">
+              <span className={labelClass}>Organizado por</span>
               <img
                 src={logoNeei}
                 alt="NEEI — Núcleo de Estudantes de Engenharia Informática"
-                className="h-auto w-[78px] object-contain md:h-[53px] md:w-auto"
+                className="h-auto w-[78px] object-contain min-[621px]:w-[88px]"
               />
             </div>
 
-            {socials.length > 0 && (
-            <div>
+            <div className="w-fit">
               <span className={labelClass}>Segue o ENEI</span>
-              <div className="flex gap-[7px] md:gap-2.5">
+              <div className="flex gap-[7px]">
                 {socials.map(({ label, href, icon }) => (
                   <a
                     key={label}
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={label}
-                    className="flex h-[42px] w-[42px] items-center justify-center rounded border border-branco/10 bg-transparent transition-all hover:border-branco/30 hover:bg-branco/5 hover:text-branco md:h-10 md:w-10"
+                    aria-label={`${label} (abre noutro separador)`}
+                    className={`flex h-[42px] w-[42px] items-center justify-center rounded-[2px] border ${LINE} bg-transparent transition-all hover:border-branco/30 hover:bg-branco/5 hover:text-branco`}
                   >
                     <svg
                       viewBox="0 0 24 24"
                       aria-hidden="true"
-                      className="h-4 w-4 fill-none stroke-current stroke-[1.5] md:h-[18px] md:w-[18px]"
+                      className="h-4 w-4 fill-none stroke-current stroke-[1.7]"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
@@ -126,14 +123,13 @@ export default function Footer() {
                 ))}
               </div>
             </div>
-            )}
           </div>
         </div>
 
-        {/* Barra inferior: alinhada à esquerda no mobile */}
-        <div className="flex flex-col items-start justify-between gap-6 border-t border-branco/10 pt-5 text-[12px] text-cinza-subtil md:flex-row md:items-center md:pt-7">
+        {/* Barra inferior */}
+        <div className={`mt-11 flex flex-col items-start justify-between gap-6 border-t ${LINE} pt-5 text-[12px] text-cinza-subtil min-[621px]:flex-row min-[621px]:items-center`}>
           <p className="m-0">© 2027 ENEI. Todos os direitos reservados.</p>
-          <div className="flex flex-wrap justify-start gap-3 md:justify-center md:gap-7">
+          <div className="flex flex-wrap justify-start gap-3 min-[621px]:justify-end min-[621px]:gap-[18px]">
             <Link to="/termos" className="transition-colors hover:text-branco">Termos e condições</Link>
             <Link to="/privacidade" className="transition-colors hover:text-branco">Política de privacidade</Link>
             <Link to="/acessibilidade" className="transition-colors hover:text-branco">Declaração de Acessibilidade</Link>

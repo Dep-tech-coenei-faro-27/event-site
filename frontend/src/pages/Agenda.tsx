@@ -398,7 +398,7 @@ const ScheduleRow = ({ iso, item }: { iso: string; item: ScheduleItem }) => (
             </h3>
         </div>
         <span
-            className={`hidden rounded-full border px-2.5 py-[5px] font-montserrat text-[10px] font-semibold uppercase min-[621px]:block ${accent[item.tone].tag}`}
+            className={`hidden rounded-[2px] border px-2.5 py-[5px] font-montserrat text-[10px] font-semibold uppercase min-[621px]:block ${accent[item.tone].tag}`}
         >
             {item.tag}
         </span>
@@ -419,7 +419,7 @@ const SpeakerCard = ({ track, title, role, session, when, alt, tone }: Speaker) 
                 className="block h-full w-full object-cover saturate-[0.72] transition duration-[350ms] group-hover:scale-[1.025] group-hover:saturate-[0.9]"
             />
             <span
-                className={`absolute right-3.5 top-3.5 rounded-full border bg-[rgba(5,13,33,0.82)] px-[9px] py-1.5 font-montserrat text-[8px] font-bold uppercase leading-none tracking-[0.11em] backdrop-blur-[8px] ${accent[tone].badge}`}
+                className={`absolute right-3.5 top-3.5 rounded-[2px] border bg-[rgba(5,13,33,0.82)] px-[9px] py-1.5 font-montserrat text-[8px] font-bold uppercase leading-none tracking-[0.11em] backdrop-blur-[8px] ${accent[tone].badge}`}
             >
                 Por anunciar
             </span>
@@ -533,7 +533,7 @@ export default function Agenda() {
                         classNameTitle="mx-auto max-w-[850px] text-[clamp(42px,7vw,78px)] uppercase leading-[1.06] tracking-[-0.045em] text-branco"
                         classNameLead="!text-[clamp(17px,2vw,20px)] text-white/[0.78]"
                     />
-                    <div className="mx-auto mt-[26px] flex w-fit items-center gap-2 rounded-full border border-acento-principal/[0.62] bg-[rgba(5,13,33,0.72)] px-3 py-[7px] font-montserrat text-[11px] font-semibold leading-[1.2] tracking-[0.04em] text-gelo shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-[8px]">
+                    <div className="mx-auto mt-[26px] flex w-fit items-center gap-2 rounded-[2px] border border-acento-principal/[0.62] bg-[rgba(5,13,33,0.72)] px-3 py-[7px] font-montserrat text-[11px] font-semibold leading-[1.2] tracking-[0.04em] text-gelo shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-[8px]">
                         1–4 abril 2027 · Campus das Gambelas
                     </div>
                 </div>
