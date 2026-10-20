@@ -220,8 +220,16 @@ A imagem tem duas fases: compila com `npm run build` e serve o resultado com ngi
   `frontend/nginx.conf.template`.
 - As rotas do React Router funcionam (`/login` devolve o `index.html`), mas ficheiros que não existem (`/assets/x.js`)
   devolvem `404`.
-- Os links dos emails levam o token no URL (`/conta/verificar?token=...`), por isso o log de acessos do nginx guarda
-  esses tokens. Mantém os logs privados e com retenção curta.
+- Os links dos emails levam o token no URL (`/conta/verificar?token=...`) e a ifthenpay manda a chave anti-phishing
+  no URL do callback. O log de acessos do nginx regista estes endereços com a query string trocada por
+  `?[FILTRADO]`, e faz o mesmo à query string do `Referer`. As páginas `/conta/*` respondem com
+  `Referrer-Policy: no-referrer`, por isso o browser nem envia o token no `Referer` (o log de erros do nginx não se pode
+  mascarar). No callback, o log de erros só guarda erros críticos, para um `502` não escrever a chave.
+- Retenção dos logs: o nginx escreve no stdout/stderr do contentor e o Docker guarda no máximo 3 ficheiros de 10 MB
+  por contentor (`x-logging` no `docker-compose.yml`). Mantém-nos privados na mesma.
+- Antes de mudar `frontend/nginx.conf.template`, corre `sh scripts/check-nginx.sh` (precisa de Docker): faz o
+  `nginx -t` na imagem do Dockerfile, falha com qualquer aviso, e confirma que nenhum token nem chave chega aos logs.
+  O CI do frontend corre o mesmo script.
 
 ## Ficheiros enviados (media)
 

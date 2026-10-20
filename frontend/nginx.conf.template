@@ -1,27 +1,47 @@
-# 1. Definir o mapeamento para ocultar a query string de rotas sensíveis
-map $request_uri $safe_request_uri {
-    # Máscara para os tokens de verificação e recuperação de password (/conta/*)
-    ~^(?<path>/conta/[^\?]+)\?.*$            "$path?[FILTRADO]";
+# Os tokens dos emails (/conta/verificar e /conta/redefinir) e a chave anti-phishing da
+# ifthenpay (callback de pagamento, GET) vão no endereço. Nada disto pode ficar nos logs.
 
-    # Máscara para a chave anti-phishing do callback de pagamento (MB WAY / ifthenpay)
-    ~^(?<path>/api/payment/callback)\?.*$ "$path?[FILTRADO]";
+# 1. Esconder a query string das rotas sensíveis no pedido registado
+map $request_uri $safe_request_uri {
+    # Tokens de verificação e de recuperação da password (/conta/*)
+    ~^(?<conta_path>/conta/[^\?]+)\?.*$          "$conta_path?[FILTRADO]";
+
+    # Chave anti-phishing do callback de pagamento (MB WAY / ifthenpay)
+    ~^(?<callback_path>/api/payment/callback)\?.*$ "$callback_path?[FILTRADO]";
 
     # Mantém as restantes rotas intactas
     default $request_uri;
 }
 
-# 2. Criar um formato de log personalizado para usar a variável $safe_request_uri
+# 2. Esconder a query string do Referer: um pedido feito a partir de /conta/verificar?token=...
+#    leva o token no Referer. Não se usa para nada, por isso sai em todas as rotas.
+map $http_referer $safe_http_referer {
+    ""                           "-";
+    ~^(?<referer_path>[^\?]*)\?  "$referer_path?[FILTRADO]";
+    default                      $http_referer;
+}
+
+# 3. As páginas com token não enviam Referer nenhum. O log de erros do nginx não se pode mascarar
+#    e escreve o referrer de um pedido que falhe; assim o token nem chega ao servidor.
+map $request_uri $referrer_policy {
+    ~^/conta/  "no-referrer";
+    default    "strict-origin-when-cross-origin";
+}
+
+# 4. Formato de log com as variáveis mascaradas
 log_format secure_log '$remote_addr - $remote_user [$time_local] '
                       '"$request_method $safe_request_uri $server_protocol" '
                       '$status $body_bytes_sent '
-                      '"$http_referer" "$http_user_agent"';
+                      '"$safe_http_referer" "$http_user_agent"';
+
+# Retenção: a imagem envia os logs para o stdout/stderr do contentor e o Docker guarda no máximo
+# 3 ficheiros de 10 MB (x-logging no docker-compose.yml).
 
 server {
     listen 8080;
     server_name _;
     server_tokens off;
 
-    # 3. Aplicar o formato de log seguro a este servidor
     access_log /var/log/nginx/access.log secure_log;
 
     root /usr/share/nginx/html;
@@ -43,7 +63,7 @@ server {
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-src https://www.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Referrer-Policy $referrer_policy always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
     # API e ficheiros enviados vão para o backend. O IP do visitante segue em X-Forwarded-For
@@ -53,77 +73,14 @@ server {
     # fosse recriado sozinho com outro IP.
     resolver 127.0.0.11 valid=10s ipv6=off;
 
-    location ^~ /api/ {
+    # O log de erros escreve o pedido inteiro (com a chave) quando o backend falha. Só os erros
+    # críticos ficam; um 502 continua a aparecer no log de acessos, já mascarado.
+    location = /api/payment/callback {
+        error_log /var/log/nginx/error.log crit;
         set $backend http://backend:8000;
         proxy_pass $backend;
         include /etc/nginx/proxy_backend.conf;
     }
-
-    location ^~ /media/ {
-        set $backend http://backend:8000;
-        proxy_pass $backend;
-        include /etc/nginx/proxy_backend.conf;
-    }
-
-    # Ficheiros com hash no nome nunca mudam
-    location ^~ /assets/ {
-        expires 1y;
-        try_files $uri =404;
-    }
-
-    # Ficheiros estáticos que não existem devolvem 404 (não o index.html)
-    location ~ \.[A-Za-z0-9]+$ {
-        try_files $uri =404;
-    }
-
-    # O index.html aponta para os ficheiros com hash, por isso não pode ficar em cache
-    location = /index.html {
-        expires -1;
-    }
-
-    # Rotas do React Router
-    location / {
-        try_files $uri /index.html;
-    }
-}
-
-server {
-    listen 8080;
-    server_name _;
-    server_tokens off;
-
-    # O formato seguro (com a máscara da chave anti-phishing) tem de ser aplicado a
-    # todos os server blocks; caso contrário este registaria a query string inteira.
-    access_log /var/log/nginx/access.log secure_log;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    gzip on;
-    gzip_types text/css application/javascript image/svg+xml application/json;
-
-    # O mesmo tamanho máximo do backend (MAX_REQUEST_BYTES). Acima disto o nginx responde 413.
-    client_max_body_size 1m;
-
-
-    # Cabeçalhos de segurança. Não usar add_header dentro dos location, senão estes deixam de ser herdados.
-    # O mapa da página de informação usa uma iframe do OpenStreetMap (frame-src).
-    # A API fica no mesmo endereço (/api), por isso o connect-src só precisa de 'self'.
-    # As fontes ainda vêm do Google Fonts (style-src e font-src). Quando passarem a ser servidas
-    # pelo próprio site, estas duas origens saem do CSP.
-    # Se o frontend passar a usar outra origem (vídeo, analytics), é preciso acrescentá-la no CSP.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-src https://www.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-
-    # API e ficheiros enviados vão para o backend. O IP do visitante segue em X-Forwarded-For
-    # (o backend só confia nas redes do Docker e usa o último endereço que não é de confiança).
-    # O nome do backend é resolvido pelo DNS do Docker de 10 em 10 segundos (por isso o endereço
-    # fica numa variável). Sem isto o nginx guardava o IP do arranque e dava 502 se o backend
-    # fosse recriado sozinho com outro IP.
-    resolver 127.0.0.11 valid=10s ipv6=off;
 
     location ^~ /api/ {
         set $backend http://backend:8000;
