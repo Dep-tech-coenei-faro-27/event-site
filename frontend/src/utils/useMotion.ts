@@ -60,6 +60,22 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".footer-main > *", "up"],
 ];
 
+// Restantes páginas (Sobre, Agenda, Equipa, Parcerias, Informação e Ajuda, Bilhetes, legais, conta...).
+// O React já as tinha em Tailwind, sem as classes do protótipo, por isso a camada de animações apanha-as
+// pela estrutura e **não é preciso mexer nos ficheiros das páginas**: cada secção tem um contentor com
+// um bloco de título e depois o conteúdo. O bloco de título e cada item de uma grelha ou de uma lista
+// entram com o scroll, como na página inicial. Uma grelha não se anima a ela própria (os itens é que
+// entram, em cascata), para o mesmo conteúdo não desvanecer duas vezes.
+// Fora ficam os elementos decorativos (`aria-hidden`, `pointer-events-none`): a revelação mexia-lhes na
+// opacidade e a marca de água do símbolo, a 7 %, passava a 100 %.
+const CONTENT = ":not([aria-hidden='true']):not(.pointer-events-none):not(script)";
+const PAGE_GROUPS: [string, Direction][] = [
+  [`main section > div > :not(.grid):not([class*='grid-cols']):not(.flex-col):not(aside)${CONTENT}`, "up"],
+  [`main section > div > .grid > *${CONTENT}`, "up"],
+  [`main section > div > [class*='grid-cols'] > *${CONTENT}`, "up"],
+  [`main section > div > .flex-col > *${CONTENT}`, "up"],
+];
+
 const MEDIA_SELECTOR =
   ".photo, .campus-photo, .location-card__visual, .home-faro-photo, .team-member__photo, .speaker-profile__media";
 
@@ -143,7 +159,11 @@ export function useMotion() {
 
     const tracked: Tracked[] = [];
     const seen = new Set<HTMLElement>();
-    REVEAL_GROUPS.forEach(([selector, direction]) => {
+    // As páginas feitas com as classes do protótipo (a inicial e as que já passaram ao desenho novo) usam só os
+    // grupos do protótipo; as outras (em Tailwind) usam também a estrutura.
+    const fromPrototype = pathname === "/" || document.querySelector("main .page-hero, main > .section") !== null;
+    const groups = fromPrototype ? REVEAL_GROUPS : [...REVEAL_GROUPS, ...PAGE_GROUPS];
+    groups.forEach(([selector, direction]) => {
       document.querySelectorAll<HTMLElement>(selector).forEach((element, index) => {
         if (seen.has(element)) return;
         seen.add(element);
@@ -167,7 +187,14 @@ export function useMotion() {
 
     // O traço no topo de cada secção cresce com a secção a entrar.
     const traces: HTMLElement[] = [];
-    document.querySelectorAll<HTMLElement>("main > .section").forEach((section) => {
+    // Na página inicial são as `.section` do protótipo; nas restantes, as secções do topo da página (o
+    // React não tem a classe `.section`): as que não estão dentro de outra secção, cabeçalho ou cartão.
+    const sections = fromPrototype
+        ? document.querySelectorAll<HTMLElement>("main > .section")
+        : [...document.querySelectorAll<HTMLElement>("main section")].filter(
+            (section) => !section.parentElement?.closest("section, header, article"),
+          );
+    sections.forEach((section) => {
       section.classList.add("motion-section");
       const trace = document.createElement("span");
       trace.className = "motion-section__trace";

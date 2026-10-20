@@ -141,6 +141,10 @@ body.motion-page-leave {
   --motion-x: 32px;
   --motion-y: 0px;
 }
+/* O traço é absoluto: a secção tem de ser a referência (nas páginas em Tailwind era `static`). */
+.motion-section {
+  position: relative;
+}
 .motion-section__trace {
   position: absolute;
   inset: 0 auto auto 0;
@@ -248,6 +252,17 @@ body.motion-page-leave {
 }
 
 /* Respiração do logótipo («passer») da caixa final da página inicial (`home.css`). */
+@keyframes motion-hero-enter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes motion-signal-enter {
+  to {
+    transform: scaleX(1);
+  }
+}
 @keyframes motion-logo-breathe {
   0%,
   100% {
