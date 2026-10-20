@@ -123,7 +123,7 @@ Uma conta que nunca confirmou o email continua a ocupar esse email. O comando `m
 
 ## Pagamentos
 
-A bilheteira tem quatro modalidades (`acesso`, `refeicoes`, `completo`, `geral`), guardadas na tabela `ticket_tiers`. A migration cria-as com `price_cents` a `NULL` (bilheteira fechada); o preço passa a estar definido com `make set-price tier=geral price=3500` (`python -m app.domains.payments.set_price`, com IVA, em cêntimos, sempre maior que zero). As três primeiras são de estudante.
+A bilheteira tem cinco modalidades (`acesso`, `refeicoes`, `completo`, `geral`, `geral_refeicoes`), guardadas na tabela `ticket_tiers`. A migration cria as quatro primeiras com `price_cents` a `NULL` (bilheteira fechada); a quinta (`geral_refeicoes`) cria-se com o primeiro `set-price` (a migration só alarga a restrição, porque o código anterior não conhece o valor novo); o preço passa a estar definido com `make set-price tier=geral price=3500` (`python -m app.domains.payments.set_price`, com IVA, em cêntimos, sempre maior que zero). As três primeiras são de estudante; `geral` e `geral_refeicoes` são para não estudantes.
 
 - **Bilheteira fechada:** enquanto `price_cents` for `NULL`, `POST /api/payment/initiate` responde `503` sem criar transação (nunca há uma transação de valor zero).
 - **Preço do servidor:** `POST /api/payment/initiate` ignora qualquer preço enviado pelo cliente e usa o da base de dados, multiplicado pela quantidade.

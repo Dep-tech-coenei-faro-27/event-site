@@ -64,7 +64,7 @@ e é o passo 2 acima que o apanha.
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
-- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS` e `PAYMENTS_MODE`.
+- **Pagamentos:** `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`, `CORS_ALLOW_CREDENTIALS`.
 
 Regras para criar os valores:
@@ -165,6 +165,8 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
   `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` com um valor > 0: o pagamento passa a `confirmed` ao fim desses segundos.
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
+Em produção, `PAYMENTS_MODE=live` sem `MBWAY_KEY` (em falta, vazia ou só com espaços em branco) faz o backend recusar arrancar.
+
 ## Pagamentos a reembolsar
 
 Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado. **Não devia acontecer**: um lugar fica reservado enquanto o pagamento espera (só o MB WAY o termina) e uma pessoa só pode ter um pagamento à espera. Se acontecer, não ocupa stock e o backend regista um erro `Payment ENEI-... needs a refund`, que deve ser investigado e reembolsado à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
@@ -218,8 +220,16 @@ A imagem tem duas fases: compila com `npm run build` e serve o resultado com ngi
   `frontend/nginx.conf.template`.
 - As rotas do React Router funcionam (`/login` devolve o `index.html`), mas ficheiros que não existem (`/assets/x.js`)
   devolvem `404`.
-- Os links dos emails levam o token no URL (`/conta/verificar?token=...`), por isso o log de acessos do nginx guarda
-  esses tokens. Mantém os logs privados e com retenção curta.
+- Os links dos emails levam o token no URL (`/conta/verificar?token=...`) e a ifthenpay manda a chave anti-phishing
+  no URL do callback. O log de acessos do nginx regista estes endereços com a query string trocada por
+  `?[FILTRADO]`, e faz o mesmo à query string do `Referer`. As páginas `/conta/*` respondem com
+  `Referrer-Policy: no-referrer`, por isso o browser nem envia o token no `Referer` (o log de erros do nginx não se pode
+  mascarar). No callback, o log de erros só guarda erros críticos, para um `502` não escrever a chave.
+- Retenção dos logs: o nginx escreve no stdout/stderr do contentor e o Docker guarda no máximo 3 ficheiros de 10 MB
+  por contentor (`x-logging` no `docker-compose.yml`). Mantém-nos privados na mesma.
+- Antes de mudar `frontend/nginx.conf.template`, corre `sh scripts/check-nginx.sh` (precisa de Docker): faz o
+  `nginx -t` na imagem do Dockerfile, falha com qualquer aviso, e confirma que nenhum token nem chave chega aos logs.
+  O CI do frontend corre o mesmo script.
 
 ## Ficheiros enviados (media)
 

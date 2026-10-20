@@ -16,6 +16,204 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Desenho novo (ui-ux): tokens de movimento e do botão. Valores de ui-ux/src/core.css e motion.css. */
+:root {
+  --accent: #1ab2ff;
+  --accent-strong: #23caff;
+  --accent-rgb: 26, 178, 255;
+  --motion-fast: 120ms;
+  --motion-default: 200ms;
+  --motion-slow: 360ms;
+  --motion-enter: 420ms;
+  --motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Geometria do primeiro ecrã: o hero acaba no fundo do ecrã (e a barra de sinal com ele) e o cartão
+   data/local/bilhetes espreita por baixo, cortado pelo fundo, a mostrar só a etiqueta (DATA, LOCAL,
+   BILHETES), com a mesma distância ao topo do cartão e ao fundo do ecrã. `--stats-overlap` é quanto
+   do cartão se vê no primeiro ecrã: 2 x (topo do cartão até ao meio da etiqueta). Hoje a etiqueta
+   começa a 18px e tem 16px de altura, logo 52px; o título começa a 60px, já fora do ecrã. Se se
+   mexer no espaço de cima ou no que há entre a etiqueta e o título (QuickInfo), refazer a conta.
+   Para mostrar também o título, subir para ~100px. */
+:root {
+  --stats-overlap: 52px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-default: 0ms;
+  }
+}
+
+body {
+  font-family: Poppins, system-ui, sans-serif;
+}
+
+@layer components {
+  /* Largura de leitura do desenho novo (a mesma da barra de topo e do rodapé). */
+  .container {
+    width: min(calc(100% - 28px), 1180px);
+    margin-inline: auto;
+  }
+  @media (min-width: 768px) {
+    .container {
+      width: min(calc(100% - 40px), 1180px);
+    }
+  }
+
+  /* Hero da página inicial: o «27» em contorno, a barra de sinal e a entrada do texto.
+     Só CSS (o protótipo move o «27» com o scroll por JS; aqui fica parado). */
+  .hero-home {
+    isolation: isolate;
+    /* Acompanha o ecrã: o fim do hero (e a barra de sinal) fica no fim do primeiro ecrã, e o
+       cartão data/local/bilhetes sobrepõe-no. 64px é a altura que a página reserva para a barra
+       de topo; nunca menos de 560px (ecrãs baixos) nem mais de 1100px (ecrãs muito altos). */
+    min-height: clamp(560px, calc(100svh - 64px), 1100px);
+  }
+  .hero-home::before {
+    content: "27";
+    position: absolute;
+    right: -0.035em;
+    bottom: -0.07em;
+    z-index: 0;
+    color: transparent;
+    -webkit-text-stroke: 2px rgba(var(--accent-rgb), 0.5);
+    font: 800 clamp(15rem, 34vw, 35rem) / 0.8 Poppins, sans-serif;
+    letter-spacing: -0.1em;
+    pointer-events: none;
+    transform: translate3d(0, calc(var(--hero-shift, 0px) * 0.35), 0);
+    transition: transform 80ms linear;
+  }
+  @media (max-width: 980px) {
+    .hero-home::before {
+      right: -0.08em;
+      font-size: clamp(12rem, 48vw, 23rem);
+      opacity: 0.72;
+    }
+  }
+  /* Escala do título do protótipo (ui-ux, página inicial): grande no ecrã largo e proporcional ao
+     ecrã no telemóvel. */
+  .hero-title {
+    font-size: clamp(64px, 10vw, 132px);
+    /* O texto com degradê só pinta dentro da sua caixa, e com espaçamento negativo o último
+       caracter sai dela e fica cortado: damos-lhe espaço à direita sem mexer na posição. */
+    padding-right: 0.14em;
+    margin-right: -0.14em;
+    /* Degradê de branco a branco mais suave por máscara, com o texto branco por baixo. O
+       `background-clip: text` com `color: transparent` aparecia a preto em alguns telemóveis
+       (o elemento tem animação de entrada), e assim, se a máscara falhar, o texto fica branco. */
+    color: #fff;
+    -webkit-mask-image: linear-gradient(155deg, #000 50%, rgba(0, 0, 0, 0.62));
+    mask-image: linear-gradient(155deg, #000 50%, rgba(0, 0, 0, 0.62));
+  }
+  @media (max-width: 620px) {
+    .hero-title {
+      font-size: clamp(58px, 22vw, 88px);
+    }
+  }
+  /* O cartão data/local/bilhetes sobe sobre o fim do hero. */
+  .stats-overlap {
+    margin-top: calc(var(--stats-overlap) * -1);
+  }
+  .hero-signal {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 2;
+    height: 8px;
+    pointer-events: none;
+    background: linear-gradient(90deg, var(--accent) 0 48%, #ee9185 48% 63%, #aaaaff 63%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: hero-signal-enter 520ms 260ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  }
+  .hero-content {
+    transform: translate3d(0, var(--hero-shift, 0px), 0);
+  }
+  .hero-content > * {
+    opacity: 0;
+    transform: translateY(18px);
+    animation: hero-enter 420ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  }
+  .hero-content > :nth-child(1) { animation-delay: 50ms; }
+  .hero-content > :nth-child(2) { animation-delay: 110ms; }
+  .hero-content > :nth-child(3) { animation-delay: 170ms; }
+  .hero-content > :nth-child(4) { animation-delay: 230ms; }
+  .hero-content > :nth-child(5) { animation-delay: 290ms; }
+
+  /* Botão do desenho novo: retangular, em maiúsculas, com a sombra deslocada ao passar o rato. */
+  .btn {
+    min-height: 48px;
+    padding-inline: 21px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font: 700 12px/1.15 Montserrat, sans-serif;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      color var(--motion-fast) var(--motion-ease-out),
+      background-color var(--motion-fast) var(--motion-ease-out),
+      border-color var(--motion-fast) var(--motion-ease-out),
+      box-shadow var(--motion-default) var(--motion-ease-out),
+      transform var(--motion-fast) var(--motion-ease-out);
+  }
+  .btn:hover,
+  .btn:focus-visible {
+    box-shadow: 5px 5px 0 rgba(var(--accent-rgb), 0.22);
+    transform: translate(-2px, -2px);
+  }
+  .btn:active {
+    box-shadow: 2px 2px 0 rgba(var(--accent-rgb), 0.18);
+    transform: translate(0, 0) scale(0.985);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .btn--primary {
+    background: var(--accent);
+    color: #02101c;
+  }
+  .btn--primary:hover {
+    background: var(--accent-strong);
+  }
+  .btn--secondary {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+  .btn--secondary:hover {
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+  .btn--dark {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: #0a172f;
+    color: #fff;
+  }
+  .btn--dark:hover {
+    background: #0d1a34;
+  }
+  .btn--outline-light {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(3, 16, 31, 0.72);
+    color: #fff;
+  }
+  .btn--outline-light:hover {
+    border-color: #fff;
+    background: rgba(3, 16, 31, 0.9);
+  }
+}
+
 
 .azulejo-bg {
   position: relative;
@@ -42,4 +240,61 @@
 html, body {
   background-color: #050d21;
   min-height: 100vh;
+}
+@keyframes hero-enter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-signal-enter {
+  to {
+    transform: scaleX(1);
+  }
+}
+/* Cabeçalho das restantes páginas: o texto entra em cascata ao carregar, como na página inicial. */
+.motion-ready:not([data-page="inicio"]) main > div:first-child > header:first-child > div > * {
+  animation: page-hero-enter 420ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+.motion-ready:not([data-page="inicio"]) main > div:first-child > header:first-child > div > :nth-child(2) { animation-delay: 80ms; }
+.motion-ready:not([data-page="inicio"]) main > div:first-child > header:first-child > div > :nth-child(3) { animation-delay: 160ms; }
+.motion-ready:not([data-page="inicio"]) main > div:first-child > header:first-child > div > :nth-child(4) { animation-delay: 240ms; }
+@keyframes page-hero-enter {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-ready:not([data-page="inicio"]) main > div:first-child > header:first-child > div > * {
+    animation: none;
+  }
+  .hero-content > *,
+  .hero-signal {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* Áreas com barra lateral (perfil e páginas da conta): no telemóvel a coluna única passa a poder
+   encolher. Sem isto o menu lateral, que não parte linha, esticava a coluna para lá do ecrã e os
+   cartões ficavam cortados à direita. Só diz respeito à grelha que tem uma `aside`. */
+@media (max-width: 900px) {
+  #conteudo > section > .grid:has(> aside) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #conteudo > section > .grid:has(> aside) > * {
+    min-width: 0;
+  }
+}
+
+/* Saltos para uma âncora (#tipos, #localizacoes...): a barra de topo é fixa (64 px, 76 px a partir de 768 px) e não pode tapar o início da secção. */
+main [id] {
+  scroll-margin-top: 64px;
+}
+@media (min-width: 768px) {
+  main [id] {
+    scroll-margin-top: 76px;
+  }
 }

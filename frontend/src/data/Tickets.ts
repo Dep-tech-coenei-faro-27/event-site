@@ -2,13 +2,14 @@
 // e vai no URL do checkout: /bilhetes/checkout?bilhete=<slug>
 // Os nomes e preços que contam são os de GET /api/payment/tiers; isto é só o texto da
 // página dos Bilhetes e a descrição curta de cada modalidade no checkout.
-export type TicketSlug = 'acesso' | 'refeicoes' | 'completo' | 'geral';
+export type TicketSlug = 'acesso' | 'refeicoes' | 'completo' | 'geral' | 'geral_refeicoes';
 
 export const TICKET_NAMES: Record<TicketSlug, string> = {
     acesso: 'Apenas acesso',
     refeicoes: 'Acesso + refeições',
     completo: 'Experiência completa',
     geral: 'Passe geral',
+    geral_refeicoes: 'Passe geral + refeições',
 };
 
 // Uma modalidade nova da API sem entrada aqui aparece só com o nome.

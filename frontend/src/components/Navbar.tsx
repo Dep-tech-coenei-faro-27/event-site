@@ -73,7 +73,7 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
+    <header className="site-header fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
       <div className="max-w-[1180px] mx-auto w-[calc(100%-28px)] md:w-[calc(100%-40px)] h-full flex items-center justify-between gap-4">
 
         <div className="flex-shrink-0 z-50">

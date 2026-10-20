@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import Eyebrow from '../EyeBrow';
 import { EVENT_DATES, EVENT_START } from '../../data/Event';
 import MapEmbed from './MapEmbed';
-
 
 const TARGET = EVENT_START.getTime();
 
@@ -10,97 +8,131 @@ function useCountdown() {
   const calc = () => Math.max(0, TARGET - Date.now());
   const [ms, setMs] = useState(calc);
   useEffect(() => {
-    const t = setInterval(() => setMs(calc()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setMs(calc()), 1000);
+    return () => clearInterval(timer);
   }, []);
   const s = Math.floor(ms / 1000);
   return {
-    days: String(Math.floor(s / 86400)).padStart(3, '0'),
-    hours: String(Math.floor((s % 86400) / 3600)).padStart(2, '0'),
-    minutes: String(Math.floor((s % 3600) / 60)).padStart(2, '0'),
-    seconds: String(s % 60).padStart(2, '0'),
+    started: ms === 0,
+    units: [
+      [String(Math.floor(s / 86400)).padStart(3, '0'), 'Dias'],
+      [String(Math.floor((s % 86400) / 3600)).padStart(2, '0'), 'Horas'],
+      [String(Math.floor((s % 3600) / 60)).padStart(2, '0'), 'Minutos'],
+      [String(s % 60).padStart(2, '0'), 'Segundos'],
+    ] as const,
   };
 }
 
+const directions = (query: string) => `https://www.google.com/maps/search/?api=1&query=${query}`;
+
+/** Os dois lugares do ENEI e a contagem decrescente (`ui-ux/informacao-ajuda`). */
 export default function LocationSection() {
-  const c = useCountdown();
-  const units = [
-    [c.days, 'Dias'],
-    [c.hours, 'Horas'],
-    [c.minutes, 'Minutos'],
-    [c.seconds, 'Segundos'],
-  ];
+  const { started, units } = useCountdown();
 
   return (
-    <section className="azulejo-bg bg-[#081126] py-[clamp(76px,9vw,120px)]">
-      <div className="mx-auto w-[min(calc(100%-28px),1180px)] sm:w-[min(calc(100%-40px),1180px)]">
-        <div className="mb-11 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-8">
+    <section className="section section--surface event-location" id="localizacoes">
+      <div className="container">
+        <div className="section-heading">
           <div>
-            <Eyebrow text='LOCALIZAÇÃO'/>
-            <h2 className="text-[clamp(30px,4vw,52px)] font-semibold leading-[1.06] tracking-[-0.045em] text-white">
-              Encontramo-nos em Gambelas.
-            </h2>
+            <p className="eyebrow">&lt;LOCALIZAÇÕES /&gt;</p>
+            <h2>Dois lugares, uma experiência.</h2>
           </div>
-          <p className="max-w-[560px] text-[clamp(17px,2vw,20px)] text-[#b1bccd]">
-            O Campus de Gambelas da Universidade do Algarve recebe os quatro dias do ENEI 2027.
+          <p className="lead">
+            O ENEI acontece no Campus de Gambelas e inclui um espaço dedicado ao alojamento dos participantes.
           </p>
         </div>
 
-        <div className="grid border border-[#1ab2ff]/40 bg-[#0a172f] shadow-[0_28px_70px_rgba(0,0,0,0.24)] md:grid-cols-[1.2fr_0.8fr]">
-          <div className="min-h-[330px] bg-[#030710] md:min-h-[560px]">
-            <MapEmbed
-              title="Mapa do Campus de Gambelas da Universidade do Algarve"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&layer=mapnik&marker=37.045102%2C-7.971998"
-           />
-          </div>
-
-          <div className="grid grid-rows-[auto_1fr] border-t border-[#1ab2ff]/40 md:border-l md:border-t-0">
-            <div
-              role="timer"
-              aria-label="Contagem decrescente para o início do ENEI 2027"
-              className="border-b border-[#1ab2ff]/40 bg-gradient-to-br from-[#1ab2ff]/10 to-transparent px-7 pb-9 pt-8 lg:px-12"
-            >
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.16em] text-[#23caff]">&lt;COUNTDOWN /&gt;</p>
-              <p className="mb-6 text-[clamp(18px,2vw,24px)] font-bold leading-snug text-white">Até ao início do ENEI 2027</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {units.map(([value, label]) => (
-                  <div key={label} className="border border-white/10 bg-[#03070d]/45 px-1.5 pb-3 pt-3.5 text-center">
-                    <strong className="block text-[clamp(23px,3vw,36px)] font-bold leading-none tracking-tight tabular-nums text-white">
-                      {value}
-                    </strong>
-                    <span className="mt-2 block text-[8px] font-bold uppercase tracking-[0.08em] text-[#8796a9]">{label}</span>
-                  </div>
-                ))}
-              </div>
+        <div className="location-grid">
+          <article className="location-card">
+            <div className="location-card__visual">
+              <MapEmbed
+                title="Mapa do Campus de Gambelas da Universidade do Algarve"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9850%2C37.0378%2C-7.9588%2C37.0524&layer=mapnik&marker=37.045102%2C-7.971998"
+              />
+              <span className="location-card__number">01</span>
             </div>
-
-            <div className="grid content-center px-7 py-10 lg:px-12">
-              <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[#23caff]">Recinto principal</p>
-              <h3 className="text-[clamp(25px,3vw,36px)] font-semibold leading-[1.06] tracking-[-0.045em] text-white">
-                Universidade do Algarve
-              </h3>
-              <p className="mt-3.5 text-[#b1bccd]">
-                Campus de Gambelas<br />8005-139 Faro, Portugal
+            <div className="location-card__content">
+              <p className="location-card__label">Recinto do evento</p>
+              <h3>Universidade do Algarve</h3>
+              <p>
+                Campus de Gambelas
+                <br />
+                8005-139 Faro, Portugal
               </p>
-              <dl className="my-7 grid grid-cols-1 gap-4 border-y border-white/10 py-5 sm:grid-cols-2">
+              <dl className="location-card__facts">
                 <div>
-                  <dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8796a9]">Data</dt>
-                  <dd className="mt-2 text-[13px] text-white">{EVENT_DATES}</dd>
+                  <dt>Função</dt>
+                  <dd>Atividades e programa</dd>
                 </div>
                 <div>
-                  <dt className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8796a9]">Campus</dt>
-                  <dd className="mt-2 text-[13px] text-white">Gambelas · Faro</dd>
+                  <dt>Data</dt>
+                  <dd>{EVENT_DATES}</dd>
                 </div>
               </dl>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=37.045102%2C-7.971998"
+                className="btn btn--primary"
+                href={directions('37.045102%2C-7.971998')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-[46px] w-fit items-center justify-center rounded-full bg-[#1ab2ff] px-6 text-sm font-bold text-[#02101c] transition hover:-translate-y-0.5 hover:bg-[#23caff]"
               >
                 Obter direções
               </a>
             </div>
+          </article>
+
+          <article className="location-card location-card--stay">
+            <div className="location-card__visual">
+              <MapEmbed
+                title="Mapa da Escola Secundária Tomás Cabreira"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-7.9358%2C37.0116%2C-7.9190%2C37.0210&layer=mapnik&marker=37.01630042%2C-7.927375733"
+              />
+              <span className="location-card__number">02</span>
+            </div>
+            <div className="location-card__content">
+              <p className="location-card__label">Alojamento</p>
+              <h3>Escola Secundária Tomás Cabreira</h3>
+              <p>
+                Rua Manuel de Arriaga, n.º 2
+                <br />
+                8000-334 Faro, Portugal
+              </p>
+              <dl className="location-card__facts">
+                <div>
+                  <dt>Função</dt>
+                  <dd>Dormida e estadia</dd>
+                </div>
+                <div>
+                  <dt>Acesso</dt>
+                  <dd>Experiência completa</dd>
+                </div>
+              </dl>
+              <p className="location-card__notice">
+                Os horários de entrada e as indicações para a estadia serão comunicados aos participantes confirmados.
+              </p>
+              <a
+                className="btn btn--primary"
+                href={directions('37.01630042%2C-7.927375733')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Obter direções
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <div className="countdown location-countdown" role="timer" aria-label="Contagem decrescente para o início do ENEI 2027">
+          <div>
+            <p className="eyebrow">&lt;COUNTDOWN /&gt;</p>
+            <p className="countdown__intro">{started ? 'O ENEI 2027 já começou.' : 'Até ao início do ENEI 2027'}</p>
+          </div>
+          <div className="countdown__grid">
+            {units.map(([value, label]) => (
+              <div key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

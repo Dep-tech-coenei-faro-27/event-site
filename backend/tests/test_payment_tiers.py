@@ -26,6 +26,7 @@ def test_the_tiers_are_public_and_carry_price_and_availability(world):
         "refeicoes",
         "completo",
         "geral",
+        "geral_refeicoes",
     ]
     geral = _by_tier(response)["geral"]
     assert geral == {

@@ -84,5 +84,6 @@ test('cada bilhete leva ao checkout com a modalidade no URL', () => {
     '/bilhetes/checkout?bilhete=refeicoes',
     '/bilhetes/checkout?bilhete=completo',
     '/bilhetes/checkout?bilhete=geral',
+    '/bilhetes/checkout?bilhete=geral_refeicoes',
   ]);
 });
