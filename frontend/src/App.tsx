@@ -14,7 +14,6 @@ import ProfilePage from './pages/Profile';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
 import ChangePasswordPage from './pages/ChangePassword';
-import CheckoutPage from './pages/Checkout';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 import NotFound from './pages/NotFound';
@@ -91,7 +90,6 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/conta/alterar-palavra-passe" element={<ChangePasswordPage />} />
-                <Route path="/bilhetes/checkout" element={<CheckoutPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
