@@ -6,6 +6,10 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   is_verified: boolean;
+  course: string | null;
+  qr_code: string | null;
+  ticket_status?: 'none' | 'pending' | 'confirmed';
+  payment_status?: 'pending' | 'paid' | 'failed' | null;
 }
 
 export interface AuthContextValue {
