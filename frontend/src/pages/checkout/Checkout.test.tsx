@@ -159,6 +159,17 @@ describe("checkout", () => {
     expect(pay).toBeEnabled();
   });
 
+  it("o servidor recusa o NIF (regras mais estritas que o ecrã): avisa e fica no formulário", async () => {
+    mocks.initiatePayment.mockRejectedValue(
+      new ApiError(422, "x", [{ type: "value_error", loc: ["body", "nif"], msg: "nif does not start with a valid digit" }]),
+    );
+    renderAt();
+    fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "000000000" } });
+    await fillAndSubmit();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/NIF não é válido/i);
+    expect(screen.queryByTestId("where")).toBeNull();
+  });
+
   it("esgotou entretanto: mostra o motivo e fica no formulário", async () => {
     mocks.initiatePayment.mockRejectedValue(new ApiError(409, "x", "This ticket tier is sold out"));
     renderAt();
