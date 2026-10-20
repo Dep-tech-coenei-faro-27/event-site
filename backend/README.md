@@ -111,7 +111,7 @@ O limite de login conta o par email e IP, por isso alguém que falhe a password 
 
 Ao exceder o limite a API devolve `429` com o cabeçalho `Retry-After`. Os valores mudam com as variáveis da tabela (no `.env`) e `RATE_LIMIT_ENABLED=false` desliga os limites (útil em testes de carga). Atrás de um proxy o IP vem de `X-Forwarded-For`, por isso o uvicorn tem de confiar no proxy (`FORWARDED_ALLOW_IPS`).
 
-Os emails são enviados em segundo plano (4 *threads*, fila de 200): um servidor SMTP lento ou parado não atrasa os pedidos. Não há repetição automática: se o envio falhar ou a fila encher, o email perde-se e fica registado no log, e o utilizador pode pedir outro.
+Os emails são gravados numa fila na base de dados (tabela `email_outbox`) e enviados em segundo plano por um *worker*: um servidor SMTP lento ou parado não atrasa os pedidos, o email sobrevive a um reinício do backend e o que falhar é repetido com espera crescente (10 tentativas por omissão, cerca de 27 horas). Se esgotar as tentativas fica `failed` e o erro aparece no log. Como se vê o estado da fila e como são apagados os corpos está em [`docs/deploy.md`](../docs/deploy.md#email).
 
 ## Validação de dados
 
