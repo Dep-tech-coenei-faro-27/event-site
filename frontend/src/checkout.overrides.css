@@ -43,3 +43,18 @@ html body[data-page="checkout"][data-page] main .checkout-submit:disabled {
     transform: rotate(360deg);
   }
 }
+
+/* NIF opcional: o desenho do protótipo não o tem; usa o mesmo campo e a mesma ajuda do telemóvel. */
+html body[data-page="checkout"][data-page] main .checkout-nif {
+  margin-top: 18px;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid="true"] {
+  border-color: #ee9185;
+}
+html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid="true"] + small {
+  color: #f6d2cd;
+}
