@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     EMAIL_OUTBOX_POLL_SECONDS: int = Field(default=5, gt=0, le=300)
     EMAIL_OUTBOX_MAX_ATTEMPTS: int = Field(default=10, gt=0, le=30)
 
+    # Pool of database connections. The server answers the sync endpoints in a pool of
+    # 40 threads (anyio's default) and each holds one connection for its whole request,
+    # so the pool must not be smaller than that: with fewer connections than threads,
+    # threads queue for a connection while others cannot finish, and the whole API
+    # stalls until the timeout (measured: 300 payments started in 10 s stopped the
+    # server for 30 s). A short timeout makes an overload fail fast, not hang.
+    DB_POOL_SIZE: int = Field(default=20, ge=1, le=100)
+    DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=100)
+    DB_POOL_TIMEOUT: float = Field(default=10, gt=0, le=60)
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
     RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
