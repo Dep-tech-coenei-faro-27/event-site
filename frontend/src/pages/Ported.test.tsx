@@ -64,6 +64,7 @@ describe("Bilhetes", () => {
       "/bilhetes/checkout?bilhete=refeicoes",
       "/bilhetes/checkout?bilhete=completo",
       "/bilhetes/checkout?bilhete=geral",
+      "/bilhetes/checkout?bilhete=geral_refeicoes",
     ]);
     expect(screen.getByRole("link", { name: "Comprar bilhete" })).toHaveAttribute("href", "/bilhetes/checkout");
   });

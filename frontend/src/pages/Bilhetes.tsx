@@ -30,7 +30,7 @@ export default function Bilhetes() {
       <p className="eyebrow">&lt;MODALIDADES /&gt;</p>
       <h2>Escolhe a experiência certa.</h2>
       <p className="lead">
-      Quatro formas de participar, desde o acesso ao programa até à
+      Cinco formas de participar, desde o acesso ao programa até à
       experiência completa.
       </p>
       <div className="grid grid--4" style={{ marginTop: "42px" }}>
@@ -84,6 +84,19 @@ export default function Bilhetes() {
       <li>Condições dedicadas</li>
       </ul>
       <Link to="/bilhetes/checkout?bilhete=geral" className="btn btn--secondary">
+      Escolher bilhete
+      </Link>
+      </article>
+      <article className="ticket-card">
+      <p className="eyebrow">NÃO ESTUDANTE</p>
+      <h3>Passe geral + refeições</h3>
+      <div className="price">Passe geral + refeições</div>
+      <ul className="feature-list">
+      <li>Acesso ao programa completo</li>
+      <li>Refeições incluídas</li>
+      <li>Sem estadia</li>
+      </ul>
+      <Link to="/bilhetes/checkout?bilhete=geral_refeicoes" className="btn btn--secondary">
       Escolher bilhete
       </Link>
       </article>
