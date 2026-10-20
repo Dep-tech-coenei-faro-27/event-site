@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.domains.payments.models import TicketTier, TransactionStatus
 
@@ -25,12 +25,40 @@ def normalize_phone(value: str) -> str:
     return digits
 
 
+# Leading digits the tax authority assigns (a leading 0 never exists; 4 only as 45).
+_NIF_FIRST_DIGIT = re.compile(r"[1235-9]|45")
+
+
+def normalize_nif(value: str | None) -> str | None:
+    """Return a Portuguese NIF as nine ASCII digits, or ``None`` when it was left empty.
+
+    Accepts spaces, dots, hyphens and a ``PT`` prefix. The NIF is optional, so an
+    empty value is fine; a filled one must have nine digits (0-9 only: other scripts'
+    digits are refused), a leading digit that exists and a valid check digit (mod 11).
+    """
+    if value is None or not value.strip():
+        return None
+    digits = re.sub(r"[\s.-]", "", re.sub(r"^\s*PT", "", value, flags=re.IGNORECASE))
+    if not re.fullmatch(r"[0-9]{9}", digits):
+        raise ValueError("nif must have 9 digits")
+    if not _NIF_FIRST_DIGIT.match(digits):
+        raise ValueError("nif does not start with a valid digit")
+    total = sum(int(d) * (9 - i) for i, d in enumerate(digits[:8]))
+    remainder = total % 11
+    check = 0 if remainder < 2 else 11 - remainder
+    if check != int(digits[8]):
+        raise ValueError("nif check digit is not valid")
+    return digits
+
+
 class PaymentInitiateRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     ticket_tier: TicketTier
     phone: str
     email: EmailStr | None = None
+    # The longest accepted spelling is "PT 123 456 789"; the cap only bounds the work.
+    nif: str | None = Field(default=None, max_length=32)
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
 
@@ -38,6 +66,11 @@ class PaymentInitiateRequest(BaseModel):
     @classmethod
     def validate_phone(cls, value: str) -> str:
         return normalize_phone(value)
+
+    @field_validator("nif")
+    @classmethod
+    def validate_nif(cls, value: str | None) -> str | None:
+        return normalize_nif(value)
 
 
 class TransactionRead(BaseModel):

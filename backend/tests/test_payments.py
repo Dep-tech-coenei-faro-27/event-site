@@ -273,6 +273,161 @@ def test_initiate_rejects_invalid_phone(
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("typed", "stored"),
+    [
+        ("123456789", "123456789"),
+        ("123 456 789", "123456789"),
+        ("PT123456789", "123456789"),
+        ("123.456.789", "123456789"),
+        ("501964843", "501964843"),
+    ],
+)
+def test_initiate_stores_the_nif_as_nine_digits(
+    auth_client, email_sender, db_session, gateway, typed, stored
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": typed})
+
+    assert response.status_code == 201
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == response.json()["reference"])
+    )
+    assert transaction is not None
+    assert transaction.nif == stored
+
+
+@pytest.mark.parametrize("nif", [None, "", "   "])
+def test_initiate_does_not_need_a_nif(
+    auth_client, email_sender, db_session, gateway, nif
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    body = {**INITIATE} if nif is None else {**INITIATE, "nif": nif}
+    response = auth_client.post(INITIATE_URL, json=body)
+
+    assert response.status_code == 201
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == response.json()["reference"])
+    )
+    assert transaction is not None
+    assert transaction.nif is None
+
+
+@pytest.mark.parametrize(
+    "nif",
+    [
+        "12345678",
+        "1234567890",
+        "12345678a",
+        "123456780",
+        "PT12345",
+        "PT",
+        "9" * 9,
+        # digits of other scripts pass `\\d` and `int()`: they must not be stored
+        "".join(chr(0x660 + int(c)) for c in "123456789"),
+        "".join(chr(0xFF10 + int(c)) for c in "123456789"),
+        # check digit fine but a leading digit the tax authority never assigns
+        "000000000",
+        "400000008",
+        "1" * 33,
+        "123456789" + "0" * 100,
+    ],
+)
+def test_initiate_rejects_an_invalid_nif_without_reserving_a_seat(
+    auth_client, email_sender, db_session, gateway, nif
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": nif})
+
+    assert response.status_code == 422
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+
+
+def _nif_of(db_session, reference):
+    db_session.expire_all()
+    return db_session.scalar(
+        select(Transaction.nif).where(Transaction.reference == reference)
+    )
+
+
+@pytest.mark.parametrize("ended", [TransactionStatus.FAILED, TransactionStatus.EXPIRED])
+def test_the_nif_lives_with_the_transaction_like_the_phone(
+    auth_client, email_sender, db_session, gateway, ended
+):
+    """It is kept as long as the transaction exists: a failed or expired payment does
+    not erase it, only removing the whole purchase record does."""
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(
+        INITIATE_URL, json={**INITIATE, "nif": "123456789"}
+    ).json()["reference"]
+
+    gateway.status = ended
+    auth_client.get(transaction_url(reference))
+
+    stored = db_session.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    assert stored.status is ended
+    assert stored.nif == "123456789"
+    assert stored.phone == "912345678"
+
+
+def test_the_nif_is_kept_when_the_provider_refuses_to_start_the_payment(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    gateway.create_error = PaymentGatewayError("provider down")
+
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "123456789"})
+
+    assert response.status_code == 502
+    stored = db_session.scalar(select(Transaction))
+    assert stored.status is TransactionStatus.FAILED
+    assert stored.nif == "123456789"
+
+
+def test_the_nif_is_kept_while_the_payment_waits_and_once_it_is_paid(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    reference = auth_client.post(
+        INITIATE_URL, json={**INITIATE, "nif": "123456789"}
+    ).json()["reference"]
+
+    auth_client.get(transaction_url(reference))  # still pending at the provider
+    assert _nif_of(db_session, reference) == "123456789"
+
+    gateway.status = TransactionStatus.CONFIRMED
+    auth_client.get(transaction_url(reference))
+    assert db_session.scalar(select(Ticket)) is not None
+    assert _nif_of(db_session, reference) == "123456789"
+
+
+def test_the_nif_is_never_returned_by_the_api(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    created = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "123456789"})
+    reference = created.json()["reference"]
+    read = auth_client.get(transaction_url(reference))
+
+    assert "nif" not in created.json()
+    assert "nif" not in read.json()
+    assert "123456789" not in created.text + read.text
+
+
 def test_initiate_normalizes_phone_number(
     auth_client, email_sender, db_session, gateway
 ):
