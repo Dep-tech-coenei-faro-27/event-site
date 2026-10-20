@@ -127,6 +127,38 @@ def test_initiate_uses_the_server_side_price(
     assert gateway.create_calls[0]["amount_cents"] == 5000
 
 
+def test_a_non_student_can_buy_the_general_pass_with_meals(
+    auth_client, email_sender, db_session, gateway
+):
+    """The fifth modality is for non-students: it needs no student verification."""
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={"ticket_tier": TicketTier.GERAL_REFEICOES.value, "phone": "912345678"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["ticket_tier"] == "geral_refeicoes"
+    assert response.json()["amount_cents"] == 6500
+    assert gateway.create_calls[0]["amount_cents"] == 6500
+
+
+def test_a_student_modality_still_needs_student_verification(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={"ticket_tier": TicketTier.REFEICOES.value, "phone": "912345678"},
+    )
+
+    assert response.status_code == 403
+
+
 def test_client_cannot_override_the_amount(
     auth_client, email_sender, db_session, gateway
 ):

@@ -25,6 +25,7 @@ DEFAULT_TEST_PRICES = {
     TicketTier.REFEICOES: 3000,
     TicketTier.COMPLETO: 4500,
     TicketTier.GERAL: 5000,
+    TicketTier.GERAL_REFEICOES: 6500,
 }
 
 
@@ -114,7 +115,7 @@ def authenticate(
 
 
 def seed_ticket_tiers(db_session) -> dict[TicketTier, TicketTierPrice]:
-    """Insert the four ticket modalities with deterministic test prices."""
+    """Insert the ticket modalities with deterministic test prices."""
     tickets: dict[TicketTier, TicketTierPrice] = {}
     for tier, spec in TIER_SPECS.items():
         ticket = TicketTierPrice(
