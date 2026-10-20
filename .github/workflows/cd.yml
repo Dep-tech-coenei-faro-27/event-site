@@ -98,6 +98,22 @@ jobs:
             TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
             EOF
             chmod 600 ../tunnel.env
+
+            # Monitorização: segredos em ficheiros fora do repositório, que o compose monta no Alertmanager.
+            # Têm de existir antes do up: o Docker cria uma PASTA onde falta um ficheiro montado.
+            mkdir -p /home/debian/enei/alerts /home/debian/enei/metrics
+            for f in discord_webhook smtp_password; do
+              if [ -d "/home/debian/enei/alerts/$f" ]; then rmdir "/home/debian/enei/alerts/$f"; fi
+            done
+            if [ -n "${{ secrets.ALERT_DISCORD_WEBHOOK }}" ]; then
+              printf '%s' "${{ secrets.ALERT_DISCORD_WEBHOOK }}" > /home/debian/enei/alerts/discord_webhook
+            fi
+            SMTP_PW="$(grep '^SMTP_PASSWORD=' .env | cut -d= -f2-)"
+            if [ -n "$SMTP_PW" ]; then
+              printf '%s' "$SMTP_PW" > /home/debian/enei/alerts/smtp_password
+            fi
+            chmod 644 /home/debian/enei/alerts/* 2>/dev/null || true
+            chmod 700 /home/debian/enei/alerts
       
       - name: "Build and Run with Docker Compose"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
@@ -126,8 +142,40 @@ jobs:
               echo "As migrations falharam. A base de dados ficou como estava e o site atual não foi parado."
               exit 1
             fi
+            # Monitorização: só liga se os segredos existirem; se existirem e algo estiver mal, pára aqui.
+            MONITORING=""
+            if [ -s /home/debian/enei/alerts/discord_webhook ] && [ -s /home/debian/enei/alerts/smtp_password ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
+              ALERT_EMAIL_TO="${{ vars.ALERT_EMAIL_TO }}" sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml \
+                || { echo "Não foi possível gerar o alertmanager.yml. Nada foi parado."; exit 1; }
+              docker run --rm \
+                -v "$PWD/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+                -v /home/debian/enei/alerts/discord_webhook:/etc/alertmanager/discord_webhook:ro \
+                -v /home/debian/enei/alerts/smtp_password:/etc/alertmanager/smtp_password:ro \
+                --entrypoint amtool prom/alertmanager:v0.28.1 check-config /etc/alertmanager/alertmanager.yml \
+                || { echo "O alertmanager.yml não é válido. Nada foi parado."; exit 1; }
+              COMPOSE="$COMPOSE --profile monitoring"
+              $COMPOSE config -q || { echo "O docker-compose.yml não é válido. Nada foi parado."; exit 1; }
+              $COMPOSE pull prometheus alertmanager node-exporter blackbox \
+                || { echo "Não foi possível puxar as imagens da monitorização. Nada foi parado."; exit 1; }
+              MONITORING=1
+            else
+              echo "AVISO: faltam segredos da monitorização (ALERT_DISCORD_WEBHOOK, SMTP_PASSWORD, ALERT_EMAIL_TO). Deploy sem monitorização."
+            fi
             $COMPOSE down
             $COMPOSE up -d --build
+            if [ -n "$MONITORING" ]; then
+              for i in $(seq 1 15); do
+                if $COMPOSE exec -T alertmanager wget -qO- http://127.0.0.1:9093/-/ready > /dev/null 2>&1; then echo "alertmanager OK"; break; fi
+                sleep 2
+              done
+              sleep 5
+              $COMPOSE exec -T prometheus wget -qO- http://127.0.0.1:9090/api/v1/alertmanagers 2>/dev/null \
+                | grep -q '"activeAlertmanagers":\[{' && echo "prometheus vê o alertmanager" \
+                || echo "AVISO: o prometheus não vê o alertmanager"
+              $COMPOSE exec -T prometheus wget -qO- http://127.0.0.1:9090/api/v1/targets 2>/dev/null \
+                | grep -o '"health":"[a-z]*"' | sort | uniq -c
+              $COMPOSE logs --tail 15 alertmanager 2>&1 | grep -iE 'error|level=err' || true
+            fi
             # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
             # por isso não depende de portas publicadas no servidor).
             for i in $(seq 1 30); do

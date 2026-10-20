@@ -10,7 +10,12 @@ __pycache__/
 *.py[cod]
 monitoring/.discord_webhook.test
 
+
 # Cópias de segurança da base de dados e dos ficheiros (têm dados pessoais). Nunca fazer commit.
 backups/
 *.dump
 media-*.tar.gz
+
+monitoring/alertmanager.yml
+monitoring/discord_webhook
+.local

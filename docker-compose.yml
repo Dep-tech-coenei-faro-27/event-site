@@ -49,12 +49,21 @@ services:
     image: cloudflare/cloudflared:2026.10.0
     restart: unless-stopped
     logging: *default-logging
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 run
     # Só recebe o token do túnel (ficheiro tunnel.env no servidor).
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
     depends_on:
       - frontend
+
+  blackbox:
+    profiles: ["monitoring"]
+    image: prom/blackbox-exporter:v0.25.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    logging: *default-logging
 
   node-exporter:
     profiles: ["monitoring"]
@@ -63,8 +72,10 @@ services:
     restart: unless-stopped
     command:
       - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
     volumes:
       - /:/host:ro,rslave
+      - ${METRICS_DIR:-/home/debian/enei/metrics}:/textfile:ro
     logging: *default-logging
 
   prometheus:
