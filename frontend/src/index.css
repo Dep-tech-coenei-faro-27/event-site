@@ -288,3 +288,13 @@ html, body {
     min-width: 0;
   }
 }
+
+/* Saltos para uma âncora (#tipos, #localizacoes...): a barra de topo é fixa (64 px, 76 px a partir de 768 px) e não pode tapar o início da secção. */
+main [id] {
+  scroll-margin-top: 64px;
+}
+@media (min-width: 768px) {
+  main [id] {
+    scroll-margin-top: 76px;
+  }
+}

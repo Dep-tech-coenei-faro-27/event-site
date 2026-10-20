@@ -30,7 +30,7 @@ export default function LocationSection() {
   const { started, units } = useCountdown();
 
   return (
-    <section className="section section--surface event-location">
+    <section className="section section--surface event-location" id="localizacoes">
       <div className="container">
         <div className="section-heading">
           <div>
