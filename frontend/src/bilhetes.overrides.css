@@ -28,7 +28,7 @@ html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:n
 }
 @media (max-width: 1240px) {
   html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
-    width: min(100%, 400px);
+    width: min(calc((100% - 18px) / 2), 400px); /* a largura de uma das duas colunas */
   }
 }
 @media (max-width: 620px) {
