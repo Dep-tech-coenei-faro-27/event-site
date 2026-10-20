@@ -65,3 +65,39 @@ def test_put_users_me_still_updates_the_profile(auth_client, email_sender, db_se
 
     assert response.status_code == 200
     assert response.json()["name"] == "Ana Maria"
+
+
+def test_get_users_me_ignores_a_cancelled_ticket(auth_client, email_sender, db_session):
+    user = authenticate(auth_client, email_sender, db_session)
+    cancelled = Ticket(
+        user_id=user.id,
+        transaction_reference="ENEI-CANCELLED1",
+        payment_status=PaymentStatus.CANCELLED,
+        qr_payload="old-cancelled-qr",
+    )
+    db_session.add(cancelled)
+    db_session.commit()
+
+    assert auth_client.get("/api/users/me").json()["qr_code"] is None
+
+
+def test_get_users_me_shows_the_new_ticket_after_a_cancelled_one(
+    auth_client, email_sender, db_session
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    db_session.add(
+        Ticket(
+            user_id=user.id,
+            transaction_reference="ENEI-CANCELLED1",
+            payment_status=PaymentStatus.CANCELLED,
+            qr_payload="old-cancelled-qr",
+        )
+    )
+    db_session.commit()
+    current = Ticket(user_id=user.id, transaction_reference="ENEI-CURRENT001")
+    db_session.add(current)
+    db_session.commit()
+    confirm_ticket_payment_and_issue_qr(db_session, current.id)
+    db_session.refresh(current)
+
+    assert auth_client.get("/api/users/me").json()["qr_code"] == current.qr_payload

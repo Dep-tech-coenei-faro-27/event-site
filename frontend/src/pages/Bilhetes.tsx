@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import Eyebrow from '../components/EyeBrow';
 import SectionHeading from '../components/SectionHeading';
 import azulejoPattern from '../assets/azulejo-pattern-transparent.webp';
+import { checkoutPath, TICKET_NAMES, type TicketSlug } from '../data/Tickets';
 
 
 interface Ticket {
+    slug: TicketSlug;
     category: string;
     title: string;
     price: string;
@@ -27,27 +29,31 @@ interface ChecklistColumn {
 
 const tickets: Ticket[] = [
     {
+        slug: 'acesso',
         category: 'ESTUDANTE',
-        title: 'Apenas acesso',
+        title: TICKET_NAMES.acesso,
         price: 'Acesso',
         features: ['Entrada no evento', 'Programa geral', 'Sem refeições ou estadia'],
     },
     {
+        slug: 'refeicoes',
         category: 'ESTUDANTE',
-        title: 'Acesso + refeições',
+        title: TICKET_NAMES.refeicoes,
         price: 'Acesso + refeições',
         features: ['Entrada no evento', 'Refeições incluídas', 'Sem estadia'],
     },
     {
+        slug: 'completo',
         category: 'ESTUDANTE',
-        title: 'Experiência completa',
+        title: TICKET_NAMES.completo,
         price: 'Experiência completa',
         features: ['Entrada no evento', 'Refeições incluídas', 'Alojamento coletivo'],
         featured: true,
     },
     {
+        slug: 'geral',
         category: 'NÃO ESTUDANTE',
-        title: 'Passe geral',
+        title: TICKET_NAMES.geral,
         price: 'Passe geral',
         features: ['Acesso ao programa', 'Programa completo', 'Condições dedicadas'],
     },
@@ -135,7 +141,7 @@ const CheckList = ({ items }: { items: string[] }) => (
     </ul>
 );
 
-const TicketCard = ({ category, title, price, features, featured = false }: Ticket) => (
+const TicketCard = ({ slug, category, title, price, features, featured = false }: Ticket) => (
     <article
         className={`relative flex flex-col overflow-hidden rounded-b-[18px] border border-t-[5px] bg-azul-painel px-[26px] py-[30px] min-[621px]:min-h-[390px] min-[701px]:min-h-[430px] ${featured
                 ? 'border-[rgba(229,191,120,0.38)] border-t-areia bg-[linear-gradient(160deg,rgba(229,191,120,0.11),transparent_52%)] shadow-[0_22px_48px_rgba(229,191,120,0.1)]'
@@ -168,9 +174,9 @@ const TicketCard = ({ category, title, price, features, featured = false }: Tick
                 <CheckList items={features} />
             </div>
 
-            <button type="button" className={`${btnSecondary} mt-auto w-full cursor-pointer`}>
+            <Link to={checkoutPath(slug)} className={`${btnSecondary} mt-auto w-full`}>
                 Escolher bilhete
-            </button>
+            </Link>
         </div>
     </article>
 );

@@ -103,3 +103,27 @@ jobs:
           uv run alembic check
           uv run alembic downgrade base
           uv run alembic upgrade head
+
+      # O servidor a sério (uvicorn) sobre a base de dados já migrada. O script só lê: nunca
+      # regista contas nem compra, e não há servidor de email (SMTP_HOST vazio), por isso
+      # nenhum email sai deste passo nem dos testes.
+      - name: Smoke test (real server, read-only, no email)
+        env:
+          ENVIRONMENT: dev
+          POSTGRES_DB: event_site_migrations
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+          PAYMENTS_MODE: simulated
+          SMTP_HOST: ""
+          EMAIL_OUTBOX_WORKER: "0"
+        run: |
+          uv run uvicorn app.main:app --port 8000 > /tmp/uvicorn.log 2>&1 &
+          server=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/health > /dev/null && break
+            sleep 1
+          done
+          status=0
+          sh ../scripts/smoke-test.sh || status=$?
+          kill "$server" || true
+          if [ "$status" -ne 0 ]; then cat /tmp/uvicorn.log; fi
+          exit "$status"

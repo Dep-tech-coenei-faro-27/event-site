@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.core.qr import generate_qr_payload
@@ -14,10 +14,18 @@ class TicketNotFoundError(Exception):
 def get_ticket_for_user(db: Session, user_id: int) -> Ticket | None:
     """The ticket issued to a user, if any.
 
-    A user can only have one active ticket today, so the oldest row wins.
+    A user has at most one active ticket (a cancelled one frees the place, so a new
+    purchase is allowed). The active ticket wins; with only cancelled ones, the
+    newest is returned.
     """
     return db.scalar(
-        select(Ticket).where(Ticket.user_id == user_id).order_by(Ticket.id).limit(1)
+        select(Ticket)
+        .where(Ticket.user_id == user_id)
+        .order_by(
+            case((Ticket.payment_status == PaymentStatus.CANCELLED, 1), else_=0),
+            Ticket.id.desc(),
+        )
+        .limit(1)
     )
 
 

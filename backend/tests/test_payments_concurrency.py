@@ -7,6 +7,7 @@ from sqlalchemy import delete, event, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import hash_password
 from app.domains.payments.gateway import (
     MBWayPayment,
@@ -21,8 +22,12 @@ from app.domains.payments.schemas import PaymentInitiateRequest
 from app.domains.payments.service import (
     AlreadyHasTicketError,
     TicketSoldOutError,
+    confirm_transaction,
+    get_transaction,
+    handle_payment_callback,
     initiate_payment,
 )
+from app.domains.tickets.models import Ticket
 from app.domains.users.models import User
 from tests.helpers import seed_ticket_tiers
 
@@ -301,3 +306,172 @@ def test_deleting_a_user_with_transactions_is_blocked(db_session):
         db_session.execute(delete(User).where(User.id == user.id))
         db_session.commit()
     db_session.rollback()
+
+
+def _run_together(test_engine, actions) -> list[BaseException]:
+    """Run each action in its own session and thread, released at the same moment."""
+    barrier = threading.Barrier(len(actions))
+    failures: list[BaseException] = []
+
+    def worker(action) -> None:
+        session = Session(bind=test_engine)
+        try:
+            barrier.wait(timeout=10)
+            action(session)
+        except BaseException as exc:  # surfaced by the caller
+            failures.append(exc)
+        finally:
+            session.close()
+
+    threads = [threading.Thread(target=worker, args=(action,)) for action in actions]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
+    return failures
+
+
+def _count_tickets(test_engine, user_id: int) -> int:
+    with Session(bind=test_engine) as session:
+        return session.scalar(
+            select(func.count()).select_from(Ticket).where(Ticket.user_id == user_id)
+        )
+
+
+@requires_postgres
+def test_two_confirmations_of_the_same_payment_issue_one_ticket(
+    db_session, test_engine
+):
+    """A status poll and a callback (or two polls) can arrive together."""
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    transaction, _ = initiate_payment(
+        db_session, user, _payload(), SimulatedMBWayGateway()
+    )
+    transaction_id, user_id = transaction.id, user.id
+    integrity_errors: list[object] = []
+
+    def count_integrity_errors(context) -> None:
+        if isinstance(context.original_exception, Exception) and (
+            "unique" in str(context.original_exception).lower()
+        ):
+            integrity_errors.append(context.original_exception)
+
+    event.listen(test_engine, "handle_error", count_integrity_errors)
+
+    def confirm(session: Session) -> None:
+        confirm_transaction(session, session.get(Transaction, transaction_id))
+
+    try:
+        assert _run_together(test_engine, [confirm, confirm]) == []
+    finally:
+        event.remove(test_engine, "handle_error", count_integrity_errors)
+    assert _count_tickets(test_engine, user_id) == 1
+    # The row lock makes the second confirmation wait instead of colliding.
+    assert integrity_errors == []
+
+
+@requires_postgres
+def test_two_payments_of_the_same_person_confirmed_together_issue_one_ticket(
+    db_session, test_engine
+):
+    """The first attempt ran out locally, a second was started, and both get paid."""
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    first, _ = initiate_payment(db_session, user, _payload(), SimulatedMBWayGateway())
+    first.status = TransactionStatus.EXPIRED  # the provider closed it
+    db_session.commit()
+    second, _ = initiate_payment(db_session, user, _payload(), SimulatedMBWayGateway())
+    ids, user_id = [first.id, second.id], user.id
+
+    def confirm(transaction_id: int):
+        def action(session: Session) -> None:
+            confirm_transaction(session, session.get(Transaction, transaction_id))
+
+        return action
+
+    assert _run_together(test_engine, [confirm(i) for i in ids]) == []
+    assert _count_tickets(test_engine, user_id) == 1
+    with Session(bind=test_engine) as session:
+        statuses = session.scalars(
+            select(Transaction.status).where(Transaction.id.in_(ids))
+        ).all()
+    assert sorted(statuses, key=str) == [
+        TransactionStatus.CONFIRMED,
+        TransactionStatus.REFUND_DUE,
+    ]
+
+
+@requires_postgres
+def test_a_poll_does_not_overwrite_a_payment_confirmed_while_it_waited(
+    db_session, test_engine, monkeypatch
+):
+    """The poll asks the provider, which says "expired"; meanwhile the callback
+    confirms the payment. The poll must not then write ``expired`` over it."""
+    monkeypatch.setattr(settings, "MBWAY_CALLBACK_KEY", "callback-key")
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    transaction, _ = initiate_payment(
+        db_session, user, _payload(), SimulatedMBWayGateway()
+    )
+    transaction_id, reference, user_id = transaction.id, transaction.reference, user.id
+    amount = str(transaction.amount_cents / 100)
+
+    class CallbackWhileAsking:
+        name = "racing"
+
+        def get_status(self, *, reference, provider_reference) -> TransactionStatus:
+            with Session(bind=test_engine) as other:
+                handle_payment_callback(
+                    other, key="callback-key", reference=reference, amount=amount
+                )
+            return TransactionStatus.EXPIRED
+
+    with Session(bind=test_engine) as poll:
+        seen = get_transaction(
+            poll, poll.get(User, user_id), reference, CallbackWhileAsking()
+        )
+        assert seen.status is TransactionStatus.CONFIRMED
+
+    with Session(bind=test_engine) as check:
+        stored = check.scalar(
+            select(Transaction.status).where(Transaction.id == transaction_id)
+        )
+    assert stored is TransactionStatus.CONFIRMED
+    assert _count_tickets(test_engine, user_id) == 1
+
+
+@requires_postgres
+def test_two_late_payments_for_the_last_seat_sell_it_once(db_session, test_engine):
+    """Both seats were released when the payments ran out; only one can be sold."""
+    tier = seed_ticket_tiers(db_session)[TicketTier.GERAL]
+    tier.inventory_limit = 1
+    first = _make_user(db_session, "ana@example.com")
+    second = _make_user(db_session, "rui@example.com")
+    ids = []
+    for user in (first, second):
+        transaction, _ = initiate_payment(
+            db_session, user, _payload(), SimulatedMBWayGateway()
+        )
+        ids.append(transaction.id)
+        # The provider closed it (the seat is free again), so the next one can start.
+        transaction.status = TransactionStatus.EXPIRED
+        db_session.commit()
+    user_ids = [first.id, second.id]
+
+    def confirm(transaction_id: int):
+        def action(session: Session) -> None:
+            confirm_transaction(session, session.get(Transaction, transaction_id))
+
+        return action
+
+    assert _run_together(test_engine, [confirm(i) for i in ids]) == []
+    assert sum(_count_tickets(test_engine, uid) for uid in user_ids) == 1
+    with Session(bind=test_engine) as session:
+        statuses = session.scalars(
+            select(Transaction.status).where(Transaction.id.in_(ids))
+        ).all()
+    assert sorted(statuses, key=str) == [
+        TransactionStatus.CONFIRMED,
+        TransactionStatus.REFUND_DUE,
+    ]
