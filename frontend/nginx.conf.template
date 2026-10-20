@@ -86,6 +86,15 @@ server {
         set $backend http://backend:8000;
         proxy_pass $backend;
         include /etc/nginx/proxy_backend.conf;
+
+        # O estado do pagamento em tempo real (Server-Sent Events): sem buffering nem compressão
+        # e com um tempo de espera maior (ver proxy_events.conf). Dentro do `^~ /api/` porque
+        # um prefixo `^~` impede que as expressões regulares de fora sejam avaliadas.
+        location ~ ^/api/payment/transactions/[^/]+/events$ {
+            set $backend http://backend:8000;
+            proxy_pass $backend;
+            include /etc/nginx/proxy_events.conf;
+        }
     }
 
     location ^~ /media/ {
