@@ -6,11 +6,12 @@ import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import func, select
+from sqlalchemy import String, cast, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email.models import EmailOutbox
 from app.core.email.outbox import enqueue_email
 from app.core.email.templates import (
     TICKET_EMAIL_SUBJECT,
@@ -188,6 +189,8 @@ def _settle_pending(
 
 
 ABANDONED_CHECKS_PER_REQUEST = 10
+# Shorter than the week a sent email stays in the queue (see delete_old_emails).
+TICKET_EMAIL_SWEEP_DAYS = 3
 
 
 def _free_abandoned_seats(
@@ -438,17 +441,75 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     # Saves the status when the ticket already existed and nothing else committed.
     db.commit()
     db.refresh(transaction)
-    _queue_ticket_email(db, transaction, ticket)
+    _queue_ticket_email_best_effort(db, transaction, ticket)
     notify(transaction.reference, transaction.status)
     return transaction
+
+
+def _queue_ticket_email_best_effort(
+    db: Session, transaction: Transaction, ticket: Ticket
+) -> None:
+    """Queue the ticket email without ever failing the confirmation.
+
+    By now the payment is confirmed and the ticket issued and committed: a failure
+    of the queue, of the QR image or of the modality name must not turn into a 500
+    (ifthenpay would keep retrying and the status poll would fail). The error is
+    logged and ``queue_missing_ticket_emails`` queues the email on its next run.
+    """
+    try:
+        _queue_ticket_email(db, transaction, ticket)
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Could not queue the ticket email of payment %s; the sweep will retry",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+
+
+def queue_missing_ticket_emails(
+    db: Session, *, paid_within_days: int = TICKET_EMAIL_SWEEP_DAYS
+) -> int:
+    """Queue the email of recent paid tickets that have none; returns how many.
+
+    Safe to run any time: the dedupe key stops a second email for the same ticket.
+    Only tickets paid in the last ``paid_within_days`` are considered, because the
+    queue deletes sent emails after a week and an older ticket would otherwise get
+    its email again.
+    """
+    since = datetime.now(UTC) - timedelta(days=paid_within_days)
+    queued = select(EmailOutbox.dedupe_key).where(EmailOutbox.dedupe_key.is_not(None))
+    tickets = db.scalars(
+        select(Ticket).where(
+            Ticket.payment_status == PaymentStatus.PAID,
+            Ticket.qr_payload.is_not(None),
+            Ticket.paid_at >= since,
+            ("ticket:" + cast(Ticket.id, String)).not_in(queued),
+        )
+    ).all()
+    count = 0
+    for ticket in tickets:
+        transaction = db.scalar(
+            select(Transaction).where(
+                Transaction.reference == ticket.transaction_reference
+            )
+        )
+        if transaction is None:
+            continue
+        try:
+            _queue_ticket_email(db, transaction, ticket)
+            count += 1
+        except Exception:
+            db.rollback()
+            logger.exception("Sweep could not queue the email of ticket %s", ticket.id)
+    return count
 
 
 def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -> None:
     """Queue the email with the ticket QR, once per ticket.
 
-    The dedupe key makes a repeated callback or poll a no-op, and a failure to
-    queue raises so ifthenpay retries the callback and the email is queued then.
-    The ticket row is locked first: the transaction lock is gone once the ticket is
+    The dedupe key makes a repeated callback or poll a no-op. The ticket row is
+    locked first: the transaction lock is gone once the ticket is
     committed, and two confirmations of the same payment must not both try to queue
     the email at once.
     """

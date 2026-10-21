@@ -203,7 +203,8 @@ def delete_old_emails(
 
     Rows that were sent are deleted after a week and failed ones after a month.
     A failed email keeps its body for a day (so it can be sent again by hand) and
-    is blanked after that, because the links inside have long expired.
+    is blanked after that, together with its inline images (the ticket QR), because
+    the links inside have long expired.
     """
     now = _now()
     db.execute(
@@ -211,9 +212,8 @@ def delete_old_emails(
         .where(
             EmailOutbox.status == EmailStatus.FAILED,
             EmailOutbox.created_at < now - timedelta(days=failed_body_days),
-            EmailOutbox.html_body != "",
         )
-        .values(html_body="")
+        .values(html_body="", inline_images=None)
         .execution_options(synchronize_session=False)
     )
     result = db.execute(
