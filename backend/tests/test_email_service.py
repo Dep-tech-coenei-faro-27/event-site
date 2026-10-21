@@ -56,12 +56,13 @@ def _make_server(recorded, server_cls=_RecordingServer):
 
 
 def _message_parts(sender, to_email):
-    html = sender.sent_message.get_content()
+    body = sender.sent_message.get_body(preferencelist=("html",))
+    html = body.get_content()
     return {
         "from": sender.sent_message["From"],
         "to": sender.sent_message["To"],
         "subject": sender.sent_message["Subject"],
-        "content_type": sender.sent_message.get_content_type(),
+        "content_type": body.get_content_type(),
         "html": html,
     }
 
@@ -305,9 +306,32 @@ def test_send_html_attaches_inline_images_as_related_parts(monkeypatch):
     )
 
     message = servers[0].sent_message
-    assert message.get_content_type() == "multipart/related"
-    html, image = list(message.iter_parts())
+    assert message.get_content_type() == "multipart/alternative"
+    text, related = list(message.iter_parts())
+    assert text.get_content_type() == "text/plain"
+    assert related.get_content_type() == "multipart/related"
+    html, image = list(related.iter_parts())
     assert html.get_content_type() == "text/html"
     assert image.get_content_type() == "image/png"
     assert image["Content-ID"] == "<ticket-qr>"
     assert image.get_content() == png
+
+
+def test_ticket_email_has_a_plain_text_version():
+    from app.core.email.templates import build_ticket_email_html
+    from app.core.email.text import html_to_text
+
+    text = html_to_text(build_ticket_email_html("Ana", "Passe geral", "ENEI-ABC"))
+
+    assert "Olá Ana," in text
+    assert "Passe geral" in text
+    assert "ENEI-ABC" in text
+    assert "<" not in text
+
+
+def test_plain_text_keeps_the_address_of_links():
+    from app.core.email.text import html_to_text
+
+    text = html_to_text('<p>Abre <a href="https://x.pt/v?t=1">este link</a>.</p>')
+
+    assert "este link (https://x.pt/v?t=1)" in text
