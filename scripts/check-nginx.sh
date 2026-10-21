@@ -17,14 +17,15 @@ echo ok > "$HTML/index.html"
 chmod -R a+rX "$HTML"
 
 cleanup() {
-    docker rm -f "$NAME" > /dev/null 2>&1 || true
+    docker rm -f "$NAME" "$NAME-sse" > /dev/null 2>&1 || true
     docker network rm "$NAME" > /dev/null 2>&1 || true
     rm -rf "$HTML"
 }
 trap cleanup EXIT
 
 MOUNTS="-v $FRONTEND/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
-        -v $FRONTEND/proxy_backend.conf:/etc/nginx/proxy_backend.conf:ro"
+        -v $FRONTEND/proxy_backend.conf:/etc/nginx/proxy_backend.conf:ro
+        -v $FRONTEND/proxy_events.conf:/etc/nginx/proxy_events.conf:ro"
 
 echo "== nginx -t ($IMAGE)"
 # shellcheck disable=SC2086
@@ -77,7 +78,64 @@ if [ "$policy" != "no-referrer" ]; then
     status=1
 fi
 
+echo "== eventos em tempo real (SSE)"
+# Um backend de mentira que emite um evento logo e outro 4 s depois. Se o nginx retiver a resposta
+# (buffering), o primeiro evento só chega ao browser quando a ligação fechar, 4 s depois.
+cat > "$HTML/sse.py" <<'PY'
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+
+        def chunk(data):
+            self.wfile.write(f"{len(data):x}\r\n".encode() + data + b"\r\n")
+            self.wfile.flush()
+
+        chunk(b'event: status\ndata: {"status":"pending"}\n\n')
+        time.sleep(4)
+        chunk(b'event: status\ndata: {"status":"confirmed"}\n\n')
+        self.wfile.write(b"0\r\n\r\n")
+
+    def log_message(self, *args):
+        pass
+
+
+ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+PY
+chmod a+r "$HTML/sse.py"
+docker run -d --name "$NAME-sse" --network "$NAME" --network-alias backend \
+    -v "$HTML/sse.py:/srv/sse.py:ro" python:3-alpine python /srv/sse.py > /dev/null
+for _ in $(seq 1 30); do
+    docker logs "$NAME-sse" > /dev/null 2>&1 && curl -s -o /dev/null -m 1 "$base/api/payment/callback" && break
+    sleep 0.5
+done
+sleep 1
+started=$(date +%s.%N)
+arrivals=$(curl -sN -m 8 "$base/api/payment/transactions/ENEI-X/events" | while IFS= read -r line; do
+    case "$line" in data:*) echo "$(date +%s.%N)" ;; esac
+done)
+first=$(echo "$arrivals" | sed -n 1p)
+second=$(echo "$arrivals" | sed -n 2p)
+if [ -z "$second" ]; then
+    echo "FALHOU: o fluxo de eventos não trouxe os dois eventos"
+    status=1
+elif awk -v a="$started" -v b="$first" 'BEGIN { exit !(b - a < 2.5) }'; then
+    echo "   o primeiro evento chegou a tempo (o nginx não retém o fluxo)"
+else
+    echo "FALHOU: o primeiro evento só chegou com o último: o nginx está a reter o fluxo (buffering)"
+    status=1
+fi
+
 if [ "$status" -eq 0 ]; then
-    echo "OK: nenhum token nem chave nos logs; /conta/* com Referrer-Policy no-referrer"
+    echo "OK: nenhum token nem chave nos logs; /conta/* com Referrer-Policy no-referrer; o fluxo de eventos chega em tempo real"
 fi
 exit "$status"

@@ -1,7 +1,7 @@
 """add inline images to email outbox
 
 Revision ID: a3d5f8b2c916
-Revises: d2e8a47c1b95
+Revises: e5a7c3b91d20
 Create Date: 2026-10-18 12:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a3d5f8b2c916"
-down_revision: str | None = "d2e8a47c1b95"
+down_revision: str | None = "e5a7c3b91d20"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

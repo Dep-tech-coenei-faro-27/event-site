@@ -6,6 +6,15 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   is_verified: boolean;
+  course: string | null;
+  institution?: string | null;
+  qr_code: string | null;
+  /** O bilhete emitido (de GET /users/me); `null` enquanto não há compra confirmada. */
+  ticket?: { reference: string; tier: string; tier_name: string; holder_name: string; paid_at: string | null } | null;
+  /** Um pagamento à espera de ser aprovado ou terminado pelo fornecedor. */
+  pending_payment?: { reference: string; tier: string; tier_name: string; amount_cents: number; expires_at: string } | null;
+  /** Um pagamento que chegou mas não pôde ter bilhete: vai ser reembolsado. */
+  refund_due?: { reference: string; amount_cents: number } | null;
 }
 
 export interface AuthContextValue {

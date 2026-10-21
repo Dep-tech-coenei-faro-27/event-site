@@ -48,6 +48,8 @@ export type InitiateRequest = {
   ticket_tier: string;
   /** Telemóvel português; o backend aceita espaços e indicativo e normaliza. */
   phone: string;
+  /** NIF para a fatura (opcional): 9 algarismos com o de controlo certo; o backend recusa os inválidos com 422. */
+  nif?: string;
 };
 
 export type AccountTicket = {
@@ -72,7 +74,11 @@ export type AccountRefundDue = {
 };
 
 /** O que `GET /users/me` diz sobre a compra. Os campos são `null` quando não se aplicam. */
+export type StudentVerificationStatus = "pending" | "verified";
+
 export type Account = {
+  /** Se a conta já foi verificada como estudante (as modalidades de estudante só abrem então). */
+  student_verification_status?: StudentVerificationStatus;
   qr_code: string | null;
   ticket: AccountTicket | null;
   pending_payment: AccountPendingPayment | null;

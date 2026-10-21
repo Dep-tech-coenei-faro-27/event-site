@@ -1,15 +1,13 @@
 import heroFaro from '../assets/hero-faro.webp';
 import Eyebrow from './EyeBrow';
-import SecundaryButton from './SecundaryButton';
-import PrimaryButton from './PrimaryButton';
+import { Link } from 'react-router-dom';
 import { EVENT_DATES } from '../data/Event';
 
 export default function Hero() {
   return (
     <section
-      className="relative w-full grid items-center overflow-clip border-b border-white/10"
+      className="hero-home relative w-full grid items-center overflow-clip border-b border-white/10"
       style={{
-        minHeight: 'min(760px, calc(100vh - var(--nav, 80px)))',
         backgroundImage: `
           linear-gradient(
             90deg,
@@ -37,34 +35,34 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-[90px] flex flex-col items-start gap-6">
+      <div className="hero-content container relative z-10 py-[90px] flex flex-col items-start gap-6">
         <div className="inline-flex items-center">
           <Eyebrow text="LOCAL_HOST: FARO_2027" />
         </div>
 
         {/* Título Principal com escala fluida forçada */}
-        <h1 
-            className="font-poppins font-extrabold text-[56px] sm:text-[76px] lg:text-[96px] xl:text-[104px] tracking-[-0.045em] leading-[0.98] bg-clip-text text-transparent"
-            style={{ 
-                backgroundImage: 'linear-gradient(155deg, #ffffff 65%, rgba(255, 255, 255, 0.75))',
-                fontSize: 'clamp(52px, 8.5vw, 108px)' // Força a escala bruta do UI
-                }}
-            >
-                ENEI 2027
+        <h1 className="hero-title font-poppins font-bold max-w-[880px] leading-[1.06] tracking-[-0.075em]">
+            ENEI 2027
         </h1>
         <p className="max-w-[680px] text-lg sm:text-xl text-[#AAB7C9] font-montserrat font-normal leading-relaxed">
           Encontro Nacional de Estudantes de Informática
         </p>
 
-        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-full border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
+        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-[2px] border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
           <span>{EVENT_DATES} · Faro, Algarve</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 pt-4">
-            <SecundaryButton text="Saber mais" to="/sobre" />
-            <PrimaryButton text="Comprar Bilhete" to="/bilhetes" />
+          <Link className="btn btn--secondary" to="/sobre">
+            Saber mais
+          </Link>
+          <Link className="btn btn--primary" to="/bilhetes">
+            Comprar bilhete
+          </Link>
         </div>
       </div>
+
+      <span className="hero-signal" aria-hidden="true" />
     </section>
   );
 }

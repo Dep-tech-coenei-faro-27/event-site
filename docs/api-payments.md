@@ -18,8 +18,9 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 | `refeicoes` | Acesso + refeições | sim |
 | `completo` | Experiência completa | sim |
 | `geral` | Passe geral | não |
+| `geral_refeicoes` | Passe geral + refeições | não |
 
-> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo variantes **não estudante** com refeições e com a experiência completa (hoje só o passe geral é aberto a não estudantes). O frontend **não deve assumir que são sempre quatro**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
+> **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo outras variantes **não estudante** (hoje há o passe geral e o passe geral com refeições). O frontend **não deve assumir que são sempre cinco**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
 
 O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
 
@@ -59,7 +60,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 | | |
 | --- | --- |
 | Corpo | `ticket_tier`, `phone`, `email` (opcional), `nif` (opcional), `quantity` (opcional, tem de ser `1`) |
-| `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral` |
+| `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral`, `geral_refeicoes` |
 | `phone` | telemóvel português. Aceita espaços e o indicativo (`912 345 678`, `+351 912345678`, `00351912345678`); é normalizado e guardado como `912345678` |
 | `email` | se faltar, usa o email da conta |
 | `nif` | opcional, para a fatura. Aceita espaços, pontos, hífenes e o prefixo `PT` (`123 456 789`, `PT123456789`); vazio ou em falta é aceite e fica sem NIF. Se vier preenchido tem de ter 9 algarismos (só `0-9`), um primeiro algarismo que exista (sem `0`, e o `4` só como `45`), no máximo 32 caracteres no total e o algarismo de controlo certo (módulo 11), senão `422` **e nenhum lugar fica reservado**. Guarda-se na transação (`transactions.nif`, 9 algarismos), **vive e morre com a transação, como o telemóvel** (não se apaga quando o pagamento falha ou expira; sai quando o registo da compra é removido) e **nunca é devolvido pela API**: nem em `/payment/initiate`, nem em `/payment/transactions/{reference}` |
@@ -102,6 +103,24 @@ Consulta o estado de um pagamento. O frontend usa isto para fazer *polling* enqu
 | `404` | referência inexistente ou de outro utilizador |
 
 Enquanto o pagamento estiver `pending`, esta chamada pergunta primeiro ao fornecedor (MB WAY) qual o estado real e grava o resultado: se o fornecedor devolver `confirmed`, `failed` ou `expired`, a transação passa a esse estado (no caso de `confirmed` fica também gravado `confirmed_at` **e o bilhete é emitido**, pela mesma função que o callback usa). Se o fornecedor ainda responde `pending`, ou está inacessível, a transação **continua `pending` e com o lugar reservado, mesmo depois do prazo** (`expires_at`): só o MB WAY pode terminar um pagamento. O frontend deve tratar `pending` depois de `expires_at` como «ainda a confirmar» e não como erro. O backend pergunta ao MB WAY **no máximo uma vez por pagamento a cada 5 segundos** (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`); entre duas perguntas devolve o estado guardado. Por isso o polling de 2 em 2 segundos é seguro, mas um pagamento pago só aparece como `confirmed` até 5 segundos depois se o callback não chegar (o callback confirma logo). Na prática o MB WAY dá o pagamento por expirado ao fim dos 4 minutos. Há uma exceção: se o MB WAY **não consegue dizer** (responde algo que não se lê, ou nunca guardámos a referência dele), o pagamento dá-se por expirado `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` (30 minutos) depois do prazo, com um erro no log, para não prender o lugar para sempre. Um MB WAY inacessível ou que responde «à espera» nunca provoca isto.
+
+### `GET /api/payment/transactions/{reference}/events`
+
+O estado do pagamento **em tempo real**, por Server-Sent Events (`text/event-stream`). É a alternativa a perguntar de 2 em 2 segundos: o browser abre **um só pedido** que fica aberto e o servidor avisa na hora em que o pagamento muda.
+
+| | |
+| --- | --- |
+| Sessão | a mesma do resto (cookie), conta verificada. O browser (`EventSource`) envia-o sozinho |
+| `401` / `404` | sem sessão / pagamento que não é seu (como a consulta) |
+| `429` | demasiadas ligações abertas (`PAYMENT_EVENTS_MAX_PER_USER`, 3) ou limite de pedidos |
+| Corpo | `retry: 3000`, depois `event: status` com `data: {"status": "..."}`: primeiro o estado atual e depois cada mudança; fecha quando o estado é final (`confirmed`, `failed`, `expired`, `refund_due`, `refunded`) |
+| Batimento | uma linha `: keep-alive` de 15 em 15 segundos (`PAYMENT_EVENTS_HEARTBEAT_SECONDS`), para o nginx e o túnel não fecharem uma ligação calada |
+| Duração | no máximo 10 minutos por ligação (`PAYMENT_EVENTS_MAX_SECONDS`): o browser reconecta sozinho e volta a receber o estado |
+| Cabeçalhos | `Cache-Control: no-store`, `X-Accel-Buffering: no` |
+
+O evento só **avisa** (`status`, sem dados pessoais): o frontend faz então uma consulta normal (`GET /payment/transactions/{reference}`) e trata o resultado como sempre, incluindo conferir a conta nos `failed` e `expired`. Se o fluxo falhar, o frontend volta a consultar de 2 em 2 segundos, por isso nunca depende dele.
+
+**Como funciona no servidor.** Quem muda um pagamento (a confirmação, o callback, a libertação de um lugar, o cancelamento) avisa as ligações abertas desse pagamento. Como o backend corre **um só processo**, o registo das ligações está em memória; com mais de um processo seria preciso `LISTEN/NOTIFY` ou Redis. Uma ligação em espera **não ocupa nenhuma ligação à base de dados**. Um laço em segundo plano (`PAYMENT_EVENTS_RECONCILE_SECONDS`, 5 s) pergunta ao fornecedor pelos pagamentos que alguém está a ver, no máximo de 5 em 5 segundos por pagamento (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`) e 4 de cada vez, para um fornecedor lento não ocupar as threads todas. O nginx trata este caminho à parte (`proxy_events.conf`: sem retenção nem compressão e com 120 s de espera).
 
 ### `GET /api/payment/callback`
 

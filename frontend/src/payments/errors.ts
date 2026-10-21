@@ -37,7 +37,7 @@ export type InitiateFailure = {
   /** Só em `rate-limited`: segundos até se poder tentar outra vez (0 se o servidor não disse). */
   retryAfterSeconds?: number;
   /** Só em `invalid-input`: o campo em falta ou inválido, quando se sabe. */
-  field?: "phone" | "ticket_tier";
+  field?: "phone" | "nif" | "ticket_tier";
 };
 
 const DETAIL = {
@@ -69,6 +69,14 @@ function invalidInput(detail: unknown): InitiateFailure {
       field: "phone",
       action: "fix-field",
       message: "Indica um telemóvel português válido (9 dígitos).",
+    };
+  }
+  if (fields.includes("nif")) {
+    return {
+      kind: "invalid-input",
+      field: "nif",
+      action: "fix-field",
+      message: "Este NIF não é válido. Confirma os algarismos ou deixa o campo em branco.",
     };
   }
   if (fields.includes("ticket_tier")) {

@@ -1,0 +1,498 @@
+/*
+ * Páginas `bilhetes` no desenho novo (ui-ux). Gerado por `scripts/ui-port/genpage.py` a partir do
+ * `core.css` e `motion.css` do protótipo, limitado a `body[data-page="bilhetes"]` (cada página define esse atributo com
+ * `useBodyPage("bilhetes")`). Não editar à mão: os ajustes vão no fim, em «Ajustes», ou noutro ficheiro.
+ */
+
+body[data-page="bilhetes"] main {
+  padding-top: 64px; /* a barra de topo é fixa (64 px no telemóvel, 76 px a partir de 768 px) */
+  overflow-x: clip;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  body[data-page="bilhetes"] main {
+    padding-top: 76px;
+  }
+}
+body[data-page="bilhetes"] main p {
+  margin: 1em 0;
+}
+/* O protótipo não usa o reset do Tailwind: as listas e as definições têm o aspeto por omissão do browser
+   (as regras com classe, mais específicas, sobrepõem-se). */
+body[data-page="bilhetes"] main ul,
+body[data-page="bilhetes"] main ol {
+  list-style: revert;
+  margin: 1em 0;
+  padding-inline-start: 40px;
+}
+body[data-page="bilhetes"] main ul ul,
+body[data-page="bilhetes"] main ol ol,
+body[data-page="bilhetes"] main ul ol,
+body[data-page="bilhetes"] main ol ul {
+  margin: 0;
+}
+body[data-page="bilhetes"] main dl {
+  margin: 1em 0;
+}
+body[data-page="bilhetes"] main dd {
+  margin-inline-start: 40px;
+}
+body[data-page="bilhetes"] main h1,
+body[data-page="bilhetes"] main h2,
+body[data-page="bilhetes"] main h3 {
+  font-family: Poppins, sans-serif;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  margin: 0;
+}
+body[data-page="bilhetes"] main h1 {
+  font-weight: 700; /* o Tailwind faz os títulos herdarem o peso do texto; o protótipo usa negrito */
+}
+body[data-page="bilhetes"] main h2 {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+}
+body[data-page="bilhetes"] main h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body[data-page="bilhetes"] main .section {
+  padding: clamp(72px, 9vw, 124px) 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+body[data-page="bilhetes"] main .section > .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="bilhetes"] main .section::before {
+  content: none;
+}
+body[data-page="bilhetes"] main .section--surface,
+body[data-page="bilhetes"] main .section--panel {
+  background: var(--bg);
+}
+body[data-page="bilhetes"] main main > .section:nth-of-type(odd) {
+  background: var(--surface);
+}
+body[data-page="bilhetes"] main main > .section:nth-of-type(odd)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px
+    96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px
+    repeat;
+  opacity: 0.026;
+}
+body[data-page="bilhetes"] main .eyebrow {
+  margin: 0 0 14px;
+  color: var(--accent-strong);
+  font:
+    700 11px/1.4 Montserrat,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+body[data-page="bilhetes"] main .lead {
+  max-width: 720px;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 20px);
+}
+body[data-page="bilhetes"] main .center {
+  text-align: center;
+}
+body[data-page="bilhetes"] main .center .lead {
+  margin-inline: auto;
+}
+body[data-page="bilhetes"] main .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+body[data-page="bilhetes"] main .page-hero {
+  padding: clamp(84px, 10vw, 140px) 0 clamp(70px, 8vw, 110px);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(0, 170, 255, 0.18),
+      transparent 45%
+    ),
+    var(--bg);
+}
+body[data-page="bilhetes"] main .page-hero::after {
+  content: none;
+}
+body[data-page="bilhetes"] main .page-hero .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="bilhetes"] main .page-hero h1 {
+  font-size: clamp(38px, 6vw, 68px);
+  max-width: 900px;
+}
+body[data-page="bilhetes"] main .grid {
+  display: grid;
+  gap: 18px;
+  align-items: stretch;
+}
+body[data-page="bilhetes"] main .grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+body[data-page="bilhetes"] main .split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(40px, 8vw, 100px);
+  align-items: center;
+}
+body[data-page="bilhetes"] main .split > * {
+  min-width: 0;
+}
+body[data-page="bilhetes"] main .ticket-card p,
+body[data-page="bilhetes"] main .checklist-column p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+body[data-page="bilhetes"] main .ticket-card {
+  min-height: 430px;
+  padding: 30px 26px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--accent);
+  border-radius: 0 0 18px 18px;
+  background: var(--panel);
+}
+body[data-page="bilhetes"] main .ticket-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") center / 96px
+    96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") center / 96px 96px
+    repeat;
+  opacity: 0.018;
+}
+body[data-page="bilhetes"] main .ticket-card > * {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="bilhetes"] main .ticket-card--featured {
+  border-color: rgba(229, 191, 120, 0.38);
+  border-top-color: #E5BF78;
+  background:
+    linear-gradient(160deg, rgba(229, 191, 120, 0.11), transparent 52%),
+    var(--panel);
+  box-shadow: 0 22px 48px rgba(229, 191, 120, 0.1);
+}
+body[data-page="bilhetes"] main .ticket-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid rgba(229, 191, 120, 0.58);
+  border-radius: 999px;
+  background: rgba(229, 191, 120, 0.12);
+  color: #F2D99F;
+  font:
+    700 9px/1 Montserrat,
+    sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+body[data-page="bilhetes"] main .ticket-card h3 {
+  min-height: 2.15em;
+}
+body[data-page="bilhetes"] main .ticket-card .feature-list {
+  flex: 1;
+}
+body[data-page="bilhetes"] main .ticket-card .btn {
+  width: 100%;
+  margin-top: auto;
+}
+body[data-page="bilhetes"] main .registration-checklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line-accent);
+}
+body[data-page="bilhetes"] main .checklist-column {
+  min-width: 0;
+  padding: 28px;
+}
+body[data-page="bilhetes"] main .checklist-column + .checklist-column {
+  border-left: 1px solid var(--line);
+}
+body[data-page="bilhetes"] main .checklist-column--notice {
+  background: rgba(var(--accent-rgb), 0.05);
+}
+body[data-page="bilhetes"] main .timeline {
+  --timeline-rail-x: 17px;
+  position: relative;
+  display: grid;
+  gap: 24px;
+}
+body[data-page="bilhetes"] main .timeline::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--timeline-pad-x, 0px) + var(--timeline-rail-x));
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--line-accent);
+  transform: translateX(-50%);
+}
+body[data-page="bilhetes"] main .timeline-item {
+  position: relative;
+  padding-left: 54px;
+}
+body[data-page="bilhetes"] main .timeline-item::before {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  left: var(--timeline-rail-x);
+  top: 4px;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  transform: translateX(-50%);
+}
+body[data-page="bilhetes"] main .timeline-item small {
+  color: var(--accent-strong);
+  font-family: Montserrat, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+body[data-page="bilhetes"] main .timeline-item p {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+body[data-page="bilhetes"] main .price {
+  margin: 18px 0;
+  font:
+    700 30px Poppins,
+    sans-serif;
+}
+body[data-page="bilhetes"] main .feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  display: grid;
+  gap: 9px;
+  color: var(--muted);
+}
+body[data-page="bilhetes"] main .feature-list li {
+  position: relative;
+  padding-left: 28px;
+}
+body[data-page="bilhetes"] main .feature-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.26em;
+  width: 17px;
+  height: 17px;
+  background: var(--accent);
+  -webkit-mask: var(--svg-check) center / contain no-repeat;
+  mask: var(--svg-check) center / contain no-repeat;
+}
+html body[data-page="bilhetes"][data-page] main .page-hero {
+  background:
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(var(--accent-rgb), 0.2),
+      transparent 36%
+    ),
+    var(--bg);
+}
+html body[data-page="bilhetes"][data-page] main .page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000000 45%,
+    transparent
+  );
+}
+html body[data-page="bilhetes"][data-page] main .page-hero {
+  min-height: 560px;
+  display: grid;
+  align-items: center;
+}
+html body[data-page="bilhetes"][data-page] main .page-hero .container {
+  position: relative;
+  padding-left: clamp(24px, 6vw, 82px);
+}
+html body[data-page="bilhetes"][data-page] main .page-hero .container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.45);
+}
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
+}
+html body[data-page="bilhetes"][data-page] main #tipos > .container {
+  width: min(calc(100% - 40px), 1440px);
+}
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > * {
+  min-width: 0;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card {
+  width: 100%;
+  min-width: 0;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card > * {
+  max-width: 100%;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card--featured {
+  box-shadow: 0 22px 48px rgba(229, 191, 120, 0.1);
+}
+html body[data-page="bilhetes"][data-page] main .price {
+  color: var(--accent-strong);
+  font-size: 34px;
+  line-height: 1.18;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .price {
+  min-height: 3.05em;
+  display: flex;
+  align-items: flex-start;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card h3,
+html body[data-page="bilhetes"][data-page] main #tipos .feature-list li {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  body[data-page="bilhetes"] main .split {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="bilhetes"] main .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .ticket-card {
+    min-height: 390px;
+  }
+}
+@media (max-width: 620px) {
+  body[data-page="bilhetes"] main .grid--4 {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="bilhetes"] main .registration-checklist {
+    grid-template-columns: 1fr;
+  }
+  body[data-page="bilhetes"] main .checklist-column + .checklist-column {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  html body[data-page="bilhetes"][data-page] main .page-hero .container {
+    padding-left: 24px;
+  }
+  html body[data-page="bilhetes"][data-page] main .page-hero .container::before {
+    width: 5px;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .ticket-card {
+    min-height: 0;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .ticket-card h3 {
+    min-height: 0;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .price {
+    min-height: 0;
+  }
+}
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
+}
+html body[data-page="bilhetes"][data-page] main #tipos > .container {
+  width: min(calc(100% - 40px), 1440px);
+}
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > *,
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card {
+  min-width: 0;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card {
+  width: 100%;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card > * {
+  max-width: 100%;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .price {
+  line-height: 1.18;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card h3,
+html body[data-page="bilhetes"][data-page] main #tipos .feature-list li {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: 1fr;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="bilhetes"] main .ticket-card {
+    transition:
+      border-color var(--motion-default) var(--motion-ease-out),
+      box-shadow var(--motion-default) var(--motion-ease-out),
+      transform var(--motion-default) var(--motion-ease-emphasized);
+  }
+  body[data-page="bilhetes"] main .ticket-card:hover {
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+    transform: translateY(-3px);
+  }
+}

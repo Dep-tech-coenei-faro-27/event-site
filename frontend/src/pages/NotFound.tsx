@@ -17,7 +17,7 @@ export default function NotFound() {
         />
         <Link
           to="/"
-          className="mt-8 inline-flex min-h-[46px] items-center justify-center rounded-full bg-acento-principal px-6 text-sm font-bold text-texto-sobre-ciano transition hover:-translate-y-0.5 hover:bg-acento-forte"
+          className="btn btn--primary mt-8"
         >
           Voltar ao início
         </Link>

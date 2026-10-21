@@ -15,40 +15,64 @@ const navLinks = [
 const LOGIN_PATH = '/conta';
 const ACCOUNT_PATH = '/perfil';
 
-const accountDesktopClass =
+const loginDesktopClass =
   'hidden md:inline-flex min-h-[40px] items-center justify-center px-4 rounded-full border border-acento-principal/50 bg-acento-principal/10 text-branco text-[13px] font-bold transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
-const accountMobileClass =
+const loginMobileClass =
   'md:hidden w-full mt-4 min-h-[40px] inline-flex items-center justify-center px-[18px] rounded-full text-branco font-bold border border-acento-principal/50 bg-acento-principal/10 transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
 
+const userDesktopClass =
+  'hidden md:inline-flex items-center gap-2.5 rounded-full border border-acento-principal/45 bg-acento-principal/10 py-1 pl-1.5 pr-4 text-branco transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
+const userMobileClass =
+  'md:hidden w-full mt-4 inline-flex items-center gap-3 rounded-full border border-acento-principal/45 bg-acento-principal/10 p-1.5 pr-5 text-branco transition-all duration-300 hover:bg-[#0d3b66] hover:border-[#00b4d8] cursor-pointer';
 
-function AccountActions({ className }: { className: string }) {
-  const { user, loading, logout } = useAuth();
+function initialsOf(name: string, email: string): string {
+  const source = name.trim() || email.split('@')[0] || '?';
+  const parts = source.split(/\s+/).filter(Boolean);
+  const letters =
+    parts.length > 1
+      ? parts[0][0] + parts[parts.length - 1][0]
+      : source.slice(0, 2);
+  return letters.toUpperCase();
+}
+
+function AccountActions({ mobile = false }: { mobile?: boolean }) {
+  const { user, loading } = useAuth();
 
   if (loading) return null;
 
   if (!user) {
     return (
-      <Link to={LOGIN_PATH} className={className}>
+      <Link to={LOGIN_PATH} className={mobile ? loginMobileClass : loginDesktopClass}>
         Entrar
       </Link>
-    )
+    );
   }
 
+  const firstName = user.name.trim().split(/\s+/)[0] || 'Participante';
+  const initials = initialsOf(user.name, user.email);
+
   return (
-    <>
-      <Link to={ACCOUNT_PATH} className={className}>
-        Conta
-      </Link>
-
-      <button type="button"
-        onClick={() => void logout()}
-        className={className}
+    <Link
+      to={ACCOUNT_PATH}
+      aria-label={`Abrir área pessoal de ${firstName}`}
+      className={mobile ? userMobileClass : userDesktopClass}
+    >
+      <span
+        aria-hidden="true"
+        className="grid size-8 shrink-0 place-items-center rounded-full border border-acento-principal/50 bg-acento-principal/20 font-montserrat text-[11px] font-extrabold text-acento-forte"
       >
-        Sair
-      </button>
-    </>
-  )
-
+        {initials}
+      </span>
+      <span className="flex flex-col text-left leading-tight">
+        <strong className="max-w-[130px] truncate text-[12px] font-bold text-branco">
+          {firstName}
+        </strong>
+        <small className="font-montserrat text-[9px] font-bold uppercase tracking-[0.08em] text-acento-forte">
+          Área pessoal
+        </small>
+      </span>
+    </Link>
+  );
 }
 
 export default function Navbar() {
@@ -73,7 +97,7 @@ export default function Navbar() {
   }, [isMenuOpen]);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
+    <header className="site-header fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
       <div className="max-w-[1180px] mx-auto w-[calc(100%-28px)] md:w-[calc(100%-40px)] h-full flex items-center justify-between gap-4">
 
         <div className="flex-shrink-0 z-50">
@@ -110,13 +134,13 @@ export default function Navbar() {
             ))}
 
             {/* Conta no menu mobile */}
-            <AccountActions className={accountMobileClass} />
+            <AccountActions mobile />
           </div>
         </nav>
 
         <div className="flex items-center gap-3">
           {/* Conta no desktop */}
-          <AccountActions className={accountDesktopClass} />
+          <AccountActions />
 
           <button
             type="button"

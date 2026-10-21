@@ -10,6 +10,7 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.28-alpine
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY proxy_backend.conf /etc/nginx/proxy_backend.conf
+COPY proxy_events.conf /etc/nginx/proxy_events.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
