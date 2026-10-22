@@ -248,6 +248,12 @@ body[data-page="checkout"] main .auth-field select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.13);
 }
+/* Substituto do `outline: none` acima: contorno de 2 px na cor de acento ao navegar com o teclado. */
+body[data-page="checkout"] main .auth-field input:focus-visible,
+body[data-page="checkout"] main .auth-field select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 body[data-page="checkout"] main .auth-switch a,
 body[data-page="checkout"] main .auth-back {
   color: var(--accent-strong);
