@@ -8,6 +8,7 @@ export default function NotFound() {
       <div className="mx-auto w-full max-w-[720px] text-center">
         <SectionHeading
           align="center"
+          level={1}
           eyebrow={<Eyebrow text="ERRO 404" />}
           title="Esta página não existe."
           lead="O endereço que abriste não existe ou ainda não está disponível."

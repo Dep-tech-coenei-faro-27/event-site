@@ -50,9 +50,9 @@ function MotionLayer() {
   return null;
 }
 
-function App() {
+// O layout e as rotas, sem o router: os testes montam-no dentro de um MemoryRouter.
+export function AppShell() {
   return (
-    <BrowserRouter>
       <AuthProvider>
         <ScrollToTop />
         <MotionLayer />
@@ -73,8 +73,6 @@ function App() {
               <Route path="/sobre" element={<Sobre />} />
               <Route path="/parcerias" element={<Parcerias />} />
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
-              <Route path="/sobre" element={<Sobre />} />
-              <Route path="/parcerias" element={<Parcerias />} />
               <Route path="/acessibilidade" element={<Acessibilidade />} />
               <Route path="/termos" element={<Termos />} />
               <Route path="/agenda" element={<Agenda />} />
@@ -104,6 +102,13 @@ function App() {
 
         </div>
       </AuthProvider>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   )
 }
