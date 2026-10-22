@@ -72,7 +72,6 @@ jobs:
             FRONTEND_URL=${{ secrets.FRONTEND_URL }}
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
-            CORS_ALLOW_CREDENTIALS=${{ secrets.CORS_ALLOW_CREDENTIALS }}
             STUDENT_EMAIL_DOMAINS=${{ vars.STUDENT_EMAIL_DOMAINS }}
             MBWAY_KEY=${{ secrets.MBWAY_KEY }}
             MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
