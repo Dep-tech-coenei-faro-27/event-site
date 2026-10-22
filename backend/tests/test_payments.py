@@ -253,7 +253,7 @@ def test_student_tier_requires_a_verified_student(
     )
 
     assert response.status_code == 403
-    assert user.student_verification_status.value == "pending"
+    assert user.student_verification_status.value == "none"
 
 
 def test_non_student_tier_is_allowed_without_student_verification(

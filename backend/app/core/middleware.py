@@ -10,6 +10,9 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 AUTH_PATH_PREFIX = f"{settings.API_V1_PREFIX}/auth"
+STUDENT_PROOF_PATH = f"{settings.API_V1_PREFIX}/users/me/student-proof"
+# The form fields and boundaries around the file in a multipart body.
+MULTIPART_OVERHEAD_BYTES = 16_384
 
 
 class UnhandledExceptionMiddleware:
@@ -87,6 +90,10 @@ class RequestSizeLimitMiddleware:
             return
 
         limit = settings.MAX_REQUEST_BYTES
+        if scope["path"] == STUDENT_PROOF_PATH:
+            limit = max(
+                limit, settings.STUDENT_PROOF_MAX_BYTES + MULTIPART_OVERHEAD_BYTES
+            )
         declared = Headers(scope=scope).get("content-length")
         if declared and declared.isdigit() and int(declared) > limit:
             response = JSONResponse(

@@ -35,7 +35,7 @@ nova. Uma conta já verificada nunca é substituída.
 | Nome     | 1 a 255 caracteres, cortado nas pontas, com pelo menos uma letra. Sem caracteres de controlo, invisíveis (por exemplo zero-width), `<` ou `>`.                                                                            |
 | Email    | só caracteres ASCII. É guardado em minúsculas (`Ana@Example.com` e `ana@example.com` são a mesma conta).                                                                                                                  |
 | Password | 8 a 200 caracteres, com pelo menos uma maiúscula, um dígito e um símbolo, e no máximo 72 bytes. Um símbolo é **qualquer carácter que não seja `A-Z`, `a-z` ou `0-9`**: o espaço e as letras com acento (`é`, `ç`) contam. |
-| `201` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` (`role` é `user` ou `admin`; `student_verification_status` é `pending`, `verified` ou `rejected` e fica `verified` quando o domínio do email está em `STUDENT_EMAIL_DOMAINS`) |
+| `201` | `{"id", "name", "email", "role", "is_verified", "student_verification_status"}` (`role` é `user` ou `admin`; `student_verification_status` é `none`, `submitted`, `verified` ou `rejected` e fica `verified` quando o domínio do email está em `STUDENT_EMAIL_DOMAINS`) |
 | `409` | `A user with this email already exists` (só se a conta já está verificada). Revela que o email já tem conta. |
 | `422` | corpo inválido (ver os códigos abaixo) |
 | `429` | demasiados registos deste IP |
@@ -102,6 +102,37 @@ Os três campos novos descrevem a compra da pessoa e são `null` quando não se 
 | `ticket` | o bilhete ativo: `reference`, `tier`, `tier_name` (a modalidade comprada, tal como estava no pagamento), `holder_name`, `paid_at`. Nunca um bilhete cancelado |
 | `pending_payment` | o pagamento à espera (ainda não terminado pelo MB WAY, mesmo depois do prazo): `reference`, `tier`, `tier_name`, `amount_cents`, `expires_at`. Serve para **retomar** o ecrã de espera depois de um refresh ou de uma sessão nova, sem guardar a referência no browser |
 | `refund_due` | um pagamento recebido a que não se pôde dar bilhete e que vai ser reembolsado: `reference`, `amount_cents` |
+
+### `POST /api/users/me/student-proof`
+
+Precisa de sessão com o email verificado. Para quem **não tem email de aluno**: envia o comprovativo de matrícula,
+assinado digitalmente pela instituição, e a conta passa a estudante. Corpo `multipart/form-data` com o campo `file`.
+
+| | |
+| --- | --- |
+| Ficheiro | PDF, JPG ou PNG, até 1 MB (`STUDENT_PROOF_MAX_BYTES`). O tipo vê-se pelos primeiros bytes; o nome e o `Content-Type` enviados são ignorados |
+| `201` | `{"status": "verified"}` se a pré-validação passou toda (aprovado na hora) ou `{"status": "submitted"}` se ficou à espera de uma pessoa |
+| `409` | a conta já é de estudante, ou já tem um comprovativo à espera (um ativo por pessoa) |
+| `413` | ficheiro com mais de 1 MB |
+| `415` | não é PDF, JPG nem PNG |
+| `422` | ficheiro vazio ou em falta |
+| `429` | limite de pedidos (por conta e por IP, por hora) |
+
+`student_verification_status` em `GET /api/users/me` e `/api/auth/me`:
+
+| Estado | Significado |
+| --- | --- |
+| `none` | nunca enviou comprovativo (era `pending` antes; o frontend deve tratar `pending` como `none`) |
+| `submitted` | à espera de revisão; pode mudar para `verified` ou `rejected` |
+| `verified` | pode comprar bilhetes de estudante |
+| `rejected` | o comprovativo foi recusado; pode enviar outro |
+
+Só aprova sozinho se **tudo** passar: assinatura íntegra (o PDF não foi alterado depois de assinado), selo eletrónico
+qualificado (cadeia até à lista de confiança da UE), NIPC do selo já conhecido de uma instituição, nome da conta no
+documento, ano letivo atual (`2026/2027`, `2026/27`, `2026-2027`) e o mesmo ficheiro nunca verificou outra conta.
+Imagens, PDFs sem selo qualificado (por exemplo, instituições com código de validação e captcha) e NIPC novos vão
+sempre para revisão manual (`python -m app.domains.students.review`, ver o README do backend). O ficheiro é apagado
+logo que há decisão; fica só o hash.
 
 ### `PUT /api/users/me`
 

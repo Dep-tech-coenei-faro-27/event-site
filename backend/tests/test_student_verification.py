@@ -37,24 +37,24 @@ def test_institutional_email_is_auto_verified(
     assert user.student_verified_at is not None
 
 
-def test_non_institutional_email_stays_pending(
+def test_non_institutional_email_stays_without_proof(
     auth_client, db_session, institutional_domains
 ):
     register_user(auth_client, None, email="ana@gmail.com")
 
     user = _user(db_session, "ana@gmail.com")
-    assert user.student_verification_status is StudentVerificationStatus.PENDING
+    assert user.student_verification_status is StudentVerificationStatus.NONE
     assert user.student_verified_at is None
 
 
-def test_without_configured_domains_everyone_stays_pending(
+def test_without_configured_domains_everyone_stays_without_proof(
     auth_client, db_session, monkeypatch
 ):
     monkeypatch.setattr(settings, "STUDENT_EMAIL_DOMAINS", [])
     register_user(auth_client, None, email=INSTITUTIONAL_EMAIL)
 
     user = _user(db_session, INSTITUTIONAL_EMAIL)
-    assert user.student_verification_status is StudentVerificationStatus.PENDING
+    assert user.student_verification_status is StudentVerificationStatus.NONE
 
 
 def test_me_exposes_student_status(

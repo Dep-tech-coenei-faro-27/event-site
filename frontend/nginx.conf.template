@@ -82,6 +82,15 @@ server {
         include /etc/nginx/proxy_backend.conf;
     }
 
+    # O comprovativo de estudante: até 1 MB de ficheiro mais o formulário. É a única rota
+    # que passa do limite geral (o backend também só a deixa passar a ela).
+    location = /api/users/me/student-proof {
+        client_max_body_size 1100k;
+        set $backend http://backend:8000;
+        proxy_pass $backend;
+        include /etc/nginx/proxy_backend.conf;
+    }
+
     location ^~ /api/ {
         set $backend http://backend:8000;
         proxy_pass $backend;

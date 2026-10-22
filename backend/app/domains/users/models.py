@@ -4,6 +4,7 @@ from enum import StrEnum
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, String, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import TypeDecorator
 
 from app.db.base import Base
 from app.domains.users.enums import Course, PortugueseInstitution, Role
@@ -12,9 +13,35 @@ from app.domains.users.enums import Course, PortugueseInstitution, Role
 class StudentVerificationStatus(StrEnum):
     """Whether an account proved it is entitled to the student price."""
 
-    PENDING = "pending"
+    NONE = "none"
+    SUBMITTED = "submitted"
     VERIFIED = "verified"
     REJECTED = "rejected"
+
+
+# Before the proof of enrolment, an account without proof was stored as "pending".
+# Rows and the previous code (which keeps serving during a deploy) still use it, so
+# it is read as NONE and a later migration can rewrite it.
+LEGACY_NONE = "pending"
+STUDENT_STATUS_VALUES = (
+    LEGACY_NONE,
+    *(status.value for status in StudentVerificationStatus),
+)
+
+
+class StudentStatusType(TypeDecorator):
+    impl = String(20)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return None if value is None else StudentVerificationStatus(value).value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if value == LEGACY_NONE:
+            return StudentVerificationStatus.NONE
+        return StudentVerificationStatus(value)
 
 
 class User(Base):
@@ -24,6 +51,12 @@ class User(Base):
         CheckConstraint("length(trim(email)) > 0", name="ck_users_email_not_blank"),
         CheckConstraint(
             "length(password_hash) > 0", name="ck_users_password_hash_not_empty"
+        ),
+        CheckConstraint(
+            "student_verification_status IN ("
+            + ", ".join(f"'{value}'" for value in STUDENT_STATUS_VALUES)
+            + ")",
+            name="ck_users_student_status",
         ),
     )
 
@@ -53,17 +86,10 @@ class User(Base):
         nullable=True,
     )
     student_verification_status: Mapped[StudentVerificationStatus] = mapped_column(
-        SAEnum(
-            StudentVerificationStatus,
-            name="ck_users_student_status",
-            native_enum=False,
-            create_constraint=True,
-            values_callable=lambda enum: [member.value for member in enum],
-            length=20,
-        ),
-        default=StudentVerificationStatus.PENDING,
+        StudentStatusType(),
+        default=StudentVerificationStatus.NONE,
         nullable=False,
-        server_default=StudentVerificationStatus.PENDING.value,
+        server_default=StudentVerificationStatus.NONE.value,
     )
     student_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

@@ -9,7 +9,7 @@ RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh \
     | env UV_UNMANAGED_INSTALL=/usr/local/bin sh
 
 RUN useradd --create-home --uid 10001 app \
-    && mkdir -p /app/media \
+    && mkdir -p /app/media /app/private/student-proofs \
     && chown -R app:app /app
 
 USER app

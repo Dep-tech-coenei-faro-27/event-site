@@ -84,11 +84,23 @@ class Settings(BaseSettings):
     RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE: int = Field(default=120, gt=0)
     RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
+    RATE_LIMIT_STUDENT_PROOF_PER_HOUR: int = Field(default=5, gt=0)
+    RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR: int = Field(default=20, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 
     # Institutional email domains that grant the student status automatically.
     STUDENT_EMAIL_DOMAINS: Annotated[list[str], NoDecode] = []
+
+    # Proof of enrolment for students without an institutional email. The files wait
+    # here for a decision (then are deleted). This folder must be a private volume,
+    # never inside MEDIA_DIR, which is served to the internet.
+    STUDENT_PROOF_DIR: Path = BASE_DIR / "private" / "student-proofs"
+    STUDENT_PROOF_MAX_BYTES: int = Field(default=1_048_576, gt=0, le=10_485_760)
+    # PEM bundle of the certificates of the qualified trust services of the EU
+    # trusted lists (made by `python -m app.domains.students.trust_list`). Empty uses
+    # the snapshot that ships with the code.
+    STUDENT_TRUST_ANCHORS_FILE: Path | None = None
 
     # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
     # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
@@ -208,6 +220,16 @@ class Settings(BaseSettings):
     @classmethod
     def strip_provider_secrets(cls, value: str) -> str:
         return value.strip()
+
+    @model_validator(mode="after")
+    def keep_student_proofs_private(self) -> "Settings":
+        proofs = self.STUDENT_PROOF_DIR.resolve()
+        media = self.MEDIA_DIR.resolve()
+        if proofs == media or media in proofs.parents:
+            raise ValueError(
+                "STUDENT_PROOF_DIR must be outside MEDIA_DIR, which is public"
+            )
+        return self
 
     @model_validator(mode="after")
     def build_database_url(self) -> "Settings":
