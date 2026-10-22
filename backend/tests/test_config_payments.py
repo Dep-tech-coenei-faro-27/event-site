@@ -20,7 +20,12 @@ BASE = dict(
     FRONTEND_URL="https://x.pt",
     CORS_ALLOW_ORIGINS="https://x.pt",
 )
-LIVE = dict(PAYMENTS_MODE="live", MBWAY_KEY="key", MBWAY_CALLBACK_KEY="c" * 32)
+LIVE = dict(
+    PAYMENTS_MODE="live",
+    PAYMENTS_PROVIDER="ifthenpay",
+    MBWAY_KEY="key",
+    MBWAY_CALLBACK_KEY="c" * 32,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -91,6 +96,7 @@ def test_empty_payment_rate_limit_fails_like_in_cd():
 def test_provider_secrets_are_stripped():
     s = make(
         PAYMENTS_MODE="live",
+        PAYMENTS_PROVIDER="ifthenpay",
         MBWAY_KEY="  key  ",
         MBWAY_AUTH_TOKEN=" tok ",
         MBWAY_CALLBACK_KEY=" " + "c" * 32 + " ",

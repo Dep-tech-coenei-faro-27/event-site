@@ -194,21 +194,25 @@ def test_payments_modes_without_credentials_are_accepted(mode):
 
 def test_live_payments_require_the_provider_credentials():
     with pytest.raises(ValidationError, match="MBWAY_KEY"):
-        make(PAYMENTS_MODE="live")
+        make(PAYMENTS_MODE="live", PAYMENTS_PROVIDER="ifthenpay")
 
     with pytest.raises(ValidationError, match="MBWAY_BASE_URL"):
         make(
             PAYMENTS_MODE="live",
+            PAYMENTS_PROVIDER="ifthenpay",
             MBWAY_KEY="MBW-123456",
             MBWAY_BASE_URL="http://api.ifthenpay.com",
         )
 
     with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
-        make(PAYMENTS_MODE="live", MBWAY_KEY="MBW-123456")
+        make(
+            PAYMENTS_MODE="live", PAYMENTS_PROVIDER="ifthenpay", MBWAY_KEY="MBW-123456"
+        )
 
     with pytest.raises(ValidationError, match="MBWAY_CALLBACK_KEY"):
         make(
             PAYMENTS_MODE="live",
+            PAYMENTS_PROVIDER="ifthenpay",
             MBWAY_KEY="MBW-123456",
             MBWAY_CALLBACK_KEY="too-short",
         )
@@ -216,6 +220,7 @@ def test_live_payments_require_the_provider_credentials():
     assert (
         make(
             PAYMENTS_MODE="live",
+            PAYMENTS_PROVIDER="ifthenpay",
             MBWAY_KEY="MBW-123456",
             MBWAY_CALLBACK_KEY="a" * 32,
         ).PAYMENTS_MODE

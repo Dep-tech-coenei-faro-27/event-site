@@ -1086,6 +1086,7 @@ def test_simulated_gateway_is_used_without_an_api_key(monkeypatch):
 
 def test_real_gateway_is_used_when_a_key_is_configured(monkeypatch):
     monkeypatch.setattr(settings, "PAYMENTS_MODE", "live")
+    monkeypatch.setattr(settings, "PAYMENTS_PROVIDER", "ifthenpay")
     monkeypatch.setattr(settings, "MBWAY_KEY", "MBW-123456")
     assert isinstance(get_mbway_gateway(), IfThenPayMBWayGateway)
 
