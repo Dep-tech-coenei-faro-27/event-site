@@ -74,6 +74,17 @@ describe("menu móvel", () => {
     expect(document.activeElement).toBe(menuButton());
   });
 
+  it("aberto, o Tab a seguir ao botão entra nos links do menu (e não salta para a página)", () => {
+    stubViewport(true);
+    renderNavbar();
+    fireEvent.click(menuButton());
+    // Ordem de tabulação = ordem no documento, sem o que está dentro de um `inert`.
+    const focusable = [...document.querySelectorAll<HTMLElement>("a[href], button")].filter((el) => !el.closest("[inert]"));
+    const next = focusable[focusable.indexOf(menuButton()) + 1];
+    expect(next).toHaveTextContent("Sobre");
+    expect(next.closest("nav")).not.toBeNull();
+  });
+
   it("Escape com o menu fechado não rouba o foco", () => {
     stubViewport(true);
     renderNavbar();

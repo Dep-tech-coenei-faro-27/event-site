@@ -122,6 +122,25 @@ export default function Navbar() {
           <BrandLogo />
         </div>
 
+        {/* O botão vem antes da <nav> no documento: aberto o menu, o Tab seguinte entra nos links. */}
+        <button
+          ref={menuButtonRef}
+          type="button"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-expanded={isMenuOpen}
+          aria-controls={NAV_ID}
+          aria-label="Menu de navegação"
+          className="md:hidden relative flex-none ml-auto w-[42px] h-[42px] border border-acento-principal/40 rounded-xl bg-transparent text-branco flex items-center justify-center z-50"
+        >
+          <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-none stroke-current stroke-2" strokeLinecap="round">
+            {isMenuOpen ? (
+              <path d="m6 6 12 12M18 6 6 18" />
+            ) : (
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            )}
+          </svg>
+        </button>
+
         <nav
           id={NAV_ID}
           aria-label="Principal"
@@ -160,27 +179,9 @@ export default function Navbar() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           {/* Conta no desktop */}
           <AccountActions />
-
-          <button
-            ref={menuButtonRef}
-            type="button"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-expanded={isMenuOpen}
-            aria-controls={NAV_ID}
-            aria-label="Menu de navegação"
-            className="md:hidden relative flex-none w-[42px] h-[42px] border border-acento-principal/40 rounded-xl bg-transparent text-branco flex items-center justify-center z-50"
-          >
-            <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-none stroke-current stroke-2" strokeLinecap="round">
-              {isMenuOpen ? (
-                <path d="m6 6 12 12M18 6 6 18" />
-              ) : (
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              )}
-            </svg>
-          </button>
         </div>
 
       </div>
