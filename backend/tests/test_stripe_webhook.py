@@ -415,3 +415,12 @@ def test_only_bad_signatures_count_against_the_rate_limit(
     codes += [post(auth_client, {"type": "ping"}, header="t=1,v1=00").status_code]
     codes += [post(auth_client, {"type": "ping"}, header="t=1,v1=00").status_code]
     assert codes == [400, 400, 429]
+
+
+def test_a_body_over_the_size_limit_is_refused_before_anything_is_read(
+    auth_client, monkeypatch
+):
+    monkeypatch.setattr(settings, "MAX_REQUEST_BYTES", 2048)
+    payload = b'{"type":"ping","pad":"' + b"x" * 4096 + b'"}'
+
+    assert post(auth_client, payload).status_code == 413
