@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import SkipLink, { MAIN_ID } from './components/SkipLink';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registo from './pages/Registo';
@@ -57,10 +58,11 @@ export function AppShell() {
         <ScrollToTop />
         <MotionLayer />
         <div className="flex flex-col min-h-screen bg-[#050d21]">
+          <SkipLink />
 
           <Navbar />
 
-          <main className="flex-grow bg-[#050d21]">
+          <main id={MAIN_ID} tabIndex={-1} className="flex-grow bg-[#050d21]">
             <RouteErrorBoundary>
             <Routes>
               <Route path="/" element={<Home />} />

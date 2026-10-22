@@ -12,7 +12,7 @@ export default function Bilhetes() {
   return (
     <>
 
-      <header className="page-hero" id="conteudo">
+      <header className="page-hero">
       <div className="container">
       <p className="eyebrow">&lt;BILHETES /&gt;</p>
       <h1>Garante o teu lugar no ENEI 2027.</h1>

@@ -93,7 +93,7 @@ export default function AccountLayout({
 
   return (
     <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
-      <div id="conteudo" className="relative overflow-hidden">
+      <div className="account-shell relative overflow-hidden">
         <div
           aria-hidden="true"
           className="azulejo-bg pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.025]"

@@ -46,7 +46,7 @@ export default function LegalPageLayout({
 
     return (
         <>
-            <header className="page-hero legal-hero" id="conteudo">
+            <header className="page-hero legal-hero">
                 <div className="container">
                     <p className="eyebrow">&lt;{eyebrow} /&gt;</p>
                     <h1>{title}</h1>
