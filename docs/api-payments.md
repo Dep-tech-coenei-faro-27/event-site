@@ -4,7 +4,7 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 
 ## Regras gerais
 
-- **Sessão obrigatória (exceto no callback):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` é público porque é o ifthenpay que o chama.
+- **Sessão obrigatória (exceto no callback e no webhook do Stripe):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` (ifthenpay) e o `POST /payment/stripe/webhook` são públicos porque é o fornecedor que os chama; cada um tem a sua própria autenticação (chave anti-phishing e assinatura do corpo).
 - **O preço é sempre do servidor.** O frontend escolhe a modalidade (`ticket_tier`); nunca envia o preço. A quantidade é sempre `1` (um bilhete por pessoa): pode ser omitida no pedido e vem sempre como `1` na resposta. Assim ninguém consegue pagar 1 cêntimo por um bilhete.
 - **Referência curta:** cada pagamento tem uma referência no formato `ENEI-XXXXXXXXXX` (15 caracteres no máximo, como no design). É esse valor que o frontend mostra e usa para consultar o estado.
 - **Dinheiro em cêntimos:** todos os valores são inteiros, em cêntimos de euro (por exemplo `4500` são `45,00 €`).
