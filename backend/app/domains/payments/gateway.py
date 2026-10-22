@@ -195,7 +195,7 @@ _STRIPE_EXPIRED_CODE = "payment_intent_payment_attempt_expired"
 _STRIPE_WAITING = {"requires_action", "processing", "requires_confirmation"}
 
 
-def _stripe_status(intent: dict) -> TransactionStatus:
+def stripe_status(intent: dict) -> TransactionStatus:
     """Read a Stripe PaymentIntent the way ``_normalize_status`` reads ifthenpay.
 
     An answer we cannot read is an error and not "still waiting", for the same
@@ -338,7 +338,7 @@ class StripeMBWayGateway:
         if (intent.get("metadata") or {}).get("reference") != reference:
             # Never read the answer of a PaymentIntent that is not this payment's.
             raise PaymentGatewayError("PaymentIntent does not belong to this payment")
-        return _stripe_status(intent)
+        return stripe_status(intent)
 
 
 class SimulatedMBWayGateway:
