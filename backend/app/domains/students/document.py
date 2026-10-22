@@ -195,10 +195,17 @@ def _extract_text(data: bytes) -> str:
     return "\n".join(parts)[:MAX_TEXT_CHARS]
 
 
+MIN_NAME_WORDS = 2
+
+
 def name_in_text(account_name: str, text: str) -> bool:
-    """Every word of the account name appears as a word of the document."""
+    """Every word of the account name appears as a word of the document.
+
+    A name with fewer than two words is never enough: a single common word
+    (an institution, a surname) appears in any declaration.
+    """
     words = {word for word in normalize(account_name).split() if len(word) > 1}
-    if not words:
+    if len(words) < MIN_NAME_WORDS:
         return False
     return words <= set(normalize(text).split())
 

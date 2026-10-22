@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.middleware import STUDENT_PROOF_PATH
-from app.domains.students.document import current_school_year_start
+from app.domains.students.document import current_school_year_start, name_in_text
 from app.domains.students.models import (
     ProofEventKind,
     ProofStatus,
@@ -559,3 +559,20 @@ def test_two_reviewers_deciding_at_once_one_wins(test_engine, db_session, signer
     assert (
         db_session.get(User, user_id).student_verification_status.value == final.status
     )
+
+
+DECLARATION = (
+    "Universidade do Algarve declara que Maria Joana Pereira Santos esta matriculada"
+)
+
+
+@pytest.mark.parametrize("name", ["Universidade", "Maria", "Santos", "M Santos", ""])
+def test_a_name_with_fewer_than_two_words_is_never_found_in_the_text(name):
+    assert name_in_text(name, DECLARATION) is False
+
+
+@pytest.mark.parametrize(
+    "name", ["Maria Santos", "Santos Pereira", "Maria Joana Pereira Santos"]
+)
+def test_a_name_with_two_or_more_words_found_in_the_text_matches(name):
+    assert name_in_text(name, DECLARATION) is True
