@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import BrandLogo from './BrandLogo.tsx';
 import { useAuth } from '../utils/useAuth';
+import { useMediaQuery } from '../utils/useMediaQuery';
 
 const navLinks = [
   { name: 'Sobre', path: '/sobre' },
@@ -13,6 +14,9 @@ const navLinks = [
 ];
 
 const LOGIN_PATH = '/conta';
+const NAV_ID = 'navegacao-principal';
+// Abaixo de `md` (768 px) a navegação é o menu que abre e fecha.
+const MOBILE_QUERY = '(max-width: 767px)';
 const ACCOUNT_PATH = '/perfil';
 
 const loginDesktopClass =
@@ -78,6 +82,8 @@ function AccountActions({ mobile = false }: { mobile?: boolean }) {
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Fecha o menu quando a rota muda. O estado ajusta-se durante a renderização (e não num
   // efeito), que é o padrão que o React recomenda para reagir a uma mudança de valor.
@@ -96,6 +102,18 @@ export default function Navbar() {
     return () => { document.body.style.overflow = 'unset'; }
   }, [isMenuOpen]);
 
+  // Escape fecha o menu aberto e devolve o foco ao botão que o abriu.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMenuOpen]);
+
   return (
     <header className="site-header fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
       <div className="max-w-[1180px] mx-auto w-[calc(100%-28px)] md:w-[calc(100%-40px)] h-full flex items-center justify-between gap-4">
@@ -105,6 +123,10 @@ export default function Navbar() {
         </div>
 
         <nav
+          id={NAV_ID}
+          aria-label="Principal"
+          // Fechado no telemóvel, o menu está só encolhido: `inert` tira os links da ordem de tabulação.
+          inert={isMobile && !isMenuOpen}
           className={`md:static md:flex md:items-center md:justify-center md:bg-transparent md:h-auto md:p-0 md:max-h-none md:overflow-visible md:border-none fixed inset-x-0 top-[64px] bg-azul-base/95 px-5 flex flex-col transition-all duration-300 overflow-hidden text-[13px] text-nevoa-azul ${isMenuOpen ? 'max-h-[calc(100vh-64px)] py-[18px] border-b border-branco/10' : 'max-h-0 border-b-0 py-0'
             }`}
         >
@@ -143,9 +165,11 @@ export default function Navbar() {
           <AccountActions />
 
           <button
+            ref={menuButtonRef}
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-expanded={isMenuOpen}
+            aria-controls={NAV_ID}
             aria-label="Menu de navegação"
             className="md:hidden relative flex-none w-[42px] h-[42px] border border-acento-principal/40 rounded-xl bg-transparent text-branco flex items-center justify-center z-50"
           >
