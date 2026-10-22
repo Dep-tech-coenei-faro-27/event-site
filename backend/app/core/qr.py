@@ -11,6 +11,10 @@ import app.core.config as config
 
 QR_PREFIX = "ENEI27"
 NONCE_BYTES = 12
+# Nível Q (~25% de correção): o bilhete impresso ainda lê com vincos e manchas.
+QR_ERROR_LEVEL = "q"
+QR_SCALE = 8
+QR_BORDER = 4  # zona de silêncio mínima da norma, em módulos
 
 
 class InvalidQRPayloadError(ValueError):
@@ -79,5 +83,7 @@ def verify_qr_payload(payload: str) -> VerifiedQRPayload:
 def render_qr_png(payload: str) -> bytes:
     """Render a QR payload as a black and white PNG for the ticket email."""
     buffer = io.BytesIO()
-    segno.make(payload, error="m").save(buffer, kind="png", scale=8, border=4)
+    segno.make(payload, error=QR_ERROR_LEVEL).save(
+        buffer, kind="png", scale=QR_SCALE, border=QR_BORDER
+    )
     return buffer.getvalue()
