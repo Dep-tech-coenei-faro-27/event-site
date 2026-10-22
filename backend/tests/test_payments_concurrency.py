@@ -8,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email.models import EmailOutbox
+from app.core.email.templates import TICKET_EMAIL_SUBJECT
 from app.core.security import hash_password
 from app.domains.payments.gateway import (
     MBWayPayment,
@@ -369,6 +371,28 @@ def test_two_confirmations_of_the_same_payment_issue_one_ticket(
     assert _count_tickets(test_engine, user_id) == 1
     # The row lock makes the second confirmation wait instead of colliding.
     assert integrity_errors == []
+
+
+@requires_postgres
+def test_two_confirmations_together_queue_one_ticket_email(db_session, test_engine):
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    transaction, _ = initiate_payment(
+        db_session, user, _payload(), SimulatedMBWayGateway()
+    )
+    transaction_id = transaction.id
+
+    def confirm(session: Session) -> None:
+        confirm_transaction(session, session.get(Transaction, transaction_id))
+
+    assert _run_together(test_engine, [confirm, confirm]) == []
+    with Session(bind=test_engine) as session:
+        emails = session.scalar(
+            select(func.count())
+            .select_from(EmailOutbox)
+            .where(EmailOutbox.subject == TICKET_EMAIL_SUBJECT)
+        )
+    assert emails == 1
 
 
 @requires_postgres

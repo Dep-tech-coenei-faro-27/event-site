@@ -6,11 +6,19 @@ import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import func, select
+from sqlalchemy import String, cast, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.email.models import EmailOutbox
+from app.core.email.outbox import enqueue_email
+from app.core.email.templates import (
+    TICKET_EMAIL_SUBJECT,
+    TICKET_QR_CID,
+    build_ticket_email_html,
+)
+from app.core.qr import render_qr_png
 from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
     MBWayGateway,
@@ -28,6 +36,7 @@ from app.domains.payments.schemas import (
     TicketTierRead,
     TransactionRead,
 )
+from app.domains.payments.tiers import TIER_SPECS
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.tickets.service import (
     PaymentNotConfirmedError,
@@ -180,6 +189,8 @@ def _settle_pending(
 
 
 ABANDONED_CHECKS_PER_REQUEST = 10
+# Shorter than the week a sent email stays in the queue (see delete_old_emails).
+TICKET_EMAIL_SWEEP_DAYS = 3
 
 
 def _free_abandoned_seats(
@@ -394,10 +405,11 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
         transaction.confirmed_at = datetime.now(UTC)
 
     try:
-        issue_ticket_for_paid_transaction(
+        ticket = issue_ticket_for_paid_transaction(
             db,
             user_id=transaction.user_id,
             transaction_reference=transaction.reference,
+            ticket_tier=ticket_tier_of(db, transaction),
         )
     except IntegrityError:
         # Lost a race: either the same payment was confirmed by someone else in
@@ -429,8 +441,89 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
     # Saves the status when the ticket already existed and nothing else committed.
     db.commit()
     db.refresh(transaction)
+    _queue_ticket_email_best_effort(db, transaction, ticket)
     notify(transaction.reference, transaction.status)
     return transaction
+
+
+def _queue_ticket_email_best_effort(
+    db: Session, transaction: Transaction, ticket: Ticket
+) -> None:
+    """Queue the ticket email without ever failing the confirmation.
+
+    By now the payment is confirmed and the ticket issued and committed: a failure
+    of the queue, of the QR image or of the modality name must not turn into a 500
+    (ifthenpay would keep retrying and the status poll would fail). The error is
+    logged and ``queue_missing_ticket_emails`` queues the email on its next run.
+    """
+    try:
+        _queue_ticket_email(db, transaction, ticket)
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Could not queue the ticket email of payment %s; the sweep will retry",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+
+
+def queue_missing_ticket_emails(
+    db: Session, *, paid_within_days: int = TICKET_EMAIL_SWEEP_DAYS
+) -> int:
+    """Queue the email of recent paid tickets that have none; returns how many.
+
+    Safe to run any time: the dedupe key stops a second email for the same ticket.
+    Only tickets paid in the last ``paid_within_days`` are considered, because the
+    queue deletes sent emails after a week and an older ticket would otherwise get
+    its email again.
+    """
+    since = datetime.now(UTC) - timedelta(days=paid_within_days)
+    queued = select(EmailOutbox.dedupe_key).where(EmailOutbox.dedupe_key.is_not(None))
+    tickets = db.scalars(
+        select(Ticket).where(
+            Ticket.payment_status == PaymentStatus.PAID,
+            Ticket.qr_payload.is_not(None),
+            Ticket.paid_at >= since,
+            ("ticket:" + cast(Ticket.id, String)).not_in(queued),
+        )
+    ).all()
+    count = 0
+    for ticket in tickets:
+        transaction = db.scalar(
+            select(Transaction).where(
+                Transaction.reference == ticket.transaction_reference
+            )
+        )
+        if transaction is None:
+            continue
+        try:
+            _queue_ticket_email(db, transaction, ticket)
+            count += 1
+        except Exception:
+            db.rollback()
+            logger.exception("Sweep could not queue the email of ticket %s", ticket.id)
+    return count
+
+
+def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -> None:
+    """Queue the email with the ticket QR, once per ticket.
+
+    The dedupe key makes a repeated callback or poll a no-op. The ticket row is
+    locked first: the transaction lock is gone once the ticket is
+    committed, and two confirmations of the same payment must not both try to queue
+    the email at once.
+    """
+    db.scalar(select(Ticket.id).where(Ticket.id == ticket.id).with_for_update())
+    user = db.get(User, transaction.user_id)
+    tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
+    enqueue_email(
+        db,
+        user.email,
+        TICKET_EMAIL_SUBJECT,
+        build_ticket_email_html(user.name, tier_name, transaction.reference),
+        inline_images={TICKET_QR_CID: render_qr_png(ticket.qr_payload)},
+        dedupe_key=f"ticket:{ticket.id}",
+    )
 
 
 _asked_at: dict[str, float] = {}

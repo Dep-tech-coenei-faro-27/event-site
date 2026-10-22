@@ -1,3 +1,4 @@
+import base64
 import logging
 from datetime import UTC, datetime, timedelta
 
@@ -5,6 +6,8 @@ import pytest
 from sqlalchemy import event, func, select
 
 from app.core.config import settings
+from app.core.email.models import EmailOutbox
+from app.core.email.templates import TICKET_EMAIL_SUBJECT, TICKET_QR_CID
 from app.core.qr import verify_qr_payload
 from app.domains.payments.gateway import MBWayPayment, get_mbway_gateway
 from app.domains.payments.models import (
@@ -13,6 +16,7 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
+from app.domains.payments.service import queue_missing_ticket_emails
 from app.domains.tickets.models import PaymentStatus, Ticket
 from app.domains.users.models import User
 from app.main import app
@@ -597,3 +601,178 @@ def test_callback_is_public_and_needs_no_authentication(
     )
 
     assert response.status_code == 200
+
+
+def test_confirmed_payment_queues_the_ticket_email_with_the_qr_once(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    params = {
+        "key": callback_key,
+        "orderId": payment["reference"],
+        "amount": "50.00",
+    }
+
+    auth_client.get(CALLBACK_URL, params=params)
+    auth_client.get(CALLBACK_URL, params=params)
+
+    emails = db_session.scalars(
+        select(EmailOutbox).where(EmailOutbox.subject == TICKET_EMAIL_SUBJECT)
+    ).all()
+    assert len(emails) == 1
+    email = emails[0]
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    assert email.dedupe_key == f"ticket:{ticket.id}"
+    assert f"cid:{TICKET_QR_CID}" in email.html_body
+    assert payment["reference"] in email.html_body
+    assert "Passe geral" in email.html_body
+    png = base64.b64decode(email.inline_images[TICKET_QR_CID])
+    assert png.startswith(b"\x89PNG")
+
+
+def test_issued_ticket_keeps_the_modality_transaction_and_holder(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+
+    auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    assert ticket.ticket_tier == TicketTier.GERAL
+    assert ticket.user_id == transaction.user_id
+
+
+def break_the_queue(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("queue down")
+
+    monkeypatch.setattr("app.domains.payments.service.enqueue_email", boom)
+
+
+def ticket_emails(db_session) -> list[EmailOutbox]:
+    return db_session.scalars(
+        select(EmailOutbox).where(EmailOutbox.subject == TICKET_EMAIL_SUBJECT)
+    ).all()
+
+
+def test_callback_survives_a_failing_email_queue(
+    auth_client, email_sender, db_session, gateway, callback_key, monkeypatch
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    break_the_queue(monkeypatch)
+
+    response = auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+
+    assert response.status_code == 200
+    assert count_tickets(db_session, payment["reference"]) == 1
+    assert ticket_emails(db_session) == []
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.CONFIRMED
+
+
+def test_status_poll_survives_a_failing_email_queue(
+    auth_client, email_sender, db_session, gateway, monkeypatch
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    gateway.status = TransactionStatus.CONFIRMED
+    break_the_queue(monkeypatch)
+
+    response = auth_client.get(transaction_url(payment["reference"]))
+
+    assert response.status_code == 200
+    assert response.json()["status"] == TransactionStatus.CONFIRMED.value
+    assert count_tickets(db_session, payment["reference"]) == 1
+
+
+def test_sweep_queues_the_missing_ticket_email_once(
+    auth_client, email_sender, db_session, gateway, callback_key, monkeypatch
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    break_the_queue(monkeypatch)
+    auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+    monkeypatch.undo()
+
+    assert queue_missing_ticket_emails(db_session) == 1
+    assert queue_missing_ticket_emails(db_session) == 0
+
+    emails = ticket_emails(db_session)
+    assert len(emails) == 1
+    assert f"cid:{TICKET_QR_CID}" in emails[0].html_body
+
+
+def test_sweep_ignores_old_tickets(
+    auth_client, email_sender, db_session, gateway, callback_key, monkeypatch
+):
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+    break_the_queue(monkeypatch)
+    auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+    monkeypatch.undo()
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == payment["reference"])
+    )
+    ticket.paid_at = datetime.now(UTC) - timedelta(days=30)
+    db_session.commit()
+
+    assert queue_missing_ticket_emails(db_session) == 0
+    assert ticket_emails(db_session) == []
+
+
+def test_fifth_modality_issues_a_ticket(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    response = auth_client.post(
+        INITIATE_URL,
+        json={"ticket_tier": TicketTier.GERAL_REFEICOES.value, "phone": "912345678"},
+    )
+    reference = response.json()["reference"]
+
+    auth_client.get(
+        CALLBACK_URL,
+        params={"key": callback_key, "orderId": reference, "amount": "65.00"},
+    )
+
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == reference)
+    )
+    assert ticket.ticket_tier == TicketTier.GERAL_REFEICOES
+    assert len(ticket_emails(db_session)) == 1

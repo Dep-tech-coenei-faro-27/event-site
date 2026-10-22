@@ -21,5 +21,15 @@ class EmailSender(ABC):
     """
 
     @abstractmethod
-    def send_html(self, to_email: str, subject: str, html_body: str) -> None:
-        """Send an HTML email to a single recipient, raising on failure."""
+    def send_html(
+        self,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        inline_images: dict[str, bytes] | None = None,
+    ) -> None:
+        """Send an HTML email to a single recipient, raising on failure.
+
+        ``inline_images`` maps a Content-ID to a PNG that the body shows with
+        ``<img src="cid:...">``: mail clients block ``data:`` images.
+        """
