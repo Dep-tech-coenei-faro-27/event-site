@@ -94,6 +94,23 @@ def test_a_missing_or_malformed_header_is_refused(header):
         )
 
 
+# Characters that ``str.isdigit`` accepts but ``int`` does not, a non-ASCII signature
+# (``hmac.compare_digest`` refuses it) and a timestamp past the limit of ``int``.
+ODD_HEADERS = [
+    "t=\u00b2,v1=" + "0" * 64,
+    "t=1700000000,v1=\u00e9" + "0" * 63,
+    "t=" + "9" * 5000 + ",v1=" + "0" * 64,
+]
+
+
+@pytest.mark.parametrize("header", ODD_HEADERS)
+def test_an_odd_header_is_refused_and_never_crashes(header):
+    with pytest.raises(InvalidStripeSignatureError):
+        verify_signature(
+            b"{}", header, SECRET, tolerance_seconds=300, now=1_700_000_000
+        )
+
+
 def test_without_a_configured_secret_nothing_passes():
     header = sign(b"{}", secret="", timestamp=1_700_000_000)
     with pytest.raises(InvalidStripeSignatureError, match="not configured"):
@@ -156,7 +173,10 @@ def post(auth_client, body, *, header=None):
         WEBHOOK_URL,
         content=payload,
         headers={
-            "Stripe-Signature": sign(payload) if header is None else header,
+            # Bytes: a header with non-ASCII text is sent as it would arrive.
+            "Stripe-Signature": (sign(payload) if header is None else header).encode(
+                "latin-1"
+            ),
             "Content-Type": "application/json",
         },
     )
@@ -388,6 +408,13 @@ def test_a_bad_signature_is_refused_and_changes_nothing(
 
     assert load(db_session, reference).status is TransactionStatus.PENDING
     assert tickets(db_session, reference) == 0
+
+
+@pytest.mark.parametrize("header", ODD_HEADERS)
+def test_an_odd_signature_header_answers_400_and_not_500(auth_client, header):
+    response = post(auth_client, {"type": "ping"}, header=header)
+
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize("payload", [b"not json", b"[1, 2]", b'"text"'])

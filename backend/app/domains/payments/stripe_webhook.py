@@ -32,9 +32,12 @@ def verify_signature(
     signatures: list[str] = []
     for part in header.split(","):
         key, _, value = part.strip().partition("=")
-        if key == "t" and value.isdigit():
+        # ``isdigit`` also accepts characters ``int`` refuses (``²``), ``int`` refuses
+        # absurdly long numbers, and ``compare_digest`` refuses non-ASCII text: none
+        # of them may turn a bad header into a 500.
+        if key == "t" and value.isascii() and value.isdigit() and len(value) <= 12:
             timestamp = int(value)
-        elif key == "v1" and value:
+        elif key == "v1" and value.isascii():
             signatures.append(value)
     if timestamp is None or not signatures:
         raise InvalidStripeSignatureError("malformed Stripe-Signature header")
