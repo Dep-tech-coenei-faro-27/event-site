@@ -275,6 +275,9 @@ BASE = dict(
 )
 
 
+WEBHOOK = dict(STRIPE_WEBHOOK_SECRET="whsec_" + "w" * 32)
+
+
 def make(**over):
     return Settings(_env_file=None, **{**BASE, **over})
 
@@ -286,10 +289,19 @@ def test_stripe_is_the_default_provider():
 def test_live_stripe_needs_a_stripe_secret_key_and_no_ifthenpay_credentials():
     for key in ("", "   ", "pk_test_publishable", "whsec_abc", "MBW-123"):
         with pytest.raises(ValidationError, match="STRIPE_SECRET_KEY"):
-            make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key)
+            make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key, **WEBHOOK)
 
     for key in (SECRET, "sk_live_" + "b" * 40, "rk_live_" + "c" * 40):
-        assert make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key).PAYMENTS_MODE == "live"
+        settings_ = make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key, **WEBHOOK)
+        assert settings_.PAYMENTS_MODE == "live"
+
+
+@pytest.mark.parametrize("secret", ["", "  ", "sk_test_abc", "pk_test_abc", "abc"])
+def test_live_stripe_needs_the_webhook_signing_secret(secret):
+    with pytest.raises(ValidationError, match="STRIPE_WEBHOOK_SECRET"):
+        make(
+            PAYMENTS_MODE="live", STRIPE_SECRET_KEY=SECRET, STRIPE_WEBHOOK_SECRET=secret
+        )
 
 
 def test_the_stripe_key_is_trimmed():
