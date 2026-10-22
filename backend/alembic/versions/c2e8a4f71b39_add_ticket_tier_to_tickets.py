@@ -31,6 +31,7 @@ def upgrade() -> None:
                 "refeicoes",
                 "completo",
                 "geral",
+                "geral_refeicoes",
                 name="ck_tickets_ticket_tier",
                 native_enum=False,
                 create_constraint=True,

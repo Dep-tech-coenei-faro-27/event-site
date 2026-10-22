@@ -3,6 +3,7 @@ import ssl
 from email.message import EmailMessage
 
 from app.core.email.base import EmailDeliveryError, EmailSender, mask_email
+from app.core.email.text import html_to_text
 
 
 class SmtpEmailSender(EmailSender):
@@ -55,9 +56,11 @@ class SmtpEmailSender(EmailSender):
         message["Subject"] = subject
         message["From"] = self.from_email
         message["To"] = to_email
-        message.set_content(html_body, subtype="html")
+        message.set_content(html_to_text(html_body))
+        message.add_alternative(html_body, subtype="html")
+        html_part = message.get_payload()[1]
         for cid, png in (inline_images or {}).items():
-            message.add_related(png, maintype="image", subtype="png", cid=f"<{cid}>")
+            html_part.add_related(png, maintype="image", subtype="png", cid=f"<{cid}>")
 
         try:
             if self.security == "ssl":

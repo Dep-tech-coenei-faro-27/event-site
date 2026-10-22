@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.email.outbox import delete_old_emails
 from app.db.session import SessionLocal
 from app.domains.auth.models import ResetPasswordToken, RevokedToken
+from app.domains.payments.service import queue_missing_ticket_emails
 from app.domains.users.models import User
 
 
@@ -42,12 +43,14 @@ def main() -> None:
         tokens = delete_expired_reset_tokens(db)
         sessions = delete_expired_revoked_tokens(db)
         emails = delete_old_emails(db)
+        ticket_emails = queue_missing_ticket_emails(db)
     print(
         f"Deleted {deleted} unverified accounts "
         f"older than {settings.UNVERIFIED_ACCOUNT_TTL_DAYS} days "
         f"and {tokens} expired password reset tokens "
         f"and {sessions} expired revoked sessions "
-        f"and {emails} old queued emails"
+        f"and {emails} old queued emails "
+        f"and queued {ticket_emails} missing ticket emails"
     )
 
 

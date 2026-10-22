@@ -480,3 +480,18 @@ def test_inline_images_reach_the_transport_and_are_cleared_once_sent(db):
     db.refresh(row)
     assert row.status == EmailStatus.SENT
     assert row.inline_images is None
+
+
+def test_failed_rows_lose_their_inline_images_with_the_body(db):
+    row = enqueue_email(
+        db, "a@example.com", "x", "<p>qr</p>", inline_images={"qr": b"\x89PNG"}
+    )
+    row.status = EmailStatus.FAILED
+    row.created_at = datetime.now(UTC) - timedelta(days=2)
+    db.commit()
+
+    delete_old_emails(db)
+
+    db.refresh(row)
+    assert row.html_body == ""
+    assert not row.inline_images
