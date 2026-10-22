@@ -64,7 +64,7 @@ e é o passo 2 acima que o apanha.
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
-- **Pagamentos:** `STRIPE_SECRET_KEY`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
+- **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
 Regras para criar os valores:
@@ -102,6 +102,7 @@ de erro diz qual.
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
 | `PAYMENTS_PROVIDER` | `stripe` | `stripe` ou `ifthenpay`: o gateway usado em `PAYMENTS_MODE=live`. |
+| `STRIPE_WEBHOOK_SECRET` | obrigatório em `live` com `stripe` | Segredo de assinatura do webhook do Stripe (`whsec_...`), que o painel mostra quando se regista `https://<domínio>/api/payment/stripe/webhook`. Secret do GitHub. |
 | `STRIPE_SECRET_KEY` | obrigatório em `live` com `stripe` | Chave secreta do Stripe (`sk_...`; `sk_test_` no sandbox). Secret do GitHub; o backend não arranca em `live` com `stripe` sem ela. |
 | `MBWAY_CALLBACK_KEY`                                                                  | obrigatório em `live`             | Chave anti-phishing do backoffice da ifthenpay. O backend recusa o callback sem ela e não arranca em `live` sem a ter.                                                              |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | O gateway simulado confirma o pagamento ao fim destes segundos. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.                        |
