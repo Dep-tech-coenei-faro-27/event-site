@@ -208,3 +208,13 @@ def test_a_failed_row_is_cleaned_of_text_and_images(test_engine):
         assert not row.inline_images
         db.delete(row)
         db.commit()
+
+
+def test_the_stacked_columns_on_a_phone_do_not_overflow_the_ticket():
+    """Full-width cells with padding need border-box or they stick out of the card."""
+    html, _ = build_ticket_email("Ana", "Passe geral", "R")
+
+    rule = re.search(r"\.ticket-column, \.qr-column \{([^}]*)\}", html)
+    assert rule is not None
+    assert "width: 100%" in rule.group(1)
+    assert "box-sizing: border-box" in rule.group(1)
