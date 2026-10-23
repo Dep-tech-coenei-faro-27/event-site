@@ -7,8 +7,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.qr import (
-    QR_BORDER,
-    QR_SCALE,
     InvalidQRPayloadError,
     generate_qr_payload,
     render_qr_png,
@@ -170,8 +168,9 @@ def test_rendered_qr_is_pure_black_and_white_with_quiet_zone():
     histogram = image.histogram()
     assert histogram[0] and histogram[255]
     assert sum(histogram[1:255]) == 0  # sem cinzentos
-    # Zona de silêncio de 4 módulos em branco à volta do símbolo
-    quiet = QR_BORDER * QR_SCALE
+    # Zona de silêncio de 4 módulos de 8 pixéis (32 px) em branco à volta do símbolo.
+    # Valores escritos aqui de propósito: mudar o código tem de fazer o teste falhar.
+    quiet = 4 * 8
     width, height = image.size
     for box in (
         (0, 0, width, quiet),
@@ -183,6 +182,21 @@ def test_rendered_qr_is_pure_black_and_white_with_quiet_zone():
 
     assert _decodes_to(image, payload)
     assert verify_qr_payload(payload).ticket_id == 123456
+
+
+def test_rendered_qr_has_at_least_eight_pixels_per_module():
+    """O finder pattern tem 7 módulos: mede-se o módulo pela primeira linha."""
+    image = _rendered_qr(generate_qr_payload(ticket_id=123456))
+    quiet = 4 * 8
+    row = [image.getpixel((x, quiet + 1)) for x in range(image.size[0])]
+    start = row.index(0)
+    run = 0
+    while row[start + run] == 0:
+        run += 1
+
+    assert start == quiet  # o símbolo começa logo a seguir à zona de silêncio
+    assert run % 7 == 0
+    assert run // 7 >= 8
 
 
 @pytest.mark.parametrize("size_px", [240, 160, 120])

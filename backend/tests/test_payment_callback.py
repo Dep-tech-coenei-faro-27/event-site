@@ -652,6 +652,11 @@ def test_confirmed_payment_queues_the_ticket_email_with_the_qr_once(
     assert f"cid:{TICKET_QR_CID}" in email.html_body
     assert payment["reference"] in email.html_body
     assert "Passe geral" in email.html_body
+    assert payment["reference"] in email.text_body
+    assert "Passe geral" in email.text_body
+    assert f"{settings.FRONTEND_URL}/perfil" in email.html_body
+    assert f"{settings.FRONTEND_URL}/perfil" in email.text_body
+    assert "<" not in email.text_body
     png = base64.b64decode(email.inline_images[TICKET_QR_CID])
     assert png.startswith(b"\x89PNG")
 
