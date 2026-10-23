@@ -9,6 +9,8 @@ import { useAuth } from "../../utils/useAuth";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 import CheckoutAccountGate from "./CheckoutAccountGate";
+import PageStatus from "../../components/PageStatus";
+import { loadErrorMessage } from "../../utils/loadError";
 import { cleanNif, nifError } from "../../utils/nif";
 import { formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
@@ -24,10 +26,33 @@ export default function Checkout() {
     "Escolhe a modalidade do bilhete e conclui o pagamento com MB WAY.",
   );
 
-  const { user, loading } = useAuth();
-  if (loading) return <div className="checkout-page" aria-busy="true" style={{ minHeight: "60vh" }} />;
+  const { user, loading, error, retry } = useAuth();
+  if (loading) return <CheckoutLoading />;
+  // Não se sabe se há sessão (rede, 5xx, 429): não se pede para entrar nem criar conta.
+  if (!user && error) {
+    return (
+      <div className="mx-auto max-w-[720px] px-5 pb-8 pt-[calc(64px+32px)] md:pt-[calc(76px+32px)]">
+        <PageStatus
+          state="error"
+          titleLevel={1}
+          title="Não foi possível confirmar a tua sessão."
+          message={loadErrorMessage(error)}
+          onRetry={() => void retry()}
+        />
+      </div>
+    );
+  }
   if (!user) return <CheckoutAccountGate />;
   return <CheckoutForm />;
+}
+
+/** Enquanto se espera pela sessão ou pela conta: a altura fica reservada e o leitor de ecrã ouve «A carregar…». */
+function CheckoutLoading() {
+  return (
+    <div className="checkout-page" aria-busy="true" style={{ minHeight: "60vh" }}>
+      <PageStatus state="loading" className="mx-auto max-w-[720px] px-5 pt-[calc(64px+32px)] md:pt-[calc(76px+32px)]" />
+    </div>
+  );
 }
 
 function CheckoutForm() {
@@ -37,7 +62,8 @@ function CheckoutForm() {
 
   const [tiers, setTiers] = useState<Tier[] | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [accepted, setAccepted] = useState(false);
@@ -56,13 +82,15 @@ function CheckoutForm() {
         setAccount(loadedAccount);
       })
       .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setLoadFailed(true);
-          void error;
-        }
+        if (!controller.signal.aborted) setLoadError(error);
       });
     return () => controller.abort();
-  }, []);
+  }, [attempt]);
+
+  const retryLoad = () => {
+    setLoadError(null);
+    setAttempt((n) => n + 1);
+  };
 
   const verifiedStudent = account?.student_verification_status === "verified";
   const isOpen = (tier: Tier) => tier.available && (!tier.is_student || verifiedStudent);
@@ -89,7 +117,7 @@ function CheckoutForm() {
 
   // Enquanto não se sabe se a pessoa já tem bilhete ou um pagamento à espera não se mostra o formulário: senão aparecia
   // durante um instante e logo a seguir a página saltava para o perfil ou para a espera (parecia um erro do site).
-  if (!account && !loadFailed) return <div className="checkout-page" aria-busy="true" style={{ minHeight: "60vh" }} />;
+  if (!account && loadError === null) return <CheckoutLoading />;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -166,12 +194,15 @@ function CheckoutForm() {
                 </div>
               </div>
 
-              {loadFailed && (
-                <p role="alert" className="checkout-error">
-                  Não conseguimos carregar as modalidades. Recarrega a página e tenta outra vez.
-                </p>
+              {loadError !== null && (
+                <PageStatus
+                  state="error"
+                  title="Não conseguimos carregar as modalidades."
+                  message={loadErrorMessage(loadError)}
+                  onRetry={retryLoad}
+                />
               )}
-              {!tiers && !loadFailed && <p aria-live="polite">A carregar as modalidades…</p>}
+              {!tiers && loadError === null && <PageStatus state="loading" message="A carregar as modalidades…" />}
 
               {tiers && (
                 <fieldset className="checkout-ticket-list">

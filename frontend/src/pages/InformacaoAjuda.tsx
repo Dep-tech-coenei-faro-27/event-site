@@ -17,7 +17,7 @@ export default function InformacaoAjudaPage() {
 
   return (
     <>
-      <header className="page-hero center" id="conteudo">
+      <header className="page-hero center">
         <div className="container">
           <p className="eyebrow">&lt;AJUDA /&gt;</p>
           <h1>Como podemos ajudar?</h1>
