@@ -18,6 +18,7 @@ class ConsoleEmailSender(EmailSender):
         subject: str,
         html_body: str,
         inline_images: dict[str, bytes] | None = None,
+        text_body: str | None = None,
     ) -> None:
         links = dict.fromkeys(
             unescape(link) for link in LINK_PATTERN.findall(html_body)

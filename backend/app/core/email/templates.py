@@ -1,11 +1,21 @@
 # ruff: noqa: E501
+import re
 from html import escape
+from pathlib import Path
+
+import app.core.config as config
 
 VERIFICATION_EMAIL_SUBJECT = "Confirma o teu email"
 PASSWORD_RESET_SUBJECT = "Recuperação de Password"
 PASSWORD_CHANGED_SUBJECT = "A tua password foi alterada"
 TICKET_EMAIL_SUBJECT = "O teu bilhete para o ENEI 2027"
 TICKET_QR_CID = "ticket-qr"
+TICKET_PATH = "/perfil"
+EVENT_DATES = "1–4 abril 2027"
+EVENT_LOCATION = "Faro, Algarve"
+MARKER_PATTERN = re.compile(r"\[([A-Z][A-Z_]*)\]")
+_TICKET_HTML = Path(__file__).with_name("ticket_email.html")
+_TICKET_TEXT = Path(__file__).with_name("ticket_email.txt")
 
 
 def build_verification_email_html(first_name: str, verify_url: str) -> str:
@@ -84,29 +94,46 @@ def build_password_changed_email_html(first_name: str) -> str:
 """
 
 
-def build_ticket_email_html(first_name: str, tier_name: str, reference: str) -> str:
-    safe_name = escape(first_name)
-    safe_tier = escape(tier_name)
-    safe_reference = escape(reference)
-    return f"""\
-<html>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
-        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3f3f46;">
-          O teu pagamento foi confirmado. Este é o teu bilhete <strong>{safe_tier}</strong>: mostra o código QR à entrada.
-        </p>
-        <div style="text-align:center;margin:0 0 24px;">
-          <img src="cid:{TICKET_QR_CID}" alt="Código QR do bilhete" width="240" height="240"
-               style="display:inline-block;width:240px;height:240px;" />
-        </div>
-        <p style="margin:0;font-size:14px;line-height:1.6;color:#71717a;">
-          Referência da compra: {safe_reference}<br />
-          O bilhete também está disponível na tua conta no site. Não partilhes este código: dá entrada a uma só pessoa.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
-"""
+def render_template(template: str, values: dict[str, str], *, html: bool = True) -> str:
+    """Fill the ``[MARKER]`` placeholders of a designed email in a single pass.
+
+    HTML values are escaped. A marker without a value, or a value without a
+    marker, raises: a renamed field must never reach a customer as ``[TICKET_URL]``.
+    The values are not scanned again, so a name written as ``[X]`` stays as typed.
+    """
+    found = set(MARKER_PATTERN.findall(template))
+    if found != set(values):
+        raise ValueError(
+            "template markers and values differ: "
+            f"{sorted(found.symmetric_difference(values))}"
+        )
+
+    def fill(match: re.Match[str]) -> str:
+        value = values[match.group(1)]
+        return escape(value, quote=True) if html else value
+
+    return MARKER_PATTERN.sub(fill, template)
+
+
+def ticket_url() -> str:
+    """The page of the account where the ticket shows, with or without a final /."""
+    return f"{config.settings.FRONTEND_URL.rstrip('/')}{TICKET_PATH}"
+
+
+def build_ticket_email(
+    attendee_name: str, tier_name: str, reference: str
+) -> tuple[str, str]:
+    """The ticket email as ``(html, plain text)``, with the same data in both."""
+    parts = attendee_name.split()
+    values = {
+        "FIRST_NAME": parts[0] if parts else attendee_name,
+        "ATTENDEE_NAME": attendee_name,
+        "TICKET_TYPE": tier_name,
+        "TICKET_REFERENCE": reference,
+        "EVENT_DATES": EVENT_DATES,
+        "EVENT_LOCATION": EVENT_LOCATION,
+        "TICKET_URL": ticket_url(),
+    }
+    html = render_template(_TICKET_HTML.read_text(encoding="utf-8"), values)
+    text = render_template(_TICKET_TEXT.read_text(encoding="utf-8"), values, html=False)
+    return html, text

@@ -16,7 +16,7 @@ from app.core.email.outbox import enqueue_email
 from app.core.email.templates import (
     TICKET_EMAIL_SUBJECT,
     TICKET_QR_CID,
-    build_ticket_email_html,
+    build_ticket_email,
 )
 from app.core.qr import render_qr_png
 from app.domains.payments.events import notify
@@ -517,11 +517,13 @@ def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -
     db.scalar(select(Ticket.id).where(Ticket.id == ticket.id).with_for_update())
     user = db.get(User, transaction.user_id)
     tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
+    html, text = build_ticket_email(user.name, tier_name, transaction.reference)
     enqueue_email(
         db,
         user.email,
         TICKET_EMAIL_SUBJECT,
-        build_ticket_email_html(user.name, tier_name, transaction.reference),
+        html,
+        text_body=text,
         inline_images={TICKET_QR_CID: render_qr_png(ticket.qr_payload)},
         dedupe_key=f"ticket:{ticket.id}",
     )

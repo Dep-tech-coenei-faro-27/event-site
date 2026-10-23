@@ -1,0 +1,18 @@
+ENEI 2027 — BILHETE CONFIRMADO
+
+Olá, [FIRST_NAME].
+
+A tua compra está confirmada. Guarda esta mensagem e apresenta o código QR à entrada do ENEI 2027.
+
+Titular: [ATTENDEE_NAME]
+Modalidade: [TICKET_TYPE]
+Referência: [TICKET_REFERENCE]
+Datas: [EVENT_DATES]
+Local: [EVENT_LOCATION]
+
+Consultar o bilhete:
+[TICKET_URL]
+
+O bilhete é pessoal e intransmissível. Não partilhes o email nem o código QR.
+
+— ENEI 2027 · Faro · 1–4 abril
