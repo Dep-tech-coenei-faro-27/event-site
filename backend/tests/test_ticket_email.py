@@ -87,7 +87,7 @@ def test_both_bodies_carry_the_same_data():
 def test_the_greeting_uses_the_first_name_only():
     html, text = build_ticket_email("Ana Maria Silva", "Passe geral", "R")
 
-    assert "Olá, Ana." in text
+    assert "Olá Ana." in text
     assert re.search(r"Olá\s*<strong[^>]*>Ana</strong>\.", html)
 
 
@@ -235,7 +235,22 @@ def test_the_stacked_columns_on_a_phone_do_not_overflow_the_ticket():
     """Full-width cells with padding need border-box or they stick out of the card."""
     html, _ = build_ticket_email("Ana", "Passe geral", "R")
 
-    rule = re.search(r"\.ticket-column, \.qr-column \{([^}]*)\}", html)
+    rule = re.search(r"\.col \{([^}]*)\}", html)
     assert rule is not None
     assert "width: 100%" in rule.group(1)
     assert "box-sizing: border-box" in rule.group(1)
+
+
+def test_the_design_is_the_one_made_for_mail_clients():
+    """The ``ui-ux/ticket-email`` design: 600 px, solid colours, a 240 px QR.
+
+    Outlook ignores ``rgba()`` and background images, and a smaller QR reads badly
+    printed or on a dim screen.
+    """
+    html, _ = build_ticket_email("Ana", "Passe geral", "R")
+
+    assert 'width="600"' in html
+    assert "rgba(" not in html
+    assert "background-image" not in html
+    assert re.search(r'<img[^>]*src="cid:ticket-qr"[^>]*width="240"', html)
+    assert 'lang="pt-PT"' in html
