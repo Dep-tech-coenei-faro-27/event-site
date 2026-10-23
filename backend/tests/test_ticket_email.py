@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 import zxingcpp
-from PIL import Image
+from PIL import Image, ImageFilter
 from sqlalchemy.orm import Session
 
 import app.core.config as config
@@ -120,12 +120,11 @@ def test_the_html_has_no_external_or_data_images():
     assert "url(" not in html
 
 
-def test_the_real_message_is_alternative_text_then_related_html_and_png(monkeypatch):
+def _send_ticket_email(monkeypatch, payload):
+    """The message the SMTP sender builds for a ticket, as the server receives it."""
     servers = []
     monkeypatch.setattr(smtplib, "SMTP_SSL", _make_server(servers))
-    payload = generate_qr_payload(7)
     html, text = build_ticket_email("Ana Silva", "Passe geral", "ENEI-ABC")
-
     SmtpEmailSender(
         host="smtp.example.com",
         port=465,
@@ -139,8 +138,14 @@ def test_the_real_message_is_alternative_text_then_related_html_and_png(monkeypa
         {TICKET_QR_CID: render_qr_png(payload)},
         text_body=text,
     )
+    return servers[0].sent_message, html, text
 
-    message = servers[0].sent_message
+
+def test_the_real_message_is_alternative_text_then_related_html_and_png(monkeypatch):
+    payload = generate_qr_payload(7)
+
+    message, _, text = _send_ticket_email(monkeypatch, payload)
+
     assert message.get_content_type() == "multipart/alternative"
     plain, related = list(message.iter_parts())
     assert plain.get_content_type() == "text/plain"
@@ -154,6 +159,22 @@ def test_the_real_message_is_alternative_text_then_related_html_and_png(monkeypa
     assert [barcode.text for barcode in decoded] == [payload]
     assert not MARKER_PATTERN.search(html_part.get_content())
     assert not MARKER_PATTERN.search(plain.get_content())
+
+
+@pytest.mark.parametrize("size_px", [240, 120])
+def test_the_png_in_the_email_decodes_small_and_blurred(monkeypatch, size_px):
+    """The picture that reaches the inbox, shrunk and blurred like a poor print."""
+    payload = generate_qr_payload(7)
+    message, _, _ = _send_ticket_email(monkeypatch, payload)
+    _, related = list(message.iter_parts())
+    image = list(related.iter_parts())[1]
+    picture = Image.open(io.BytesIO(image.get_content())).convert("L")
+    picture = picture.resize((size_px, size_px), Image.BILINEAR)
+    picture = picture.filter(ImageFilter.GaussianBlur(1.0))
+
+    decoded = zxingcpp.read_barcodes(picture)
+
+    assert [barcode.text for barcode in decoded] == [payload]
 
 
 class Recorder:
