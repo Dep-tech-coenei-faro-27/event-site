@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
 import AccountLayout from "../components/dashboard/AccountLayout";
@@ -11,28 +11,37 @@ import type { User } from "../utils/authContextValue";
 import logo from "../assets/ENEI-logo.svg";
 import TicketQr from "../components/TicketQr";
 import { EVENT_DATES } from "../data/Event";
+import PageStatus from "../components/PageStatus";
+import { isUnauthorized, loadErrorMessage } from "../utils/loadError";
 
 /** Visão geral: bilhete digital e preparação para o encontro. */
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
-  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+  // O bilhete e os pagamentos só vêm de /users/me: até lá não se mostra nenhum estado da compra
+  // (o utilizador de /auth/me não os traz, e parecia «sem inscrição»).
+  const [me, setMe] = useState<User | null>(null);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    getMe()
-      .then((data) => {
-        if (!cancelled) setProfileUser(data);
-      })
-      .catch(() => {
-        // Fallback silencioso para o utilizador do AuthContext se /users/me ainda não existir
+    const controller = new AbortController();
+    getMe({ signal: controller.signal })
+      .then((data) => setMe(data))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isUnauthorized(error)) navigate("/conta?sessao=terminada", { replace: true });
+        else setLoadError(error);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => controller.abort();
+  }, [attempt, navigate]);
 
-  const me = profileUser ?? authUser;
-  const firstName = (me?.name ?? "").trim().split(/\s+/)[0] || "Participante";
+  const retry = () => {
+    setLoadError(null);
+    setAttempt((n) => n + 1);
+  };
+
+  const firstName = (me?.name ?? authUser?.name ?? "").trim().split(/\s+/)[0] || "Participante";
 
   const qrCode = me?.qr_code ?? null;
   const ticket = me?.ticket ?? null;
@@ -48,6 +57,15 @@ export default function ProfilePage() {
       title={`Olá, ${firstName}.`}
       lead="Consulta o bilhete digital e mantém os dados da tua conta atualizados."
     >
+      {!me && loadError === null && <PageStatus state="loading" />}
+      {!me && loadError !== null && (
+        <PageStatus
+          state="error"
+          title="Não foi possível carregar o teu bilhete."
+          message={loadErrorMessage(loadError)}
+          onRetry={retry}
+        />
+      )}
       {me && (
         <>
           {qrCode ? (

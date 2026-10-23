@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import mbwayLogo from "../../assets/mbway-logo.svg";
+import PageStatus from "../../components/PageStatus";
 import { getAccount } from "../../payments/api";
 import { loadReference, saveReference } from "../../payments/reference";
 import { parseServerDate } from "../../payments/time";
 import { usePaymentPolling } from "../../payments/usePaymentPolling";
+import { isUnauthorized, loadErrorMessage } from "../../utils/loadError";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 
@@ -18,29 +20,39 @@ export default function CheckoutWaiting() {
   usePageMeta("A aguardar o pagamento · ENEI 2027", "Confirma o pagamento na aplicação MB WAY.");
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [reference, setReference] = useState<string | null>(() => loadReference());
-  const [resumeChecked, setResumeChecked] = useState(reference !== null);
   const [nothingToWatch, setNothingToWatch] = useState(false);
+  const [resumeError, setResumeError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
 
   // Sem referência guardada (outro dispositivo, outro separador): retoma pelo pagamento à espera da conta.
+  // Uma falha ao ler a conta não quer dizer «não há pagamento»: mostra o erro e deixa tentar outra vez.
   useEffect(() => {
     if (reference) return;
-    let active = true;
-    getAccount()
+    const controller = new AbortController();
+    getAccount({ signal: controller.signal })
       .then((account) => {
-        if (!active) return;
         if (account.ticket) navigate("/bilhetes/checkout/sucesso", { replace: true });
         else if (account.pending_payment) {
           saveReference(account.pending_payment.reference);
           setReference(account.pending_payment.reference);
         } else setNothingToWatch(true);
       })
-      .catch(() => active && setNothingToWatch(true))
-      .finally(() => active && setResumeChecked(true));
-    return () => {
-      active = false;
-    };
-  }, [reference, navigate]);
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isUnauthorized(error)) navigate("/conta", { replace: true, state: { from: location } });
+        else setResumeError(error);
+      });
+    return () => controller.abort();
+    // `location` só serve para voltar aqui depois do login; não volta a pedir a conta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reference, attempt, navigate]);
+
+  const retryResume = () => {
+    setResumeError(null);
+    setAttempt((n) => n + 1);
+  };
 
   const watch = usePaymentPolling(reference);
   const { phase, transaction } = watch;
@@ -57,7 +69,28 @@ export default function CheckoutWaiting() {
     }
   }, [phase, watch.accountChecked, navigate]);
 
-  if (resumeChecked && nothingToWatch) return <Navigate to="/bilhetes/checkout" replace />;
+  if (nothingToWatch) return <Navigate to="/bilhetes/checkout" replace />;
+
+  // Ainda sem referência: a carregar a conta ou a falha dessa leitura (nunca «Confirma no MB Way» às cegas).
+  if (!reference) {
+    return (
+      <div className="payment-result-main">
+        <div className="payment-result-shell">
+          {resumeError === null ? (
+            <PageStatus state="loading" message="A carregar o teu pagamento…" />
+          ) : (
+            <PageStatus
+              state="error"
+              titleLevel={1}
+              title="Não conseguimos ver o estado do teu pagamento."
+              message={`${loadErrorMessage(resumeError)} Se já aprovaste no MB WAY, o pagamento não se perde.`}
+              onRetry={retryResume}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const confirming = phase === "confirming";
 
