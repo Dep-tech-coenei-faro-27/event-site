@@ -20,7 +20,14 @@ export interface User {
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
+  /**
+   * A última verificação da sessão falhou sem ser por um 401 (rede, 5xx, 429). Com `user` a `null`
+   * não se sabe se há sessão: mostra-se o erro com «Tentar novamente», sem ir ao login.
+   */
+  error: unknown;
   refresh: () => Promise<void>;
+  /** Volta a verificar a sessão, passando por `loading`. */
+  retry: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
