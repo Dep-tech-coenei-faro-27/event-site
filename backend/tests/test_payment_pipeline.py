@@ -137,7 +137,7 @@ class World:
                 student_verification_status=(
                     StudentVerificationStatus.VERIFIED
                     if student
-                    else StudentVerificationStatus.PENDING
+                    else StudentVerificationStatus.NONE
                 ),
             )
             db.add(user)

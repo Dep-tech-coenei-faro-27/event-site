@@ -30,6 +30,8 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./backend/media:/app/media
+      # Comprovativos de estudante à espera de decisão: privada, nunca servida.
+      - ./backend/private:/app/private
     restart: unless-stopped
     logging: *default-logging
     depends_on:

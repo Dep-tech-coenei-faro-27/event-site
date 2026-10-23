@@ -244,6 +244,19 @@ O contentor corre com o utilizador `app` (uid 10001). Hoje nada escreve nesta pa
 uploads**, ou dás a pasta ao uid 10001 (`sudo chown -R 10001 backend/media`), ou passas a um volume com nome
 (`media:/app/media`), que herda o dono certo. A pasta tem de sobreviver aos deploys, e entra nas cópias de segurança.
 
+## Comprovativos de estudante
+
+Os comprovativos de matrícula esperam decisão em `backend/private` (montada em `/app/private`), uma pasta **privada**:
+não é servida pelo nginx nem pelo backend e não entra nas cópias de segurança (são dados pessoais de vida curta; o
+ficheiro é apagado quando alguém decide). Tal como `media`, tem de pertencer ao uid 10001 (`sudo mkdir -p
+backend/private && sudo chown -R 10001 backend/private`). Cada pedido é de, no máximo, 1 MB, e o nginx deve deixar passar
+corpos desse tamanho em `POST /api/users/me/student-proof`.
+
+A revisão dos que não passaram sozinhos faz-se no servidor:
+`docker compose exec backend python -m app.domains.students.review list` (ver o README do backend). A fotografia da
+lista de confiança da UE (`app/domains/students/trust/eu_qualified_seals.pem`) deve ser refeita de tempos a tempos com
+`python -m app.domains.students.trust_list`.
+
 ## Limpeza de contas não verificadas
 
 As contas que nunca confirmaram o email (e os tokens de recuperação e de sessão expirados) são apagadas por um comando

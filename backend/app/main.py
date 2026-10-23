@@ -24,6 +24,7 @@ from app.domains.health.router import router as health_router
 from app.domains.payments.events import events
 from app.domains.payments.router import router as payments_router
 from app.domains.payments.stream import reconcile_forever
+from app.domains.students.router import router as students_router
 from app.domains.users.router import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.API_V1_PREFIX)
     app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
     app.include_router(users_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(students_router, prefix=settings.API_V1_PREFIX)
     app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
     app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
 

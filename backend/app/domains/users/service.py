@@ -35,13 +35,13 @@ def resolve_student_status(
 ) -> tuple[StudentVerificationStatus, datetime | None]:
     """Auto-verify students whose email domain is on the institutional allowlist.
 
-    Anything else stays ``pending`` and only a manual review can approve it.
+    Anything else stays ``none`` and only a manual review can approve it.
     """
     domain = email.strip().lower().rpartition("@")[2]
     for allowed in settings.STUDENT_EMAIL_DOMAINS:
         if domain == allowed or domain.endswith(f".{allowed}"):
             return StudentVerificationStatus.VERIFIED, datetime.now(UTC)
-    return StudentVerificationStatus.PENDING, None
+    return StudentVerificationStatus.NONE, None
 
 
 def create_user(db: Session, payload: UserRegister) -> User:

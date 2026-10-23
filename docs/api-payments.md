@@ -22,7 +22,7 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 
 > **Esta lista vai crescer.** É provável que a organização peça mais modalidades, por exemplo outras variantes **não estudante** (hoje há o passe geral e o passe geral com refeições). O frontend **não deve assumir que são sempre cinco**: nomes, preços e a marca de estudante não devem ficar espalhados pelo código, e um valor de `ticket_tier` desconhecido tem de falhar com graça. Acrescentar uma modalidade exige no backend um valor novo em `TicketTier`, a entrada em `TIER_SPECS`, uma migration (a coluna tem uma restrição com a lista dos valores e a linha de preço tem de ser criada) e o preço com `set_price`. As modalidades e os preços lêem-se em `GET /api/payment/tiers`.
 
-O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
+O estado de estudante é decidido **pelo backend**, a partir do domínio do email do utilizador (`STUDENT_EMAIL_DOMAINS`) ou, para quem não tem email de aluno, do comprovativo de matrícula (`POST /api/users/me/student-proof`, ver `docs/api-auth.md`). As modalidades de estudante só estão disponíveis para contas com `student_verification_status: "verified"`; as restantes recebem `403`.
 
 ## Endpoints
 

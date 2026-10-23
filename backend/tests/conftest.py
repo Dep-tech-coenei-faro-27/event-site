@@ -95,6 +95,9 @@ def test_engine():
 def db_session(test_engine):
     with test_engine.begin() as conn:
         conn.execute(text("DELETE FROM email_outbox"))
+        conn.execute(text("DELETE FROM student_proof_events"))
+        conn.execute(text("DELETE FROM institution_nipcs"))
+        conn.execute(text("DELETE FROM student_proofs"))
         conn.execute(text("DELETE FROM transactions"))
         conn.execute(text("DELETE FROM tickets"))
         conn.execute(text("DELETE FROM ticket_tiers"))
