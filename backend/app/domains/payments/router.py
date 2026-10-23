@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -26,11 +27,16 @@ from app.domains.payments.service import (
     PaymentError,
     get_transaction,
     handle_payment_callback,
+    handle_stripe_event,
     initiate_payment,
     list_ticket_tiers,
     to_read,
 )
 from app.domains.payments.stream import authorize, event_stream
+from app.domains.payments.stripe_webhook import (
+    InvalidStripeSignatureError,
+    verify_signature,
+)
 from app.domains.users.models import User
 
 router = APIRouter(prefix="/payment", tags=["payment"])
@@ -174,4 +180,69 @@ def payment_callback(
         logger.warning("MB WAY callback rejected: %s", exc)
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
+    return {"status": "ok"}
+
+
+def _process_stripe_webhook(
+    db: Session, request: Request, payload: bytes, signature: str | None
+) -> None:
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe webhook is not configured.",
+        )
+    try:
+        verify_signature(
+            payload,
+            signature,
+            settings.STRIPE_WEBHOOK_SECRET,
+            tolerance_seconds=settings.STRIPE_WEBHOOK_TOLERANCE_SECONDS,
+        )
+    except InvalidStripeSignatureError as exc:
+        # Only the bad ones are counted: Stripe sends a burst from a few addresses
+        # when the sales open, and a valid event must never be turned away.
+        rule = RateLimit(
+            "stripe_webhook_invalid",
+            settings.RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE,
+            60,
+        )
+        enforce_rate_limit(db, (rule,), client_ip(request))
+        logger.warning("Stripe webhook rejected: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid signature."
+        ) from exc
+
+    try:
+        event = json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload."
+        ) from exc
+    if not isinstance(event, dict):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload."
+        )
+    handle_stripe_event(db, event)
+
+
+@router.post("/stripe/webhook", status_code=status.HTTP_200_OK)
+async def stripe_webhook(
+    request: Request, db: Session = Depends(get_db)
+) -> dict[str, str]:
+    """Public: Stripe tells us a payment ended.
+
+    Authenticated by the signature of the raw body (``STRIPE_WEBHOOK_SECRET``), not
+    by a session. A signature or payload error answers 400 and a configuration gap
+    503; everything else, even an event about a payment we do not know, answers 200
+    so Stripe stops repeating it. An unexpected failure answers 500 and Stripe tries
+    again.
+    """
+    payload = await request.body()
+    await run_in_threadpool(
+        _process_stripe_webhook,
+        db,
+        request,
+        payload,
+        request.headers.get("Stripe-Signature"),
+    )
     return {"status": "ok"}

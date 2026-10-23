@@ -4,7 +4,7 @@ Contrato dos endpoints de bilheteira para quem desenvolve o frontend. O prefixo 
 
 ## Regras gerais
 
-- **Sessão obrigatória (exceto no callback):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` é público porque é o ifthenpay que o chama.
+- **Sessão obrigatória (exceto no callback e no webhook do Stripe):** os endpoints de iniciar e consultar precisam do cookie de sessão (ver `api-auth.md`). Sem sessão a API responde `401`; com o email por verificar responde `403` com `Please verify your email address to continue.`. O `GET /payment/callback` (ifthenpay) e o `POST /payment/stripe/webhook` são públicos porque é o fornecedor que os chama; cada um tem a sua própria autenticação (chave anti-phishing e assinatura do corpo).
 - **O preço é sempre do servidor.** O frontend escolhe a modalidade (`ticket_tier`); nunca envia o preço. A quantidade é sempre `1` (um bilhete por pessoa): pode ser omitida no pedido e vem sempre como `1` na resposta. Assim ninguém consegue pagar 1 cêntimo por um bilhete.
 - **Referência curta:** cada pagamento tem uma referência no formato `ENEI-XXXXXXXXXX` (15 caracteres no máximo, como no design). É esse valor que o frontend mostra e usa para consultar o estado.
 - **Dinheiro em cêntimos:** todos os valores são inteiros, em cêntimos de euro (por exemplo `4500` são `45,00 €`).
@@ -122,6 +122,20 @@ O evento só **avisa** (`status`, sem dados pessoais): o frontend faz então uma
 
 **Como funciona no servidor.** Quem muda um pagamento (a confirmação, o callback, a libertação de um lugar, o cancelamento) avisa as ligações abertas desse pagamento. Como o backend corre **um só processo**, o registo das ligações está em memória; com mais de um processo seria preciso `LISTEN/NOTIFY` ou Redis. Uma ligação em espera **não ocupa nenhuma ligação à base de dados**. Um laço em segundo plano (`PAYMENT_EVENTS_RECONCILE_SECONDS`, 5 s) pergunta ao fornecedor pelos pagamentos que alguém está a ver, no máximo de 5 em 5 segundos por pagamento (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`) e 4 de cada vez, para um fornecedor lento não ocupar as threads todas. O nginx trata este caminho à parte (`proxy_events.conf`: sem retenção nem compressão e com 120 s de espera).
 
+### `POST /api/payment/stripe/webhook`
+
+Endpoint público que o Stripe chama quando um pagamento termina. Não usa sessão: o corpo é autenticado pela **assinatura** do cabeçalho `Stripe-Signature` (HMAC-SHA256 do corpo bruto com `STRIPE_WEBHOOK_SECRET`, `whsec_…`), com uma tolerância de `STRIPE_WEBHOOK_TOLERANCE_SECONDS` (300 s) para trás e para a frente.
+
+| Evento | O que faz |
+| --- | --- |
+| `payment_intent.succeeded` | confirma a transação e emite o bilhete, como o polling. Exige `currency=eur` e `amount_received` igual ao valor cobrado; senão **não confirma** e fica um erro no log (`needs a look`). Também confirma um pagamento que já tínhamos dado por `failed` ou `expired` (se houver lugar; senão fica `refund_due`) |
+| `payment_intent.payment_failed` e `payment_intent.canceled` | terminam (`failed` ou `expired`, segundo o erro) um pagamento que ainda espera; nunca alteram um já confirmado |
+| qualquer outro | `200` e nada acontece |
+
+O pagamento identifica-se pela referência que pusemos nos metadados do *PaymentIntent* e só conta se for um pagamento nosso feito pelo Stripe com esse mesmo id (um evento que chegue antes de guardarmos o id também é aceite). Respostas: `200` (processado ou ignorado, para o Stripe parar de repetir), `400` (assinatura ou corpo inválidos), `429` (demasiadas assinaturas inválidas deste IP; as válidas nunca são contadas), `503` (`STRIPE_WEBHOOK_SECRET` por configurar) e `500` numa falha inesperada, que o Stripe repete. É idempotente.
+
+**Registo no Stripe:** painel, Developers, Webhooks, endereço `https://<domínio>/api/payment/stripe/webhook`, eventos `payment_intent.succeeded`, `payment_intent.payment_failed` e `payment_intent.canceled`; o segredo `whsec_…` que o painel mostra vai para o Secret `STRIPE_WEBHOOK_SECRET`. Em desenvolvimento usa-se `stripe listen --forward-to localhost:8000/api/payment/stripe/webhook`, que gera o seu próprio `whsec_…`.
+
 ### `GET /api/payment/callback`
 
 Endpoint público que a ifthenpay chama quando o pagamento MB WAY é concluído. Não usa sessão: a autenticidade é garantida pela **chave anti-phishing** (`MBWAY_CALLBACK_KEY`), que o ifthenpay devolve em cada chamada e que só o nosso backend conhece.
@@ -199,7 +213,7 @@ O modo é explícito e não depende do que estiver (ou não) configurado:
 | --- | --- |
 | `off` (por omissão) | a bilheteira não vende: `/payment/initiate` responde `503`. |
 | `simulated` | cria a transação e responde sempre `pending`, sem contactar nenhum serviço externo. É o modo usado em desenvolvimento e em *staging* para construir o fluxo completo (espera, timeout e erro) com respostas reais da API. |
-| `live` | usa o gateway real escolhido por `PAYMENTS_PROVIDER`: **`stripe`** (por omissão) exige `STRIPE_SECRET_KEY` (`sk_...`); `ifthenpay` exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`. Sem as credenciais do gateway escolhido o backend recusa arrancar. |
+| `live` | usa o gateway real escolhido por `PAYMENTS_PROVIDER`: **`stripe`** (por omissão) exige `STRIPE_SECRET_KEY` (`sk_...`) e `STRIPE_WEBHOOK_SECRET` (`whsec_...`); `ifthenpay` exige `MBWAY_KEY`, um `MBWAY_BASE_URL` em `https` e a chave `MBWAY_CALLBACK_KEY`. Sem as credenciais do gateway escolhido o backend recusa arrancar. |
 
 - **Stripe (MB WAY):** o servidor cria e confirma um *PaymentIntent* com o telemóvel do nosso formulário (`+351` + 9 algarismos) e a pessoa aprova na app MB WAY, exatamente como com a ifthenpay: não há redirecionamento nem Stripe.js. A referência do fornecedor é o id do *PaymentIntent* (`pi_...`) e o estado lê-se com `GET /v1/payment_intents/{id}`: `succeeded` é `confirmed`, `requires_action` e `processing` são `pending`, `requires_payment_method` com o erro `payment_intent_payment_attempt_expired` é `expired` e com qualquer outro erro (recusa da pessoa ou do MB WAY) é `failed`, `canceled` é `failed`. Um estado que não se reconhece é erro e não espera. Cada pagamento usa a chave de idempotência `enei-<referência>`, por isso um pedido repetido não cria uma segunda cobrança, e a referência do pagamento vai nos metadados. O email da pessoa não é enviado ao Stripe. No sandbox, os telemóveis `911111112` (confirma ao fim de uns 30 s), `911111113`, `911111114`, `911111115` (expira) e `911111116` (recusa a pessoa) reproduzem cada caso.
 - Para testar o ecrã de sucesso sem um gateway real, usa-se `PAYMENTS_MODE=simulated` com `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0: o pagamento passa a `confirmed` ao fim desses segundos (ver abaixo). O modo de confirmação só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
@@ -228,6 +242,8 @@ make set-price tier=geral price=3500
 | `PAYMENTS_MODE` | `off` | `off`, `simulated` ou `live` (ver acima) |
 | `PAYMENTS_PROVIDER` | `stripe` | gateway usado em `PAYMENTS_MODE=live`: `stripe` ou `ifthenpay` |
 | `STRIPE_SECRET_KEY` | vazio | chave secreta do Stripe (`sk_test_...` no sandbox, `sk_live_...` em produção). Obrigatória com `PAYMENTS_MODE=live` e `PAYMENTS_PROVIDER=stripe`. Nunca vai para o git nem para os logs. |
+| `STRIPE_WEBHOOK_SECRET` | vazio | segredo de assinatura do webhook (`whsec_...`). Obrigatório com `PAYMENTS_MODE=live` e `PAYMENTS_PROVIDER=stripe`. |
+| `STRIPE_WEBHOOK_TOLERANCE_SECONDS` | `300` | diferença máxima entre a hora da assinatura e a atual |
 | `STRIPE_API_VERSION` | `2026-08-26.dahlia` | versão da API do Stripe fixada em cada pedido, para uma versão nova não mudar o comportamento sem o decidirmos |
 | `MBWAY_KEY` | vazio | chave MB WAY da ifthenpay. Obrigatória em `PAYMENTS_MODE=live`. |
 | `MBWAY_BASE_URL` | `https://api.ifthenpay.com/spg/payment/mbway` | endpoint REST da ifthenpay. Em `live` tem de ser `https`. |

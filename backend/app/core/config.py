@@ -103,6 +103,10 @@ class Settings(BaseSettings):
     # one with sk_live_; a restricted key (rk_) works too.
     STRIPE_SECRET_KEY: str = ""
     STRIPE_API_VERSION: str = "2026-08-26.dahlia"
+    # Signing secret of the webhook endpoint (whsec_...), shown once the endpoint is
+    # registered in the Stripe dashboard (or by `stripe listen` in development).
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_WEBHOOK_TOLERANCE_SECONDS: int = Field(default=300, gt=0, le=3600)
     MBWAY_KEY: str = ""
     MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
     MBWAY_AUTH_TOKEN: str = ""
@@ -211,7 +215,11 @@ class Settings(BaseSettings):
         return domains
 
     @field_validator(
-        "MBWAY_KEY", "MBWAY_AUTH_TOKEN", "MBWAY_CALLBACK_KEY", "STRIPE_SECRET_KEY"
+        "MBWAY_KEY",
+        "MBWAY_AUTH_TOKEN",
+        "MBWAY_CALLBACK_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
     )
     @classmethod
     def strip_provider_secrets(cls, value: str) -> str:
@@ -242,6 +250,12 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "PAYMENTS_MODE=live with PAYMENTS_PROVIDER=stripe requires "
                     "STRIPE_SECRET_KEY to be a Stripe secret key (sk_...)."
+                )
+            if not self.STRIPE_WEBHOOK_SECRET.startswith("whsec_"):
+                raise ValueError(
+                    "PAYMENTS_MODE=live with PAYMENTS_PROVIDER=stripe requires "
+                    "STRIPE_WEBHOOK_SECRET to be the endpoint signing secret "
+                    "(whsec_...)."
                 )
 
         if self.PAYMENTS_MODE == "live" and self.PAYMENTS_PROVIDER == "ifthenpay":
