@@ -281,10 +281,10 @@ html, body {
    encolher. Sem isto o menu lateral, que não parte linha, esticava a coluna para lá do ecrã e os
    cartões ficavam cortados à direita. Só diz respeito à grelha que tem uma `aside`. */
 @media (max-width: 900px) {
-  #conteudo > section > .grid:has(> aside) {
+  .account-shell > section > .grid:has(> aside) {
     grid-template-columns: minmax(0, 1fr);
   }
-  #conteudo > section > .grid:has(> aside) > * {
+  .account-shell > section > .grid:has(> aside) > * {
     min-width: 0;
   }
 }

@@ -71,7 +71,7 @@ export default function Footer() {
           {/* Explorar e Participar */}
           <div className="footer-navigation grid grid-cols-2 gap-6 min-[621px]:gap-8">
             <div>
-              <h3 className={headingClass}>Explorar</h3>
+              <h2 className={headingClass}>Explorar</h2>
               <ul className={listClass}>
                 <li><Link to="/sobre" className="transition-colors hover:text-branco">Sobre</Link></li>
                 <li><Link to="/agenda" className="transition-colors hover:text-branco">Agenda</Link></li>
@@ -79,7 +79,7 @@ export default function Footer() {
               </ul>
             </div>
             <div>
-              <h3 className={headingClass}>Participar</h3>
+              <h2 className={headingClass}>Participar</h2>
               <ul className={listClass}>
                 <li><Link to="/conta" className="transition-colors hover:text-branco">Entrar</Link></li>
                 <li><Link to="/bilhetes" className="transition-colors hover:text-branco">Bilhetes</Link></li>

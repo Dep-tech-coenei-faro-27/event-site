@@ -22,7 +22,6 @@ export default function CheckoutPage() {
   return (
     <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
       <section
-        id="conteudo"
         className="relative z-[1] py-[clamp(48px,7vw,92px)]"
       >
         <div className="mx-auto w-[min(calc(100%-28px),760px)] border border-[rgba(26,178,255,0.42)] bg-azul-painel px-[22px] py-[30px] min-[621px]:w-[min(calc(100%-40px),760px)] min-[621px]:p-[clamp(38px,6vw,64px)]">
