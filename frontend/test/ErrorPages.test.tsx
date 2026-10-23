@@ -7,11 +7,16 @@ import NotFound from '../src/pages/NotFound';
 import ServerError from '../src/pages/ServerError';
 import { useBodyPage } from '../src/utils/useBodyPage';
 
-// Sem sessão: o AuthProvider pergunta por `/auth/me` e fica sem utilizador.
-vi.mock('../src/utils/http', () => ({
-  http: vi.fn(() => Promise.reject(new Error('sem sessão'))),
-  setUnauthorizedHandler: vi.fn(),
-}));
+// Sem sessão: o AuthProvider pergunta por `/auth/me`, recebe um 401 e fica sem utilizador.
+// Mantém o resto do módulo (`ApiError`, que o AuthProvider usa para distinguir o 401 de uma falha).
+vi.mock('../src/utils/http', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/utils/http')>();
+  return {
+    ...actual,
+    http: vi.fn(() => Promise.reject(new actual.ApiError(401, 'sem sessão'))),
+    setUnauthorizedHandler: vi.fn(),
+  };
+});
 
 let shouldThrow = true;
 
