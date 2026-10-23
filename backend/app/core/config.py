@@ -107,8 +107,18 @@ class Settings(BaseSettings):
     # the ticket office is still closed and /payment/initiate answers 503.
 
     # off: no payments at all (default). simulated: fake provider so the frontend
-    # can integrate. live: real ifthenpay gateway, needs the provider credentials.
+    # can integrate. live: the real gateway chosen by PAYMENTS_PROVIDER, which needs
+    # that provider's credentials.
     PAYMENTS_MODE: Literal["off", "simulated", "live"] = "off"
+    PAYMENTS_PROVIDER: Literal["stripe", "ifthenpay"] = "stripe"
+    # Stripe MB WAY (PaymentIntents API). A sandbox key starts with sk_test_, a real
+    # one with sk_live_; a restricted key (rk_) works too.
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_API_VERSION: str = "2026-08-26.dahlia"
+    # Signing secret of the webhook endpoint (whsec_...), shown once the endpoint is
+    # registered in the Stripe dashboard (or by `stripe listen` in development).
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_WEBHOOK_TOLERANCE_SECONDS: int = Field(default=300, gt=0, le=3600)
     MBWAY_KEY: str = ""
     MBWAY_BASE_URL: str = "https://api.ifthenpay.com/spg/payment/mbway"
     MBWAY_AUTH_TOKEN: str = ""
@@ -216,7 +226,13 @@ class Settings(BaseSettings):
             domains.append(domain)
         return domains
 
-    @field_validator("MBWAY_KEY", "MBWAY_AUTH_TOKEN", "MBWAY_CALLBACK_KEY")
+    @field_validator(
+        "MBWAY_KEY",
+        "MBWAY_AUTH_TOKEN",
+        "MBWAY_CALLBACK_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+    )
     @classmethod
     def strip_provider_secrets(cls, value: str) -> str:
         return value.strip()
@@ -251,7 +267,20 @@ class Settings(BaseSettings):
             or self.QR_SECRET_KEY in INSECURE_JWT_SECRETS
         )
 
-        if self.PAYMENTS_MODE == "live":
+        if self.PAYMENTS_MODE == "live" and self.PAYMENTS_PROVIDER == "stripe":
+            if not self.STRIPE_SECRET_KEY.startswith(("sk_", "rk_")):
+                raise ValueError(
+                    "PAYMENTS_MODE=live with PAYMENTS_PROVIDER=stripe requires "
+                    "STRIPE_SECRET_KEY to be a Stripe secret key (sk_...)."
+                )
+            if not self.STRIPE_WEBHOOK_SECRET.startswith("whsec_"):
+                raise ValueError(
+                    "PAYMENTS_MODE=live with PAYMENTS_PROVIDER=stripe requires "
+                    "STRIPE_WEBHOOK_SECRET to be the endpoint signing secret "
+                    "(whsec_...)."
+                )
+
+        if self.PAYMENTS_MODE == "live" and self.PAYMENTS_PROVIDER == "ifthenpay":
             if not self.MBWAY_KEY:
                 raise ValueError("PAYMENTS_MODE=live requires MBWAY_KEY to be set.")
             if not self.MBWAY_BASE_URL.startswith("https://"):

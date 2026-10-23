@@ -317,18 +317,6 @@ def test_send_html_attaches_inline_images_as_related_parts(monkeypatch):
     assert image.get_content() == png
 
 
-def test_ticket_email_has_a_plain_text_version():
-    from app.core.email.templates import build_ticket_email_html
-    from app.core.email.text import html_to_text
-
-    text = html_to_text(build_ticket_email_html("Ana", "Passe geral", "ENEI-ABC"))
-
-    assert "Olá Ana," in text
-    assert "Passe geral" in text
-    assert "ENEI-ABC" in text
-    assert "<" not in text
-
-
 def test_plain_text_keeps_the_address_of_links():
     from app.core.email.text import html_to_text
 

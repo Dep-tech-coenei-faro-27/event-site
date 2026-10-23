@@ -10,6 +10,8 @@ type Props = {
   lead: ReactNode;
   actions: ReactNode;
   note: string;
+  /** Nome da coluna do detalhe para leitores de ecrã (as páginas de erro usam «Detalhes do erro»). */
+  detailLabel?: string;
   detail: {
     /** O código grande (401, 422, 429...) ou uma etiqueta (`label`), como no desenho. */
     code: string;
@@ -26,7 +28,7 @@ type Props = {
  * Estado de sistema do desenho novo (`ui-ux/conta/*`): ecrã com o que aconteceu à esquerda e, à
  * direita, o detalhe. A cor do estado (aviso, perigo) vem da classe no `<body>` (`useBodyPage`).
  */
-export default function SystemState({ icon, kicker, title, lead, actions, note, detail }: Props) {
+export default function SystemState({ icon, kicker, title, lead, actions, note, detailLabel = "Detalhes", detail }: Props) {
   return (
     <div className="system-state-main">
       <div className="container">
@@ -43,7 +45,7 @@ export default function SystemState({ icon, kicker, title, lead, actions, note, 
             <div className="system-state-actions">{actions}</div>
             <p className="system-state-note">{note}</p>
           </div>
-          <aside className="system-state-detail" aria-label="Detalhes">
+          <aside className="system-state-detail" aria-label={detailLabel}>
             <div>
               <div className={`system-state-code${detail.codeIsLabel ? " system-state-code--label" : ""}`} aria-hidden="true">
                 {detail.code}

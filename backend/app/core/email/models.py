@@ -28,6 +28,9 @@ class EmailOutbox(Base):
     subject: Mapped[str] = mapped_column(String(255))
     # Emptied once the email is sent: it can hold links that sign someone in.
     html_body: Mapped[str] = mapped_column(Text)
+    # The plain-text twin of ``html_body`` (``multipart/alternative``); null means the
+    # sender derives one from the HTML. Emptied once sent, like the HTML.
+    text_body: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Content-ID -> base64 PNG shown inline (the ticket QR). Emptied once sent too.
     inline_images: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
     # An optional key that stops the same email being queued twice.

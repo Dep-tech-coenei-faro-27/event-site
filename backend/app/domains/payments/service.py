@@ -16,7 +16,7 @@ from app.core.email.outbox import enqueue_email
 from app.core.email.templates import (
     TICKET_EMAIL_SUBJECT,
     TICKET_QR_CID,
-    build_ticket_email_html,
+    build_ticket_email,
 )
 from app.core.qr import render_qr_png
 from app.domains.payments.events import notify
@@ -24,6 +24,7 @@ from app.domains.payments.gateway import (
     MBWayGateway,
     PaymentGatewayError,
     UnrecognisedStatusError,
+    stripe_status,
 )
 from app.domains.payments.models import (
     TicketTier,
@@ -516,11 +517,13 @@ def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -
     db.scalar(select(Ticket.id).where(Ticket.id == ticket.id).with_for_update())
     user = db.get(User, transaction.user_id)
     tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
+    html, text = build_ticket_email(user.name, tier_name, transaction.reference)
     enqueue_email(
         db,
         user.email,
         TICKET_EMAIL_SUBJECT,
-        build_ticket_email_html(user.name, tier_name, transaction.reference),
+        html,
+        text_body=text,
         inline_images={TICKET_QR_CID: render_qr_png(ticket.qr_payload)},
         dedupe_key=f"ticket:{ticket.id}",
     )
@@ -697,6 +700,11 @@ def handle_payment_callback(
     if transaction is None:
         raise CallbackTransactionNotFoundError("Unknown transaction reference")
 
+    if transaction.provider == "stripe":
+        # A Stripe payment is only ever confirmed by reading it from Stripe: the
+        # ifthenpay key must not be able to settle it, whatever is configured.
+        raise CallbackTransactionNotFoundError("Unknown transaction reference")
+
     if not _callback_amount_matches(amount, transaction.amount_cents):
         raise CallbackAmountMismatchError(
             "Callback amount does not match the transaction"
@@ -710,6 +718,85 @@ def handle_payment_callback(
         )
 
     return confirm_transaction(db, transaction)
+
+
+_STRIPE_PAYMENT_EVENTS = {
+    "payment_intent.succeeded",
+    "payment_intent.payment_failed",
+    "payment_intent.canceled",
+}
+
+
+def handle_stripe_event(db: Session, event: dict) -> None:
+    """Apply a Stripe webhook event (already checked for its signature).
+
+    Only the three PaymentIntent events matter; anything else is ignored so Stripe
+    gets its 200 and stops sending it. The event says which payment it is about
+    through the reference we put in the PaymentIntent's metadata, and it only counts
+    when that payment is one of ours made through Stripe. ``succeeded`` confirms like
+    the status poll (and, like the ifthenpay callback, also a payment we had already
+    given up on: ``confirm_transaction`` then issues the ticket or keeps it for a
+    refund); it needs the amount Stripe received to be what we charged, in euros.
+    ``payment_failed`` and ``canceled`` only end a payment that is still waiting.
+    Idempotent: Stripe repeats events, and a repeat changes nothing.
+    """
+    kind = event.get("type")
+    intent = (event.get("data") or {}).get("object")
+    if kind not in _STRIPE_PAYMENT_EVENTS or not isinstance(intent, dict):
+        return
+    reference = (intent.get("metadata") or {}).get("reference")
+    intent_id = intent.get("id")
+    if not isinstance(reference, str) or not isinstance(intent_id, str):
+        return
+
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    # A payment whose answer from Stripe came back before we saved its id has no
+    # provider reference yet: the signed reference identifies it.
+    if (
+        transaction is None
+        or transaction.provider != "stripe"
+        or transaction.provider_reference not in (None, intent_id)
+    ):
+        db.rollback()
+        logger.warning("Stripe event %s ignored: not one of our payments", kind)
+        return
+    if transaction.provider_reference is None:
+        transaction.provider_reference = intent_id
+        db.flush()  # the helpers below refresh the row and would drop an unsaved change
+
+    if kind == "payment_intent.succeeded":
+        received = intent.get("amount_received")
+        if intent.get("currency") != "eur" or received != transaction.amount_cents:
+            db.rollback()
+            logger.error(
+                "Stripe payment %s succeeded for another amount than charged "
+                "(%r %r instead of %d EUR cents): not confirmed, needs a look",
+                transaction.reference,
+                received,
+                intent.get("currency"),
+                transaction.amount_cents,
+            )
+            return
+        if transaction.status in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+            logger.warning(
+                "Late Stripe payment for %s: the transaction was %s locally",
+                transaction.reference,
+                transaction.status.value,
+            )
+        confirm_transaction(db, transaction)
+        return
+
+    try:
+        ended = stripe_status(intent)
+    except UnrecognisedStatusError:
+        db.rollback()
+        return
+    if ended in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+        _settle_pending(db, transaction, ended)
+    else:
+        db.rollback()
 
 
 def get_transaction(

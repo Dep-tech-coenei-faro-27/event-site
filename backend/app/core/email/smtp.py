@@ -51,12 +51,13 @@ class SmtpEmailSender(EmailSender):
         subject: str,
         html_body: str,
         inline_images: dict[str, bytes] | None = None,
+        text_body: str | None = None,
     ) -> None:
         message = EmailMessage()
         message["Subject"] = subject
         message["From"] = self.from_email
         message["To"] = to_email
-        message.set_content(html_to_text(html_body))
+        message.set_content(text_body or html_to_text(html_body))
         message.add_alternative(html_body, subtype="html")
         html_part = message.get_payload()[1]
         for cid, png in (inline_images or {}).items():

@@ -17,7 +17,7 @@ export default function Field({ label, error, ...props }: FieldProps) {
           {...props}
           aria-invalid={hasError || undefined}
           aria-describedby={hasError ? errorId : undefined}
-          className="h-[52px] w-full rounded-[2px] border border-[rgba(215,227,244,0.1)] bg-azul-base px-4 text-white outline-none placeholder:text-cinza-subtil focus:border-acento-principal focus:shadow-[0_0_0_3px_rgba(26,178,255,0.13)] aria-[invalid=true]:border-red-400"
+          className="h-[52px] w-full rounded-[2px] border border-[rgba(215,227,244,0.1)] bg-azul-base px-4 text-white outline-none placeholder:text-cinza-subtil focus:border-acento-principal focus:shadow-[0_0_0_3px_rgba(26,178,255,0.13)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento-principal aria-[invalid=true]:border-red-400"
         />
       </label>
       {hasError && (

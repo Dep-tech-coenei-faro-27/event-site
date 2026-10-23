@@ -1,5 +1,7 @@
+import base64
 import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -181,6 +183,164 @@ class IfThenPayMBWayGateway:
         return _normalize_status(data.get("Status"))
 
 
+STRIPE_API_BASE = "https://api.stripe.com/v1"
+_STRIPE_INTENT_ID = re.compile(r"pi_[A-Za-z0-9]+")
+# A PaymentIntent that went back to ``requires_payment_method`` carries the reason in
+# ``last_payment_error.code``. Only this one means "the time to approve ran out";
+# every other code is a refusal (the person declined, MB WAY declined or is
+# unavailable).
+_STRIPE_EXPIRED_CODE = "payment_intent_payment_attempt_expired"
+# ``requires_action`` is the MB WAY wait (``next_action.type`` is
+# ``mb_way_await_authorization``); the others are transitions that settle soon.
+_STRIPE_WAITING = {"requires_action", "processing", "requires_confirmation"}
+
+
+def stripe_status(intent: dict) -> TransactionStatus:
+    """Read a Stripe PaymentIntent the way ``_normalize_status`` reads ifthenpay.
+
+    An answer we cannot read is an error and not "still waiting", for the same
+    reason: a payment that is waiting keeps its seat.
+    """
+    status = intent.get("status")
+    if status == "succeeded":
+        return TransactionStatus.CONFIRMED
+    if status in _STRIPE_WAITING:
+        return TransactionStatus.PENDING
+    if status == "canceled":
+        return TransactionStatus.FAILED
+    if status == "requires_payment_method":
+        code = (intent.get("last_payment_error") or {}).get("code")
+        if code == _STRIPE_EXPIRED_CODE:
+            return TransactionStatus.EXPIRED
+        if code:
+            return TransactionStatus.FAILED
+        # Never confirmed, or no reason given: not something we can call over.
+    logger.error("Stripe returned an unrecognised status: %r", status)
+    raise UnrecognisedStatusError(f"unrecognised status {status!r}")
+
+
+class StripeMBWayGateway:
+    """MB WAY through Stripe's PaymentIntents API.
+
+    Docs: docs.stripe.com/payments/mb-way.
+
+    Same shape as the ifthenpay flow, with no redirect and no Stripe.js: the server
+    creates and confirms the PaymentIntent with the phone number from our own form,
+    the person approves in the MB WAY app, and we read the PaymentIntent back (the
+    status poll, and the webhook once it is wired). The PaymentIntent id is the
+    provider reference.
+    """
+
+    name = "stripe"
+
+    def __init__(
+        self,
+        *,
+        secret_key: str,
+        timeout_seconds: int,
+        api_version: str,
+        base_url: str = STRIPE_API_BASE,
+        http_request: Callable[[str, str, dict | None, dict], dict] | None = None,
+    ) -> None:
+        self.secret_key = secret_key
+        self.timeout_seconds = timeout_seconds
+        self.api_version = api_version
+        self.base_url = base_url.rstrip("/")
+        self._http_request = http_request or self._request_json
+
+    def _headers(self, extra: dict | None = None) -> dict[str, str]:
+        token = base64.b64encode(f"{self.secret_key}:".encode()).decode()
+        headers = {
+            "Authorization": f"Basic {token}",
+            "Stripe-Version": self.api_version,
+            "Accept": "application/json",
+        }
+        headers.update(extra or {})
+        return headers
+
+    def _request_json(
+        self, method: str, url: str, form: dict | None, headers: dict
+    ) -> dict:
+        data = None
+        if form is not None:
+            data = parse.urlencode(form).encode("utf-8")
+            headers = {**headers, "Content-Type": "application/x-www-form-urlencoded"}
+        req = request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with request.urlopen(req, timeout=self.timeout_seconds) as response:
+                body = response.read()
+        except error.HTTPError as exc:
+            raise PaymentGatewayError(self._describe_http_error(exc)) from exc
+        except error.URLError as exc:
+            raise PaymentGatewayError(f"stripe unreachable: {exc.reason}") from exc
+        try:
+            parsed = json.loads(body or b"{}")
+        except json.JSONDecodeError as exc:
+            raise PaymentGatewayError("stripe returned invalid JSON") from exc
+        if not isinstance(parsed, dict):
+            raise PaymentGatewayError("stripe returned an unexpected payload")
+        return parsed
+
+    @staticmethod
+    def _describe_http_error(exc: error.HTTPError) -> str:
+        # Only the code and message Stripe documents for errors: never the request.
+        try:
+            detail = json.loads(exc.read() or b"{}").get("error") or {}
+        except (json.JSONDecodeError, AttributeError):
+            detail = {}
+        code = detail.get("code") or detail.get("type") or "unknown"
+        message = str(detail.get("message") or "no message")[:200]
+        return f"stripe responded with HTTP {exc.code} ({code}): {message}"
+
+    def create_payment(
+        self,
+        *,
+        reference: str,
+        amount_cents: int,
+        phone: str,
+        email: str,
+    ) -> MBWayPayment:
+        form = {
+            "amount": str(amount_cents),
+            "currency": "eur",
+            "payment_method_types[]": "mb_way",
+            "payment_method_data[type]": "mb_way",
+            "payment_method_data[billing_details][phone]": f"+351{phone}",
+            "confirm": "true",
+            "metadata[reference]": reference,
+        }
+        # The same reference always means the same PaymentIntent: a repeated request
+        # (a timeout we retried, a double click) cannot create a second charge.
+        headers = self._headers({"Idempotency-Key": f"enei-{reference}"})
+        intent = self._http_request(
+            "POST", f"{self.base_url}/payment_intents", form, headers
+        )
+        intent_id = intent.get("id")
+        if not isinstance(intent_id, str) or not _STRIPE_INTENT_ID.fullmatch(intent_id):
+            raise PaymentGatewayError("stripe response is missing the PaymentIntent id")
+        return MBWayPayment(
+            provider_reference=intent_id, status=TransactionStatus.PENDING
+        )
+
+    def get_status(
+        self, *, reference: str, provider_reference: str | None
+    ) -> TransactionStatus:
+        if not provider_reference:
+            return TransactionStatus.PENDING
+        if not _STRIPE_INTENT_ID.fullmatch(provider_reference):
+            raise PaymentGatewayError("not a Stripe PaymentIntent id")
+        intent = self._http_request(
+            "GET",
+            f"{self.base_url}/payment_intents/{provider_reference}",
+            None,
+            self._headers(),
+        )
+        if (intent.get("metadata") or {}).get("reference") != reference:
+            # Never read the answer of a PaymentIntent that is not this payment's.
+            raise PaymentGatewayError("PaymentIntent does not belong to this payment")
+        return stripe_status(intent)
+
+
 class SimulatedMBWayGateway:
     """Answers like ifthenpay without contacting it, for local/dev/frontend work.
 
@@ -259,6 +419,12 @@ def get_mbway_gateway() -> MBWayGateway:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=PAYMENTS_OFF_MESSAGE,
+        )
+    if settings.PAYMENTS_MODE == "live" and settings.PAYMENTS_PROVIDER == "stripe":
+        return StripeMBWayGateway(
+            secret_key=settings.STRIPE_SECRET_KEY,
+            timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
+            api_version=settings.STRIPE_API_VERSION,
         )
     if settings.PAYMENTS_MODE == "live":
         return IfThenPayMBWayGateway(

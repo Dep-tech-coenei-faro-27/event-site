@@ -192,6 +192,11 @@ body[data-page="informacao-ajuda"] main .search input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(0, 170, 255, 0.15);
 }
+/* Substituto do `outline: none` acima: contorno de 2 px ao navegar com o teclado. */
+body[data-page="informacao-ajuda"] main .search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 body[data-page="informacao-ajuda"] main .search::before {
   content: "";
   position: absolute;
@@ -724,6 +729,12 @@ html body[data-page="informacao-ajuda"][data-page] main .faq-item:has(.faq-quest
     font:
       600 13px Poppins,
       sans-serif;
+  }
+  /* Substituto do `outline: none` acima. */
+  html body[data-page="informacao-ajuda"][data-page] main .faq-mobile-filter select:focus-visible {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   html body[data-page="informacao-ajuda"][data-page] main .faq-mobile-filter::after {
     content: "";

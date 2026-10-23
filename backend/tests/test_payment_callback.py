@@ -104,6 +104,30 @@ def test_callback_confirms_the_transaction_and_issues_the_ticket(
     assert verify_qr_payload(ticket.qr_payload).ticket_id == ticket.id
 
 
+def test_the_ifthenpay_callback_cannot_settle_a_stripe_payment(
+    auth_client, email_sender, db_session, gateway, callback_key
+):
+    gateway.name = "stripe"
+    payment = start_payment(auth_client, email_sender, db_session, gateway)
+
+    response = auth_client.get(
+        CALLBACK_URL,
+        params={
+            "key": callback_key,
+            "orderId": payment["reference"],
+            "amount": "50.00",
+        },
+    )
+
+    assert response.status_code == 404
+    transaction = db_session.scalar(
+        select(Transaction).where(Transaction.reference == payment["reference"])
+    )
+    db_session.refresh(transaction)
+    assert transaction.status is TransactionStatus.PENDING
+    assert count_tickets(db_session, payment["reference"]) == 0
+
+
 def test_polling_confirms_the_transaction_and_issues_the_ticket(
     auth_client, email_sender, db_session, gateway
 ):
@@ -628,6 +652,11 @@ def test_confirmed_payment_queues_the_ticket_email_with_the_qr_once(
     assert f"cid:{TICKET_QR_CID}" in email.html_body
     assert payment["reference"] in email.html_body
     assert "Passe geral" in email.html_body
+    assert payment["reference"] in email.text_body
+    assert "Passe geral" in email.text_body
+    assert f"{settings.FRONTEND_URL}/perfil" in email.html_body
+    assert f"{settings.FRONTEND_URL}/perfil" in email.text_body
+    assert "<" not in email.text_body
     png = base64.b64decode(email.inline_images[TICKET_QR_CID])
     assert png.startswith(b"\x89PNG")
 

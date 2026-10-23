@@ -138,6 +138,19 @@ logo que há decisão; fica só o hash.
 
 Precisa de sessão. Atualiza o `name`, `institution` e `course` do próprio utilizador e devolve o perfil atualizado.
 
+|          |                                                                                                                                              |
+|----------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| Corpo    | `name`, `institution`, `course`, todos opcionais                                                                                             |
+| Omitido  | um campo que não vem no corpo **não muda**                                                                                                   |
+| `null`   | `name: null` é ignorado (o nome nunca fica vazio); `institution: null` e `course: null` **apagam** o valor                                   |
+| Nome     | as mesmas regras do registo                                                                                                                  |
+| Listas   | `institution` e `course` só aceitam os valores das listas fechadas do backend; outro valor dá `422` com `loc` `["body", "<campo>"]`          |
+| Email    | não se altera por aqui: se vier no corpo, é ignorado                                                                                               |
+| `200`    | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course"}` (sem `qr_code`, `ticket`, `pending_payment` nem `refund_due`: para esses, `GET /api/users/me`) |
+| `401`    | sem sessão válida                                                                                                                            |
+| `403`    | email por verificar                                                                                                                          |
+| `422`    | valor inválido                                                                                                                               |
+
 ### `POST /api/auth/forgot-password`
 
 |       |                                                                                                                                      |

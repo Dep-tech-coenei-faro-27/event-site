@@ -91,21 +91,27 @@ O comando de limpeza apaga também os tokens revogados que já expiraram.
 
 Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_limits`), partilhados por todos os workers, em janelas fixas:
 
-| Endpoint | Limite |
-| --- | --- |
-| `POST /auth/login` | 5 por minuto por email e IP, 20 por minuto por email (de qualquer IP) e 30 por minuto por IP |
-| `POST /auth/register` | 2 por minuto por IP |
-| `POST /auth/resend-verification-email` | 1 por minuto e 5 por hora por email, e 10 por minuto por IP |
-| `POST /auth/forgot-password` | 1 por minuto e 5 por hora por email, e 10 por minuto por IP |
-| `PUT /auth/password` | 2 por 15 minutos por utilizador |
-| `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP |
-| `POST /payment/initiate` | 10 por minuto por utilizador |
+| Endpoint | Limite | Variável |
+| --- | --- | --- |
+| `POST /auth/login` | 5 por minuto por email e IP | `RATE_LIMIT_LOGIN_PER_MINUTE` |
+| | 20 por minuto por email (de qualquer IP) | `RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE` |
+| | 30 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
+| `POST /auth/register` | 2 por minuto por IP | `RATE_LIMIT_REGISTER_PER_MINUTE` |
+| `POST /auth/resend-verification-email` e `POST /auth/forgot-password` | 1 por minuto por email | `RATE_LIMIT_EMAIL_PER_MINUTE` |
+| | 5 por hora por email | `RATE_LIMIT_EMAIL_PER_HOUR` |
+| | 10 por minuto por IP | `RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE` |
+| `PUT /auth/password` | 2 por 15 minutos por utilizador | `RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES` |
+| `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP | `RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE` |
+| `POST /payment/initiate` | 10 por minuto por utilizador | `RATE_LIMIT_PAYMENT_PER_MINUTE` |
+| `GET /payment/transactions/{reference}` e o seu fluxo `/events` | 120 por minuto por utilizador (partilhado) | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` |
+| `GET /payment/tiers` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` |
+| `GET /payment/callback` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE` |
 
 O limite de login conta o par email e IP, por isso alguém que falhe a password de outra pessoa não a bloqueia: só se bloqueia a si próprio.
 
-Ao exceder o limite a API devolve `429` com o cabeçalho `Retry-After`. Os valores mudam com as variáveis `RATE_LIMIT_*` do `.env` e `RATE_LIMIT_ENABLED=false` desliga os limites (útil em testes de carga). Atrás de um proxy o IP vem de `X-Forwarded-For`, por isso o uvicorn tem de confiar no proxy (`FORWARDED_ALLOW_IPS`).
+Ao exceder o limite a API devolve `429` com o cabeçalho `Retry-After`. Os valores mudam com as variáveis da tabela (no `.env`) e `RATE_LIMIT_ENABLED=false` desliga os limites (útil em testes de carga). Atrás de um proxy o IP vem de `X-Forwarded-For`, por isso o uvicorn tem de confiar no proxy (`FORWARDED_ALLOW_IPS`).
 
-Os emails são enviados em segundo plano (4 *threads*, fila de 200): um servidor SMTP lento ou parado não atrasa os pedidos. Não há repetição automática: se o envio falhar ou a fila encher, o email perde-se e fica registado no log, e o utilizador pode pedir outro.
+Os emails são gravados numa fila na base de dados (tabela `email_outbox`) e enviados em segundo plano por um *worker*: um servidor SMTP lento ou parado não atrasa os pedidos, o email sobrevive a um reinício do backend e o que falhar é repetido com espera crescente (10 tentativas por omissão, cerca de 27 horas). Se esgotar as tentativas fica `failed` e o erro aparece no log. Como se vê o estado da fila e como são apagados os corpos está em [`docs/deploy.md`](../docs/deploy.md#email).
 
 ## Validação de dados
 
@@ -157,6 +163,7 @@ A bilheteira tem cinco modalidades (`acesso`, `refeicoes`, `completo`, `geral`, 
 - **Estudante:** quem se regista com um email cujo domínio está em `STUDENT_EMAIL_DOMAINS` fica com `student_verification_status: "verified"` automaticamente; os outros ficam `none` e não podem comprar bilhetes de estudante (recebem `403`), a não ser que enviem o comprovativo de matrícula (secção seguinte). O estado (`none`, `submitted`, `verified`, `rejected`) é exposto em `GET /api/auth/me` e `GET /api/users/me`.
 - **MB WAY:** o modo é `PAYMENTS_MODE` (`off` por omissão, `simulated` ou `live`). Em `off` a bilheteira responde `503`; em `simulated` o gateway responde sempre `pending`, sem contactar nada; em `live` fala com a ifthenpay (`MBWAY_KEY` e `MBWAY_BASE_URL` em `https`, obrigatórios). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar. Com `simulated`, `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0 faz o gateway simulado confirmar o pagamento ao fim desses segundos, para testar a confirmação sem ifthenpay. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
 - **Callback do pagamento:** em `live` a ifthenpay confirma o pagamento chamando `GET /api/payment/callback` com a chave anti-phishing (`MBWAY_CALLBACK_KEY`, pelo menos 32 caracteres) e a referência. O endpoint é público, limita os pedidos por IP, compara a chave em tempo constante, valida o valor e é idempotente; só confirma transações `pending` (uma `failed` ou `expired` responde `200` mas fica intocada e com um aviso nos logs). A mesma função de confirmação é usada pelo *polling* (`GET /api/payment/transactions/{reference}`), por isso o bilhete com o QR assinado é emitido quer o pagamento chegue pelo callback quer pela consulta. Sem a chave configurada (ou em `live` sem `MBWAY_CALLBACK_KEY`) o callback é recusado com `403`. A chave é removida dos logs de acesso do uvicorn.
+- **Email do bilhete:** quando o pagamento passa a confirmado, o email com o QR vai para a fila durável (`email_outbox`, `dedupe_key` `ticket:<id>`), nas cinco modalidades e nunca para um pagamento `refund_due`. É um `multipart/alternative`: texto simples (guardado em `text_body`, com os mesmos dados) e HTML com o QR inline (`cid:ticket-qr`). `text_body`, `html_body` e `inline_images` são apagados depois do envio e quando uma linha falhada é limpa. Se pôr o email na fila falhar, o bilhete já está emitido e o varrimento diário (`make cleanup-unverified`, `queue_missing_ticket_emails`) volta a pô-lo, sem duplicar. O desenho (o de `ui-ux/ticket-email/`, PR #287; estes dois ficheiros são cópias, 600 px, sem `rgba` nem imagem de fundo, QR de 240 px) está em `app/core/email/ticket_email.html` e `.txt`, com os marcadores `[FIRST_NAME]`, `[ATTENDEE_NAME]`, `[TICKET_TYPE]`, `[TICKET_REFERENCE]`, `[EVENT_DATES]`, `[EVENT_LOCATION]` e `[TICKET_URL]`; o renderizador escapa os valores e falha se um marcador ficar por substituir. O link do botão é `FRONTEND_URL` + `/perfil` (com ou sem barra final) e o HTML tem de ficar abaixo de 102 KB (o Gmail corta acima disso).
 - O contrato detalhado está em [`docs/api-payments.md`](../docs/api-payments.md).
 
 ## Health checks

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.email import EmailSender, get_email_sender
+from app.core.email.models import EmailOutbox
 from app.core.qr import verify_qr_payload
 from app.core.security import ACCESS_COOKIE_NAME, hash_password
 from app.db.session import get_db
@@ -485,6 +486,11 @@ def test_a_late_payment_is_refunded_not_sold_when_the_modality_sold_out(world):
     assert len(world.tickets_of("rui@example.com")) == 1
     assert ana.get(ME_URL).json()["qr_code"] is None
     assert world.poll(ana, late).json()["status"] == "refund_due"
+    with world.session() as db:
+        queued = db.scalars(
+            select(EmailOutbox.to_email).where(EmailOutbox.dedupe_key.like("ticket:%"))
+        ).all()
+    assert queued == ["rui@example.com"]  # nobody gets a ticket email for a refund
     world.invariants(limit=1)
 
 

@@ -274,6 +274,7 @@ def test_confirming_simulator_requires_simulated_mode(mode):
         "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS": 5,
     }
     if mode == "live":
+        overrides["PAYMENTS_PROVIDER"] = "ifthenpay"
         overrides["MBWAY_KEY"] = "MBW-123456"
         overrides["MBWAY_CALLBACK_KEY"] = "c" * 40
 

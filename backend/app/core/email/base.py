@@ -27,8 +27,12 @@ class EmailSender(ABC):
         subject: str,
         html_body: str,
         inline_images: dict[str, bytes] | None = None,
+        text_body: str | None = None,
     ) -> None:
         """Send an HTML email to a single recipient, raising on failure.
+
+        ``text_body`` is the plain-text alternative; without it one is derived
+        from the HTML.
 
         ``inline_images`` maps a Content-ID to a PNG that the body shows with
         ``<img src="cid:...">``: mail clients block ``data:`` images.
