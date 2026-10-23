@@ -1,7 +1,7 @@
 """create student proofs
 
 Revision ID: f1a8d3c6e902
-Revises: c2e8a4f71b39
+Revises: d6b3e9a15c47
 Create Date: 2026-10-22 12:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "f1a8d3c6e902"
-down_revision: str | None = "c2e8a4f71b39"
+down_revision: str | None = "d6b3e9a15c47"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
