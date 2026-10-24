@@ -21,8 +21,11 @@ from app.core.email.templates import (
 from app.core.qr import render_qr_png
 from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
+    AlreadyRefundedError,
+    CancellingGateway,
     MBWayGateway,
     PaymentGatewayError,
+    RefundingGateway,
     UnrecognisedStatusError,
     stripe_status,
 )
@@ -86,6 +89,18 @@ class CallbackTransactionNotFoundError(PaymentError):
 
 class CallbackAmountMismatchError(PaymentError):
     status_code = 400
+
+
+class NothingToRefundError(PaymentError):
+    """The payment was not paid, or does not exist."""
+
+    status_code = 409
+
+
+class RefundNotSupportedError(PaymentError):
+    """The payment was made through a provider that cannot refund through its API."""
+
+    status_code = 409
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -574,6 +589,7 @@ def _sync_provider_status(
     time after its deadline so that it does not hold its seat for ever.
     """
     reference = transaction.reference
+    provider = transaction.provider
     provider_reference = transaction.provider_reference
     expires_at = _as_utc(transaction.expires_at)
     # Release the pooled database connection before the network call: a slow
@@ -606,6 +622,16 @@ def _sync_provider_status(
             )
 
     if provider_status is TransactionStatus.PENDING:
+        if _cancel_if_overdue(
+            db,
+            transaction,
+            gateway,
+            reference=reference,
+            provider=provider,
+            provider_reference=provider_reference,
+            expires_at=expires_at,
+        ):
+            return
         # Still waiting, whatever the local deadline says: only the provider can end
         # a payment, and until then it keeps its seat. The one exception is a payment
         # the provider cannot resolve for a long time: it would hold its seat for ever.
@@ -624,6 +650,51 @@ def _sync_provider_status(
         return
 
     _settle_pending(db, transaction, provider_status)
+
+
+def _cancel_if_overdue(
+    db: Session,
+    transaction: Transaction,
+    gateway: MBWayGateway,
+    *,
+    reference: str,
+    provider: str,
+    provider_reference: str | None,
+    expires_at: datetime,
+) -> bool:
+    """End, at Stripe, a payment that still waits past its deadline plus a grace.
+
+    Stripe ends the MB WAY wait by itself; this is the backstop for when it does not,
+    so that a payment cannot hold its seat, or be approved, for ever. A payment the
+    person approved at that very moment is confirmed, never expired. When Stripe
+    cannot be asked the payment stays as it is. Returns whether it was settled.
+    """
+    if (
+        provider != "stripe"
+        or not provider_reference
+        or not isinstance(gateway, CancellingGateway)
+    ):
+        return False
+    grace = timedelta(seconds=settings.STRIPE_CANCEL_GRACE_SECONDS)
+    if datetime.now(UTC) < expires_at + grace:
+        return False
+    try:
+        outcome = gateway.cancel_payment(
+            reference=reference, provider_reference=provider_reference
+        )
+    except PaymentGatewayError:
+        logger.warning(
+            "Stripe payment %s is past its deadline and could not be cancelled; "
+            "keeping stored status",
+            reference,
+        )
+        return False
+    if outcome is TransactionStatus.CONFIRMED:
+        confirm_transaction(db, transaction)
+    else:
+        logger.info("Stripe payment %s cancelled after its deadline", reference)
+        _settle_pending(db, transaction, TransactionStatus.EXPIRED)
+    return True
 
 
 def refresh_pending_payment(db: Session, reference: str, gateway: MBWayGateway) -> None:
@@ -668,6 +739,86 @@ def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
         if transaction is not None:
             notify(transaction.reference, transaction.status)
     return ticket
+
+
+def refund_payment(db: Session, reference: str, gateway: MBWayGateway) -> Transaction:
+    """Give the money of a payment back and close it: ``refunded``.
+
+    For a ``refund_due`` (it arrived and there is no ticket to give) and for a
+    ``confirmed`` payment whose ticket is being cancelled: the ticket of THIS payment
+    is cancelled and its seat freed (a ticket of the same person from another payment
+    is never touched). Repeating it changes nothing: a payment already ``refunded``
+    returns at once, and the provider gets an idempotency key, so even a failure
+    between the refund and the database leaves nothing to redo but run it again.
+    The log has the reference and the amount, never anything about the person.
+    """
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    if transaction is None:
+        raise NothingToRefundError("Unknown transaction reference")
+    if transaction.status is TransactionStatus.REFUNDED:
+        return transaction
+    if transaction.status not in (
+        TransactionStatus.REFUND_DUE,
+        TransactionStatus.CONFIRMED,
+    ):
+        raise NothingToRefundError(
+            f"A {transaction.status.value} payment has nothing to refund"
+        )
+    provider_reference = transaction.provider_reference
+    amount_cents = transaction.amount_cents
+    if (
+        transaction.provider != gateway.name
+        or not provider_reference
+        or not isinstance(gateway, RefundingGateway)
+    ):
+        raise RefundNotSupportedError(
+            f"A {transaction.provider} payment cannot be refunded here: "
+            "refund it in the provider's own panel"
+        )
+    # No lock during the network call: the refund is idempotent, so nobody is hurt if
+    # something else touches the row meanwhile.
+    db.commit()
+    try:
+        refund_id = gateway.refund(
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=amount_cents,
+        )
+    except AlreadyRefundedError:
+        refund_id = "already refunded at the provider"
+
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status is not TransactionStatus.REFUNDED:
+        ticket_id = db.scalar(
+            select(Ticket.id).where(
+                Ticket.transaction_reference == reference,
+                Ticket.payment_status != PaymentStatus.CANCELLED,
+            )
+        )
+        if ticket_id is not None and transaction.status is TransactionStatus.CONFIRMED:
+            cancel_ticket(db, ticket_id)  # also makes the payment ``refunded``
+        if transaction.status is not TransactionStatus.REFUNDED:
+            transaction.status = TransactionStatus.REFUNDED
+            db.commit()
+        db.refresh(transaction)
+        notify(reference, transaction.status)
+    logger.info(
+        "Payment %s refunded (%d cents, refund %s)", reference, amount_cents, refund_id
+    )
+    return transaction
+
+
+def refundable_references(db: Session) -> list[str]:
+    """The payments waiting for a refund, oldest first."""
+    return list(
+        db.scalars(
+            select(Transaction.reference)
+            .where(Transaction.status == TransactionStatus.REFUND_DUE)
+            .order_by(Transaction.confirmed_at, Transaction.id)
+        )
+    )
 
 
 def handle_payment_callback(
