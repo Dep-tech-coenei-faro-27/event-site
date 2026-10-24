@@ -111,8 +111,8 @@ describe('título do separador', () => {
     ['Acessibilidade', Acessibilidade, 'Declaração de acessibilidade · ENEI 2027'],
     ['Privacidade', Privacidade, 'Política de privacidade · ENEI 2027'],
     ['Termos', Termos, 'Termos e condições · ENEI 2027'],
-    ['Recuperar', ForgotPassword, 'Recuperar acesso · ENEI 2027'],
-    ['Redefinir', ResetPassword, 'Nova palavra-passe · ENEI 2027'],
+    ['Recuperar', ForgotPassword, 'Recuperar palavra-passe · ENEI 2027'],
+    ['Redefinir', ResetPassword, 'Redefinir palavra-passe · ENEI 2027'],
   ])('%s tem título próprio', (_name, Page, title) => {
     document.title = '';
     render(<MemoryRouter><Page /></MemoryRouter>);

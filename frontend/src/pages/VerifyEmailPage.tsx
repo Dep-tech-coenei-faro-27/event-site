@@ -1,20 +1,17 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import eneiLogo from "../assets/ENEI-logo.svg";
+import { useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import Eyebrow from "../components/EyeBrow";
-import PrimaryButton from "../components/PrimaryButton";
-import SecondaryButton from "../components/SecundaryButton";
-import Field from "../components/Field";
+import AuthLayout, { AuthEyebrow, AuthStateIcon } from "../components/auth/AuthLayout";
+import AuthField from "../components/auth/AuthField";
+import AuthAlert from "../components/auth/AuthAlert";
 import { usePageMeta } from "../utils/usePageMeta";
+import { formErrorsFrom, formMessage, useAuthForm } from "../utils/authForm";
 import { http, ApiError } from "../utils/http";
-import { retryAfterMessage } from "../utils/RetryAfter";
+import { retryAfterSeconds } from "../payments/errors";
 
 type Status =
   | "pending" // sem token: "Verifica o teu email" (texto do mockup)
   | "loading"
   | "success"
-  | "invalid"
-  | "rate_limited"
   | "error";
 
 const points = [
@@ -23,44 +20,22 @@ const points = [
   "Completa o teu perfil.",
 ];
 
-const iconProps = {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.7,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-  className: "size-[31px]",
-};
+const mailIcon = (
+  <>
+    <rect x="3" y="5" width="18" height="14" rx="1" />
+    <path d="m4 7 8 6 8-6M16 16l2 2 4-5" />
+  </>
+);
 
-function MailIcon() {
-  return (
-    <svg {...iconProps}>
-      <rect x="3" y="5" width="18" height="14" rx="1" />
-      <path d="m4 7 8 6 8-6M16 16l2 2 4-5" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg {...iconProps}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5v5.5M12 16.5v.01" />
-    </svg>
-  );
-}
-
-// Botões com cantos de 2px e largura total, como no .auth-actions do CSS original
-const actionClass = "w-full !rounded-[2px]";
-
-// Títulos como no mockup (pesados)
-const headingFont = "font-montserrat font-extrabold";
+const alertIcon = (
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7.5v5.5M12 16.5v.01" />
+  </>
+);
 
 export default function VerifyEmailPage() {
-
-    usePageMeta("Verificar email · ENEI 2027", "Verificação de email da conta ENEI 2027.");
+  usePageMeta("Verificar email · ENEI 2027", "Verificação de email da conta ENEI 2027.");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,16 +43,15 @@ export default function VerifyEmailPage() {
   const token = params.get("token");
 
   // Email mostrado no estado "pending". Vem do registo:
-  // navigate("/conta/verificar", { state: { email } })
-  const email = (location.state as { email?: string } | null)?.email;
+  // navigate("/conta/verificar", { state: { email, registered: true } })
+  const routeState = location.state as { email?: string; registered?: boolean } | null;
+  const email = routeState?.email;
 
   const [status, setStatus] = useState<Status>(token ? "loading" : "pending");
-  // Texto do 429 com o tempo de espera (Retry-After), quando a API o envia
-  const [rateLimitText, setRateLimitText] = useState<string | null>(null);
   // Reenvio do email de verificação
   const [emailInput, setEmailInput] = useState("");
-  const [resending, setResending] = useState(false);
-  const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [resent, setResent] = useState(false);
+  const { pending, errors, fail, submit, formRef, alertRef } = useAuthForm();
   // Evita enviar o pedido duas vezes (React StrictMode corre o efeito 2x em dev)
   const requested = useRef(false);
 
@@ -94,104 +68,72 @@ export default function VerifyEmailPage() {
         setStatus("success");
       } catch (err) {
         if (err instanceof ApiError && err.status === 400) {
-          setStatus("invalid");
+          // Ligação expirada, já usada ou substituída: a página própria deixa pedir um novo email.
+          navigate("/conta/link-expirado", { replace: true, state: { link: "verificacao" } });
         } else if (err instanceof ApiError && err.status === 429) {
-          setRateLimitText(
-            retryAfterMessage(
-              err.retryAfter,
-              "Foram feitas demasiadas tentativas a partir desta ligação.",
-            ),
-          );
-          setStatus("rate_limited");
+          navigate("/conta/demasiadas-tentativas", {
+            replace: true,
+            state: { retryAfterSeconds: retryAfterSeconds(err.retryAfter) },
+          });
         } else {
           setStatus("error");
         }
       }
     })();
-  }, [token]);
+  }, [token, navigate]);
 
-  const handleResend = async () => {
-    if (resending) return;
+  const handleResend = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const target = (email ?? emailInput).trim();
     if (!target) {
-      setResendMsg({ ok: false, text: "Indica o email da conta." });
+      fail({ fields: { email: ["Indica o email da conta."] }, message: null });
       return;
     }
 
-    setResending(true);
-    setResendMsg(null);
-    try {
-      await http("/auth/resend-verification-email", {
-        method: "POST",
-        body: { email: target },
-      });
-      // 200 → resposta sempre igual, exista a conta ou não
-      setResendMsg({
-        ok: true,
-        text: "Se a conta estiver por verificar, enviámos um novo email de verificação.",
-      });
-    } catch (err) {
-      if (!(err instanceof ApiError)) {
-        setResendMsg({ ok: false, text: "Não foi possível contactar o servidor." });
-      } else if (err.status === 429) {
-        setResendMsg({
-          ok: false,
-          text: retryAfterMessage(err.retryAfter, "Pediste demasiados reenvios."),
+    void submit(async () => {
+      setResent(false);
+      try {
+        await http("/auth/resend-verification-email", {
+          method: "POST",
+          body: { email: target },
         });
-      } else {
-        setResendMsg({ ok: false, text: "Ocorreu um erro. Tenta novamente." });
+        // 200 → resposta sempre igual, exista a conta ou não
+        setResent(true);
+      } catch (err) {
+        const next = formErrorsFrom(err, "Pediste demasiados reenvios.");
+        // Com o email vindo do registo não há campo onde mostrar o erro: vai para o aviso.
+        fail(email && next.fields.email ? formMessage(next.fields.email.join(" ")) : next);
       }
-    } finally {
-      setResending(false);
-    }
+    });
   };
 
-  const content: Record<
-    Status,
-    { icon: ReactNode; eyebrow: string; title: string; text: ReactNode }
-  > = {
+  const content: Record<Status, { icon: ReactNode; eyebrow: string; title: string; text: ReactNode }> = {
     pending: {
-      icon: <MailIcon />,
+      icon: mailIcon,
       eyebrow: "VERIFICAÇÃO",
-      title: "Verifica o teu email.",
+      title: routeState?.registered ? "Conta criada. Verifica o teu email." : "Verifica o teu email.",
       text: email ? (
         <>
-          Enviámos uma ligação de confirmação para{" "}
-          <strong className="text-white">{email}</strong>. Abre-a para ativares
-          a conta.
+          Enviámos uma ligação de confirmação para <strong>{email}</strong>. Abre-a para ativares a conta.
         </>
       ) : (
         "Enviámos uma ligação de confirmação para o teu email. Abre-a para ativares a conta."
       ),
     },
     loading: {
-      icon: <MailIcon />,
+      icon: mailIcon,
       eyebrow: "A_VERIFICAR",
-      title: "A confirmar o teu email...",
+      title: "A confirmar o teu email…",
       text: "Só demora um instante.",
     },
     success: {
-      icon: <MailIcon />,
+      icon: mailIcon,
       eyebrow: "EMAIL_CONFIRMADO",
       title: "Conta confirmada.",
       text: "O teu email foi verificado com sucesso. Já podes entrar na tua conta ENEI.",
     },
-    invalid: {
-      icon: <AlertIcon />,
-      eyebrow: "LINK_INVALIDO",
-      title: "Este link já não é válido.",
-      text: "O link expirou (vale 30 minutos) ou foi substituído por um mais recente. Se a tua palavra-passe mudou ou a conta foi recriada, o link antigo deixa de funcionar. Cria a conta novamente para receberes um novo email.",
-    },
-    rate_limited: {
-      icon: <AlertIcon />,
-      eyebrow: "DEMASIADAS_TENTATIVAS",
-      title: "Tenta novamente mais tarde.",
-      text:
-        rateLimitText ??
-        "Foram feitas demasiadas tentativas a partir desta ligação. Aguarda uns minutos e volta a abrir o link do email.",
-    },
     error: {
-      icon: <AlertIcon />,
+      icon: alertIcon,
       eyebrow: "ERRO",
       title: "Algo correu mal.",
       text: "Não foi possível confirmar o email. Verifica a ligação e tenta novamente.",
@@ -201,162 +143,71 @@ export default function VerifyEmailPage() {
   const current = content[status];
 
   return (
-    <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
-      <div
-        className="relative overflow-hidden min-[621px]:min-h-[calc(100vh-76px)]"
-      >
-        <div
-          aria-hidden="true"
-          className="azulejo-bg pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.025]"
-        />
-
-        <section className="relative z-[1] overflow-hidden pb-3 pt-[18px] min-[621px]:pb-6 min-[621px]:pt-[clamp(48px,7vw,92px)]">
-          <div className="mx-auto grid w-[min(calc(100%-20px),1180px)] overflow-hidden rounded-[4px] border border-[rgba(26,178,255,0.42)] bg-azul-painel shadow-[0_18px_38px_-28px_rgba(0,0,0,0.95),0_8px_20px_-18px_rgba(26,178,255,0.28)] min-[621px]:w-[min(calc(100%-40px),1180px)] min-[901px]:min-h-[600px] min-[901px]:grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)]">
-            <aside className="relative flex min-h-[310px] flex-col justify-between overflow-hidden border-b border-[rgba(26,178,255,0.42)] bg-[linear-gradient(150deg,rgba(26,178,255,0.2),transparent_58%)] bg-azul-superficie px-[22px] py-[30px] min-[621px]:min-h-[360px] min-[621px]:p-[clamp(38px,5vw,64px)] min-[901px]:border-b-0 min-[901px]:border-r">
-              <img
-                src={eneiLogo}
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute bottom-7 right-[34px] h-[206px] w-[86px] object-contain opacity-[0.07]"
-              />
-              <div className="relative">
-                <Eyebrow text="EMAIL" />
-                <h1
-                  className={`max-w-[520px] text-[clamp(38px,5vw,64px)] leading-[1.06] tracking-[-0.045em] ${headingFont}`}
-                >
-                  Falta apenas um passo.
-                </h1>
-                <p className="mt-5 max-w-[720px] text-[17px] text-cinza-texto">
-                  A confirmação mantém a tua conta segura e garante que recebes
-                  a informação certa.
-                </p>
-              </div>
-              <div className="relative mt-8 grid max-w-[390px] gap-2.5">
-                {points.map((text, i) => (
-                  <div
-                    key={text}
-                    className="grid min-h-[38px] grid-cols-[34px_1fr] items-center gap-3.5 text-sm text-cinza-texto"
-                  >
-                    <span className="grid size-[34px] place-items-center border border-[rgba(26,178,255,0.42)] font-montserrat text-[11px] font-bold text-acento-forte">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <p className="m-0 leading-[1.45]">{text}</p>
-                  </div>
-                ))}
-              </div>
-            </aside>
-
-            {/* Card */}
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex flex-col justify-center bg-[linear-gradient(145deg,rgba(26,178,255,0.035),transparent_45%)] bg-azul-painel px-[22px] py-[30px] min-[621px]:p-[clamp(38px,6vw,74px)]"
-            >
-              <div
-                aria-hidden="true"
-                className="mb-6 grid size-16 place-items-center border border-[rgba(26,178,255,0.42)] bg-[rgba(26,178,255,0.08)] text-acento-forte"
-              >
-                {current.icon}
-              </div>
-
-              <Eyebrow text={current.eyebrow} />
-              <h2
-                className={`text-[clamp(32px,4vw,46px)] leading-[1.06] tracking-[-0.045em] ${headingFont}`}
-              >
-                {current.title}
-              </h2>
-              <p className="mt-3.5 max-w-[560px] text-cinza-texto">
-                {current.text}
-              </p>
-
-              {status !== "loading" && (
-                <div className="mt-7 grid gap-2.5">
-                  {status === "pending" && (
-                    <>
-                      {!email && (
-                        <Field
-                          label="Email da conta"
-                          name="email"
-                          type="email"
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          placeholder="nome@exemplo.pt"
-                          autoComplete="email"
-                        />
-                      )}
-                      <PrimaryButton
-                        text="Abrir a minha conta"
-                        className={actionClass}
-                        onClick={() => navigate("/conta")}
-                      />
-                      <SecondaryButton
-                        text={resending ? "A enviar..." : "Reenviar email"}
-                        className={actionClass}
-                        onClick={handleResend}
-                      />
-                    </>
-                  )}
-
-                  {status === "success" && (
-                    <PrimaryButton
-                      text="Entrar na conta"
-                      className={actionClass}
-                      onClick={() => navigate("/perfil")}
-                    />
-                  )}
-
-                  {status === "invalid" && (
-                    <>
-                      <PrimaryButton
-                        text="Criar conta"
-                        className={actionClass}
-                        onClick={() => navigate("/conta/criar")}
-                      />
-                      <SecondaryButton
-                        text="Entrar"
-                        className={actionClass}
-                        onClick={() => navigate("/perfil")}
-                      />
-                    </>
-                  )}
-
-                  {(status === "rate_limited" || status === "error") && (
-                    <SecondaryButton
-                      text="Tentar novamente"
-                      className={actionClass}
-                      onClick={() => window.location.reload()}
-                    />
-                  )}
-                </div>
-              )}
-
-              {status === "pending" && resendMsg && (
-                <p
-                  role={resendMsg.ok ? "status" : "alert"}
-                  className={
-                    resendMsg.ok
-                      ? "mt-[18px] border-l-[3px] border-acento-principal bg-[rgba(26,178,255,0.07)] px-3.5 py-3 text-xs text-gelo"
-                      : "mt-[18px] text-[13px] text-red-400"
-                  }
-                >
-                  {resendMsg.text}
-                </p>
-              )}
-
-              {status !== "success" && (
-                <p className="mt-6 text-center text-sm text-cinza-texto">
-                  <Link
-                    to="/conta"
-                    className="font-semibold text-acento-forte"
-                  >
-                    ← Voltar ao início de sessão
-                  </Link>
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
+    <AuthLayout
+      eyebrow="EMAIL"
+      title="Falta apenas um passo."
+      lead="A confirmação mantém a tua conta segura e garante que recebes a informação certa."
+      points={points}
+    >
+      <div role="status" aria-live="polite">
+        <AuthStateIcon>{current.icon}</AuthStateIcon>
+        <AuthEyebrow text={current.eyebrow} />
+        <h2>{current.title}</h2>
+        <p className="auth-intro">{current.text}</p>
       </div>
-    </div>
+
+      {status === "pending" && (
+        <form ref={formRef} className="auth-actions" onSubmit={handleResend}>
+          {!email && (
+            <AuthField
+              label="Email da conta"
+              name="email"
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="nome@exemplo.pt"
+              autoComplete="email"
+              error={errors.fields.email}
+            />
+          )}
+          <button className="btn btn--primary" type="button" onClick={() => navigate("/conta")}>
+            Abrir a minha conta
+          </button>
+          <button className="btn btn--secondary" type="submit" disabled={pending} aria-busy={pending}>
+            {pending ? "A enviar…" : "Reenviar email"}
+          </button>
+          <AuthAlert message={errors.message} alertRef={alertRef} />
+          {resent && (
+            <p role="status" className="auth-status">
+              Se a conta estiver por verificar, enviámos um novo email de verificação.
+            </p>
+          )}
+        </form>
+      )}
+
+      {status === "success" && (
+        <div className="auth-actions">
+          <button className="btn btn--primary" type="button" onClick={() => navigate("/perfil")}>
+            Entrar na conta
+          </button>
+        </div>
+      )}
+
+      {status === "error" && (
+        <div className="auth-actions">
+          <button className="btn btn--secondary" type="button" onClick={() => window.location.reload()}>
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {status !== "success" && (
+        <p className="auth-switch">
+          <Link className="auth-back" to="/conta">
+            ← Voltar ao início de sessão
+          </Link>
+        </p>
+      )}
+    </AuthLayout>
   );
 }

@@ -167,9 +167,9 @@ A chave anti-phishing transita no *query string* do pedido; o backend remove-a d
 | `pending` | à espera que o utilizador confirme no MB WAY (ou a ser confirmado) |
 | `confirmed` | pago |
 | `failed` | o gateway recusou ou falhou |
-| `expired` | o MB WAY deu o pagamento por terminado sem ser pago (normalmente aos 4 minutos) |
+| `expired` | o MB WAY deu o pagamento por terminado sem ser pago (normalmente aos 4 minutos), ou, no Stripe, o pagamento continuava à espera `STRIPE_CANCEL_GRACE_SECONDS` depois do prazo e foi cancelado |
 | `refund_due` | o dinheiro chegou mas não há bilhete para dar (a pessoa já tem um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado): vai ser reembolsado. Não ocupa stock. Não devia acontecer |
-| `refunded` | o bilhete foi cancelado e o dinheiro devolvido. **Liberta o lugar** e a pessoa pode comprar outra vez. Um callback repetido não o altera |
+| `refunded` | o dinheiro foi devolvido (`python -m app.domains.payments.refund`, ver `docs/deploy.md`) e, se havia bilhete deste pagamento, foi cancelado. **Liberta o lugar** e a pessoa pode comprar outra vez. Um callback repetido não o altera |
 
 `failed` e `expired` quase nunca mudam, mas se o dinheiro chegar depois o callback confirma a transação e emite o bilhete (havendo lugar). Por isso, quando o polling devolve `expired` ou `failed`, antes de dizer à pessoa para tentar outra vez o frontend deve consultar `GET /api/users/me` (se `qr_code` já não for `null`, mostra o bilhete). Se mesmo assim tentar pagar outra vez, o `POST /payment/initiate` responde `409` («já tens bilhete») e a pessoa é levada ao bilhete. Com `refund_due`, mostra-se: «Recebemos o teu pagamento, mas já não há bilhetes (ou já tens um). Vamos reembolsar-te» e o contacto da organização.
 
@@ -252,6 +252,7 @@ make set-price tier=geral price=3500
 | `MBWAY_TIMEOUT_SECONDS` | `10` | tempo máximo de espera do gateway |
 | `MBWAY_PAYMENT_TIMEOUT_SECONDS` | `240` | prazo para a pessoa aprovar o pagamento (4 minutos). É o `expires_at`; não é o momento em que o lugar se liberta. No modo `simulated` é também quando o simulador dá o pagamento por expirado |
 | `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` | `1800` | quanto tempo depois do prazo um pagamento que o MB WAY não consegue resolver (resposta ilegível ou sem referência) mantém o lugar antes de ser dado por expirado |
+| `STRIPE_CANCEL_GRACE_SECONDS` | `120` | só Stripe: quanto tempo depois do prazo um pagamento ainda à espera é cancelado no Stripe (`POST /v1/payment_intents/{id}/cancel`), o que liberta o lugar e impede uma aprovação tardia. Se a pessoa o aprovar nesse instante, fica `confirmed`. Tem de ficar acima da janela real de aprovação do MB WAY |
 | `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS` | `5` | no máximo uma pergunta ao MB WAY por pagamento neste intervalo (0 = sempre). A memória é por processo; o backend corre um |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
