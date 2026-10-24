@@ -48,7 +48,9 @@ class BlockingGateway:
         self.entered = threading.Event()
         self.release = threading.Event()
 
-    def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
         self.entered.set()
         assert self.release.wait(timeout=10)
         return MBWayPayment(provider_reference="BLOCK-1")

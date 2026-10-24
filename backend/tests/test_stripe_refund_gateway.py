@@ -87,6 +87,7 @@ def refund(gateway, *, amount=AMOUNT, reference=REFERENCE, provider_reference=IN
         reference=reference,
         provider_reference=provider_reference,
         amount_cents=amount,
+        description="ENEI - Passe geral",
     )
 
 
@@ -116,8 +117,11 @@ def test_a_refund_gives_back_the_whole_payment_with_an_idempotency_key():
         "payment_intent": INTENT,
         "amount": str(AMOUNT),
         "reason": "requested_by_customer",
+        # a Stripe refund has no description field: the text goes in the metadata
+        "metadata[description]": "ENEI - Passe geral",
         "metadata[reference]": REFERENCE,
     }
+    assert "description" not in form
     # The same payment is always the same refund: a repeat never refunds twice.
     assert headers["Idempotency-Key"] == f"enei-refund-{REFERENCE}"
     assert headers["Stripe-Version"] == "2026-08-26.dahlia"
@@ -464,7 +468,10 @@ def test_only_stripe_cancels_and_only_stripe_and_the_simulator_refund():
 def test_the_simulated_refund_moves_nothing_and_says_so():
     assert (
         SimulatedMBWayGateway().refund(
-            reference=REFERENCE, provider_reference="SIM-1-x", amount_cents=AMOUNT
+            reference=REFERENCE,
+            provider_reference="SIM-1-x",
+            amount_cents=AMOUNT,
+            description="ENEI - Passe geral",
         )
         == f"SIMREFUND-{REFERENCE}"
     )
