@@ -1,0 +1,18 @@
+ENEI 2027 — BILHETE CONFIRMADO
+
+Olá [FIRST_NAME].
+
+A tua compra está confirmada. Guarda este email e apresenta o código QR à entrada do evento.
+
+Titular: [ATTENDEE_NAME]
+Modalidade: [TICKET_TYPE]
+Datas: [EVENT_DATES]
+Local: [EVENT_LOCATION]
+Referência: [TICKET_REFERENCE]
+
+Consultar o bilhete:
+[TICKET_URL]
+
+O bilhete é pessoal e intransmissível. Não partilhes este email nem o código QR.
+
+— ENEI 2027 · Faro, Algarve · 1–4 abril 2027
