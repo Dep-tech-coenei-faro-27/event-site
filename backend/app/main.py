@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
+from app.core.config import settings, stripe_key_mode
 from app.core.email.factory import start_email_worker, stop_email_worker
 from app.core.errors import register_exception_handlers
 from app.core.log_redaction import install_access_log_redaction
@@ -70,6 +70,14 @@ def create_app() -> FastAPI:
             "PAYMENTS_MODE=simulated in production: MB WAY payments are not real. "
             "Set PAYMENTS_MODE=live and the provider credentials to charge users."
         )
+    if settings.PAYMENTS_MODE == "live" and settings.PAYMENTS_PROVIDER == "stripe":
+        mode = stripe_key_mode(settings.STRIPE_SECRET_KEY)
+        logger.info("Stripe payments run with a %s key", mode)
+        if mode == "test" and settings.ENVIRONMENT == "prod":
+            logger.warning(
+                "STRIPE_ALLOW_TEST_KEY is on: payments use the Stripe sandbox and "
+                "nobody is charged. Remove it, and use the live key, before real sales."
+            )
     docs = settings.ENVIRONMENT != "prod"
     app = FastAPI(
         title=settings.PROJECT_NAME,

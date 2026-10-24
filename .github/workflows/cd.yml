@@ -93,6 +93,11 @@ jobs:
             if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
               echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env
             fi
+            # Só no staging: deixa arrancar com uma chave Stripe de teste. Sem a Variable o backend recusa
+            # sk_test_ em produção.
+            if [ -n "${{ vars.STRIPE_ALLOW_TEST_KEY }}" ]; then
+              echo "STRIPE_ALLOW_TEST_KEY=${{ vars.STRIPE_ALLOW_TEST_KEY }}" >> .env
+            fi
             # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
             if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then
               echo "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" >> .env
