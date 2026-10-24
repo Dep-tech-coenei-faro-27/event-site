@@ -19,7 +19,18 @@ PAYMENTS_OFF_MESSAGE = "Payments are currently disabled."
 
 
 class PaymentGatewayError(RuntimeError):
-    """Raised when the payment provider is unreachable or answers badly."""
+    """Raised when the payment provider is unreachable or answers badly.
+
+    ``code`` is the provider's own error code when it gave one (Stripe's ``code``).
+    """
+
+    def __init__(self, message: str = "", *, code: str | None = None) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+class AlreadyRefundedError(PaymentGatewayError):
+    """The provider says this payment was already refunded in full."""
 
 
 class UnrecognisedStatusError(PaymentGatewayError):
@@ -50,6 +61,44 @@ class MBWayGateway(Protocol):
     def get_status(
         self, *, reference: str, provider_reference: str | None
     ) -> TransactionStatus: ...
+
+
+@runtime_checkable
+class RefundingGateway(Protocol):
+    """A gateway that can give the money back through its API."""
+
+    name: str
+
+    def refund(
+        self, *, reference: str, provider_reference: str | None, amount_cents: int
+    ) -> str:
+        """Refund the whole payment and return the provider's refund id."""
+        ...
+
+
+@runtime_checkable
+class LookupGateway(Protocol):
+    """A gateway that can find a payment again by our reference."""
+
+    name: str
+
+    def find_payment(self, *, reference: str) -> str | None:
+        """The provider's id of the payment we made with this reference, if any."""
+        ...
+
+
+@runtime_checkable
+class CancellingGateway(Protocol):
+    """A gateway that can end a payment that is still waiting."""
+
+    name: str
+
+    def cancel_payment(
+        self, *, reference: str, provider_reference: str | None
+    ) -> TransactionStatus:
+        """End the payment: ``CONFIRMED`` if it was paid at that very moment,
+        ``EXPIRED`` once it can no longer be paid."""
+        ...
 
 
 # ifthenpay MB WAY v2 status codes (see the official SDK's MbwayService):
@@ -193,6 +242,21 @@ _STRIPE_EXPIRED_CODE = "payment_intent_payment_attempt_expired"
 # ``requires_action`` is the MB WAY wait (``next_action.type`` is
 # ``mb_way_await_authorization``); the others are transitions that settle soon.
 _STRIPE_WAITING = {"requires_action", "processing", "requires_confirmation"}
+# A card refund is ``re_...``; a refund of an MB WAY payment comes back as ``pyr_...``
+# (seen in the sandbox with the API version we pin).
+_PAYMENT_REFERENCE = re.compile(r"ENEI-[A-Z0-9]{10}")
+_STRIPE_REFUND_ID = re.compile(r"(?:re|pyr)_[A-Za-z0-9]+")
+# ``pending``: Stripe accepted the refund and the money is on its way back.
+_STRIPE_REFUND_OK = {"succeeded", "pending"}
+
+
+def _ended_intent(intent: dict) -> TransactionStatus | None:
+    """``CONFIRMED`` or ``EXPIRED`` if the PaymentIntent is over, else ``None``."""
+    if intent.get("status") == "succeeded":
+        return TransactionStatus.CONFIRMED
+    if intent.get("status") == "canceled":
+        return TransactionStatus.EXPIRED
+    return None
 
 
 def stripe_status(intent: dict) -> TransactionStatus:
@@ -270,7 +334,8 @@ class StripeMBWayGateway:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
                 body = response.read()
         except error.HTTPError as exc:
-            raise PaymentGatewayError(self._describe_http_error(exc)) from exc
+            message, code = self._describe_http_error(exc)
+            raise PaymentGatewayError(message, code=code) from exc
         except error.URLError as exc:
             raise PaymentGatewayError(f"stripe unreachable: {exc.reason}") from exc
         try:
@@ -282,7 +347,7 @@ class StripeMBWayGateway:
         return parsed
 
     @staticmethod
-    def _describe_http_error(exc: error.HTTPError) -> str:
+    def _describe_http_error(exc: error.HTTPError) -> tuple[str, str | None]:
         # Only the code and message Stripe documents for errors: never the request.
         try:
             detail = json.loads(exc.read() or b"{}").get("error") or {}
@@ -290,7 +355,11 @@ class StripeMBWayGateway:
             detail = {}
         code = detail.get("code") or detail.get("type") or "unknown"
         message = str(detail.get("message") or "no message")[:200]
-        return f"stripe responded with HTTP {exc.code} ({code}): {message}"
+        own_code = detail.get("code")
+        return (
+            f"stripe responded with HTTP {exc.code} ({code}): {message}",
+            own_code if isinstance(own_code, str) else None,
+        )
 
     def create_payment(
         self,
@@ -327,7 +396,13 @@ class StripeMBWayGateway:
     ) -> TransactionStatus:
         if not provider_reference:
             return TransactionStatus.PENDING
-        if not _STRIPE_INTENT_ID.fullmatch(provider_reference):
+        return stripe_status(self._intent_of(reference, provider_reference))
+
+    def _intent_of(self, reference: str, provider_reference: str | None) -> dict:
+        """The PaymentIntent of this payment, read back from Stripe."""
+        if not provider_reference or not _STRIPE_INTENT_ID.fullmatch(
+            provider_reference
+        ):
             raise PaymentGatewayError("not a Stripe PaymentIntent id")
         intent = self._http_request(
             "GET",
@@ -336,9 +411,120 @@ class StripeMBWayGateway:
             self._headers(),
         )
         if (intent.get("metadata") or {}).get("reference") != reference:
-            # Never read the answer of a PaymentIntent that is not this payment's.
+            # Never act on a PaymentIntent that is not this payment's.
             raise PaymentGatewayError("PaymentIntent does not belong to this payment")
-        return stripe_status(intent)
+        return intent
+
+    def find_payment(self, *, reference: str) -> str | None:
+        """Find the PaymentIntent we made for this reference, by its metadata.
+
+        For a payment whose id we never saved: Stripe created it but the answer to
+        the creation got lost. Exactly one match is an answer; none, or more than
+        one, is not (the search can lag a little behind a new payment, so "none"
+        only means "not yet").
+        """
+        if not _PAYMENT_REFERENCE.fullmatch(reference):
+            raise PaymentGatewayError("not a payment reference")
+        query = parse.urlencode({"query": f"metadata['reference']:'{reference}'"})
+        result = self._http_request(
+            "GET",
+            f"{self.base_url}/payment_intents/search?{query}",
+            None,
+            self._headers(),
+        )
+        matches = [
+            item["id"]
+            for item in result.get("data") or []
+            if isinstance(item, dict)
+            and (item.get("metadata") or {}).get("reference") == reference
+            and isinstance(item.get("id"), str)
+            and _STRIPE_INTENT_ID.fullmatch(item["id"])
+        ]
+        if len(matches) > 1:
+            logger.error("Payment %s matches more than one PaymentIntent", reference)
+            return None
+        return matches[0] if matches else None
+
+    def refund(
+        self, *, reference: str, provider_reference: str | None, amount_cents: int
+    ) -> str:
+        """Give back the whole payment through ``POST /refunds``.
+
+        Nothing is refunded unless the PaymentIntent is this payment's, was paid, and
+        was paid for exactly what we charged. The idempotency key makes repeating the
+        call safe: it returns the same refund and never a second one.
+        """
+        intent = self._intent_of(reference, provider_reference)
+        if intent.get("status") != "succeeded":
+            raise PaymentGatewayError(
+                "the PaymentIntent was not paid: nothing to refund"
+            )
+        if intent.get("currency") != "eur" or (
+            intent.get("amount_received") != amount_cents
+        ):
+            raise PaymentGatewayError(
+                "the PaymentIntent was paid for another amount than charged"
+            )
+        form = {
+            "payment_intent": str(provider_reference),
+            "amount": str(amount_cents),
+            "reason": "requested_by_customer",
+            "metadata[reference]": reference,
+        }
+        headers = self._headers({"Idempotency-Key": f"enei-refund-{reference}"})
+        try:
+            refund = self._http_request(
+                "POST", f"{self.base_url}/refunds", form, headers
+            )
+        except PaymentGatewayError as exc:
+            if exc.code == "charge_already_refunded":
+                raise AlreadyRefundedError(str(exc), code=exc.code) from exc
+            raise
+        refund_id = refund.get("id")
+        if not isinstance(refund_id, str) or not _STRIPE_REFUND_ID.fullmatch(refund_id):
+            raise PaymentGatewayError("stripe response is missing the refund id")
+        if refund.get("status") not in _STRIPE_REFUND_OK:
+            raise PaymentGatewayError(
+                f"the refund was not accepted (status {refund.get('status')!r})"
+            )
+        return refund_id
+
+    def cancel_payment(
+        self, *, reference: str, provider_reference: str | None
+    ) -> TransactionStatus:
+        """End a PaymentIntent that is still waiting, so it can no longer be paid.
+
+        A payment approved at the very same instant cannot be cancelled: then it is
+        paid, and that is what is returned (``CONFIRMED``), never ``EXPIRED``.
+        """
+        intent = self._intent_of(reference, provider_reference)
+        outcome = _ended_intent(intent)
+        if outcome is not None:
+            return outcome
+        headers = self._headers({"Idempotency-Key": f"enei-cancel-{reference}"})
+        try:
+            self._http_request(
+                "POST",
+                f"{self.base_url}/payment_intents/{provider_reference}/cancel",
+                {"cancellation_reason": "abandoned"},
+                headers,
+            )
+        except PaymentGatewayError as exc:
+            # Stripe refuses to cancel a payment that changed state under us (approved
+            # just now, or ended by Stripe). The sandbox does it with the code
+            # ``payment_intent_unexpected_state`` or with only the message "already in
+            # a terminal state", and the PaymentIntent can still read as waiting for a
+            # moment. Whatever the refusal says, read the payment again and let that
+            # decide: over (paid or cancelled) is an answer; still waiting is not, and
+            # the payment then simply stays as it was until the next look.
+            try:
+                outcome = _ended_intent(self._intent_of(reference, provider_reference))
+            except PaymentGatewayError:
+                raise exc from None
+            if outcome is None:
+                raise
+            return outcome
+        return TransactionStatus.EXPIRED
 
 
 class SimulatedMBWayGateway:
@@ -383,6 +569,12 @@ class SimulatedMBWayGateway:
             provider_reference=f"{self._REFERENCE_PREFIX}-{created_at}-{reference}",
             status=TransactionStatus.PENDING,
         )
+
+    def refund(
+        self, *, reference: str, provider_reference: str | None, amount_cents: int
+    ) -> str:
+        """Nothing moves: lets the refund flow be tried locally."""
+        return f"SIMREFUND-{reference}"
 
     def _created_at(self, provider_reference: str | None) -> int | None:
         if not provider_reference:
