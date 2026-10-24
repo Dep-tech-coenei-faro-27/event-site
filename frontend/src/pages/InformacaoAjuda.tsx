@@ -23,7 +23,7 @@ export default function InformacaoAjudaPage() {
           <h1>Como podemos ajudar?</h1>
           <p className="lead">Encontra respostas às tuas perguntas sobre o ENEI 2027.</p>
           <label className="search">
-            <span className="hidden">Pesquisar perguntas</span>
+            <span className="sr-only">Pesquisar perguntas</span>
             <input
               type="search"
               placeholder="Pesquisa uma pergunta…"
