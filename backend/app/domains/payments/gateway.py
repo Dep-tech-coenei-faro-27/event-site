@@ -77,6 +77,17 @@ class RefundingGateway(Protocol):
 
 
 @runtime_checkable
+class LookupGateway(Protocol):
+    """A gateway that can find a payment again by our reference."""
+
+    name: str
+
+    def find_payment(self, *, reference: str) -> str | None:
+        """The provider's id of the payment we made with this reference, if any."""
+        ...
+
+
+@runtime_checkable
 class CancellingGateway(Protocol):
     """A gateway that can end a payment that is still waiting."""
 
@@ -231,7 +242,10 @@ _STRIPE_EXPIRED_CODE = "payment_intent_payment_attempt_expired"
 # ``requires_action`` is the MB WAY wait (``next_action.type`` is
 # ``mb_way_await_authorization``); the others are transitions that settle soon.
 _STRIPE_WAITING = {"requires_action", "processing", "requires_confirmation"}
-_STRIPE_REFUND_ID = re.compile(r"re_[A-Za-z0-9]+")
+# A card refund is ``re_...``; a refund of an MB WAY payment comes back as ``pyr_...``
+# (seen in the sandbox with the API version we pin).
+_PAYMENT_REFERENCE = re.compile(r"ENEI-[A-Z0-9]{10}")
+_STRIPE_REFUND_ID = re.compile(r"(?:re|pyr)_[A-Za-z0-9]+")
 # ``pending``: Stripe accepted the refund and the money is on its way back.
 _STRIPE_REFUND_OK = {"succeeded", "pending"}
 
@@ -401,6 +415,36 @@ class StripeMBWayGateway:
             raise PaymentGatewayError("PaymentIntent does not belong to this payment")
         return intent
 
+    def find_payment(self, *, reference: str) -> str | None:
+        """Find the PaymentIntent we made for this reference, by its metadata.
+
+        For a payment whose id we never saved: Stripe created it but the answer to
+        the creation got lost. Exactly one match is an answer; none, or more than
+        one, is not (the search can lag a little behind a new payment, so "none"
+        only means "not yet").
+        """
+        if not _PAYMENT_REFERENCE.fullmatch(reference):
+            raise PaymentGatewayError("not a payment reference")
+        query = parse.urlencode({"query": f"metadata['reference']:'{reference}'"})
+        result = self._http_request(
+            "GET",
+            f"{self.base_url}/payment_intents/search?{query}",
+            None,
+            self._headers(),
+        )
+        matches = [
+            item["id"]
+            for item in result.get("data") or []
+            if isinstance(item, dict)
+            and (item.get("metadata") or {}).get("reference") == reference
+            and isinstance(item.get("id"), str)
+            and _STRIPE_INTENT_ID.fullmatch(item["id"])
+        ]
+        if len(matches) > 1:
+            logger.error("Payment %s matches more than one PaymentIntent", reference)
+            return None
+        return matches[0] if matches else None
+
     def refund(
         self, *, reference: str, provider_reference: str | None, amount_cents: int
     ) -> str:
@@ -466,10 +510,17 @@ class StripeMBWayGateway:
                 headers,
             )
         except PaymentGatewayError as exc:
-            if exc.code != "payment_intent_unexpected_state":
-                raise
-            # It changed under us (approved just now, or ended by Stripe): read again.
-            outcome = _ended_intent(self._intent_of(reference, provider_reference))
+            # Stripe refuses to cancel a payment that changed state under us (approved
+            # just now, or ended by Stripe). The sandbox does it with the code
+            # ``payment_intent_unexpected_state`` or with only the message "already in
+            # a terminal state", and the PaymentIntent can still read as waiting for a
+            # moment. Whatever the refusal says, read the payment again and let that
+            # decide: over (paid or cancelled) is an answer; still waiting is not, and
+            # the payment then simply stays as it was until the next look.
+            try:
+                outcome = _ended_intent(self._intent_of(reference, provider_reference))
+            except PaymentGatewayError:
+                raise exc from None
             if outcome is None:
                 raise
             return outcome

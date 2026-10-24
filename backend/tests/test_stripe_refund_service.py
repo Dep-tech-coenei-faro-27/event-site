@@ -24,6 +24,7 @@ from app.domains.payments.service import (
     NothingToRefundError,
     RefundNotSupportedError,
     TicketSoldOutError,
+    _recover_provider_reference,
     confirm_transaction,
     get_transaction,
     initiate_payment,
@@ -50,6 +51,15 @@ class StripeLike:
         self.cancel_calls: list[tuple] = []
         self.refund_calls: list[dict] = []
         self.created = 0
+        self.found: str | None = None
+        self.find_error: Exception | None = None
+        self.find_calls: list[str] = []
+
+    def find_payment(self, *, reference):
+        self.find_calls.append(reference)
+        if self.find_error is not None:
+            raise self.find_error
+        return self.found
 
     def create_payment(self, *, reference, amount_cents, phone, email):
         self.created += 1
@@ -320,6 +330,143 @@ def test_a_full_modality_with_a_fresh_waiting_payment_stays_sold_out(
         )
 
     assert stripe.cancel_calls == []
+
+
+# --- a payment whose id we never saved ------------------------------------------
+
+
+def test_a_payment_with_no_stripe_id_is_found_and_confirmed_by_the_poll(
+    db_session, shop, stripe
+):
+    """The answer to the creation was lost, the person approved: no webhook needed."""
+    stripe.found = INTENT
+    stripe.status = TransactionStatus.CONFIRMED
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.CONFIRMED
+    assert result.provider_reference == INTENT
+    assert ticket_of(db_session, transaction.reference) is not None
+    assert stripe.find_calls == [transaction.reference]
+
+
+def test_a_found_payment_still_waiting_keeps_its_seat_and_gets_its_id(
+    db_session, shop, stripe
+):
+    stripe.found = INTENT
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert result.provider_reference == INTENT
+
+
+def test_a_found_payment_past_its_deadline_is_then_cancelled_like_any_other(
+    db_session, shop, stripe
+):
+    stripe.found = INTENT
+    transaction = make_payment(
+        db_session,
+        shop,
+        "ENEI-0000000020",
+        provider_reference=None,
+        overdue_by=500,
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.EXPIRED
+    assert stripe.cancel_calls == [(transaction.reference, INTENT)]
+
+
+def test_not_found_yet_changes_nothing(db_session, shop, stripe):
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert result.provider_reference is None
+
+
+def test_a_failed_search_changes_nothing(db_session, shop, stripe):
+    stripe.find_error = PaymentGatewayError("stripe unreachable")
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert result.provider_reference is None
+
+
+def test_a_payment_that_already_has_its_id_is_never_searched(db_session, shop, stripe):
+    transaction = make_payment(db_session, shop, "ENEI-0000000020")
+
+    get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert stripe.find_calls == []
+
+
+def test_another_provider_is_never_searched_at_stripe(db_session, shop, stripe):
+    stripe.found = INTENT
+    transaction = make_payment(
+        db_session,
+        shop,
+        "ENEI-0000000020",
+        provider="ifthenpay",
+        provider_reference=None,
+    )
+
+    get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert stripe.find_calls == []
+    assert reload(db_session, transaction).provider_reference is None
+
+
+def test_a_gateway_that_cannot_search_keeps_the_old_behaviour(db_session, shop):
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    result = get_transaction(db_session, shop[0], transaction.reference, PlainGateway())
+
+    assert result.status is TransactionStatus.PENDING
+
+
+def test_the_search_is_throttled_like_any_other_question_to_the_provider(
+    db_session, shop, stripe, monkeypatch
+):
+    monkeypatch.setattr(settings, "PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS", 60)
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=None
+    )
+
+    get_transaction(db_session, shop[0], transaction.reference, stripe)
+    get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert len(stripe.find_calls) == 1
+
+
+def test_an_id_that_arrived_meanwhile_is_not_overwritten(db_session, shop, stripe):
+    """The webhook saved the id between the search and our write: keep theirs."""
+    stripe.found = "pi_3SomeOtherIntentxxxxxx"
+    transaction = make_payment(
+        db_session, shop, "ENEI-0000000020", provider_reference=INTENT
+    )
+
+    assert (
+        _recover_provider_reference(db_session, transaction.reference, stripe) is None
+    )
+    assert reload(db_session, transaction).provider_reference == INTENT
 
 
 # --- refunds ---------------------------------------------------------------

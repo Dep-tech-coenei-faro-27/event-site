@@ -192,11 +192,20 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.refund --
 
 Funciona com um `refund_due` e com um pagamento `confirmed` (o bilhete **desse** pagamento é cancelado e o lugar liberta-se; o bilhete de outro pagamento da mesma pessoa nunca é tocado). Chama `POST /v1/refunds` com o valor cobrado, depois de confirmar no Stripe que o PaymentIntent é deste pagamento, está pago e foi pago pelo valor certo; senão não reembolsa. **É seguro repetir**: o Stripe recebe uma chave de idempotência por pagamento, e um pagamento já `refunded` fica como está sem voltar a chamar o Stripe. Se o Stripe estiver em baixo o pagamento mantém o estado e basta repetir. Mostra só a referência e o valor, nunca dados da pessoa. Com uma transação da ifthenpay recusa e diz para a reembolsar no painel dela. Depois do reembolso a pessoa é avisada por fora do sistema.
 
-O reembolso fica registado no Stripe (painel, em *Payments*, no pagamento) e nos logs do backend (`Payment ENEI-... refunded (… cents, refund re_…)`); a base só guarda o estado `refunded`.
+O reembolso fica registado no Stripe (painel, em *Payments*, no pagamento) e nos logs do backend (`Payment ENEI-... refunded (… cents, refund …)`); a base só guarda o estado `refunded`. No MB WAY o id do reembolso começa por `pyr_` (não por `re_`) e o estado é `pending` durante alguns segundos antes de `succeeded`; o comando aceita os dois.
 
 ### Pagamentos Stripe que ficam à espera
 
-O Stripe termina sozinho a espera do MB WAY. Se um pagamento Stripe continuar à espera `STRIPE_CANCEL_GRACE_SECONDS` (120 s por omissão) depois do prazo, o backend cancela o PaymentIntent no Stripe quando alguém o consulta ou quando o stock precisa do lugar: a transação passa a `expired`, o lugar liberta-se e o pagamento deixa de poder ser aprovado. Se a pessoa o aprovou nesse mesmo instante, o cancelamento falha no Stripe e a transação passa a `confirmed` com o bilhete. A janela real de aprovação do MB WAY só se vê com um pagamento verdadeiro: confirmar na bilheteira real que a folga está acima dela.
+O Stripe termina sozinho a espera do MB WAY. Se um pagamento Stripe continuar à espera `STRIPE_CANCEL_GRACE_SECONDS` (120 s por omissão) depois do prazo, o backend cancela o PaymentIntent no Stripe quando alguém o consulta ou quando o stock precisa do lugar: a transação passa a `expired`, o lugar liberta-se e o pagamento deixa de poder ser aprovado. Se a pessoa o aprovou nesse mesmo instante, o Stripe recusa o cancelamento (às vezes só com a mensagem «already in a terminal state», sem código): o pagamento é lido outra vez e passa a `confirmed` com o bilhete, ou, se o Stripe ainda o mostra à espera, fica como estava até à consulta seguinte. A janela real de aprovação do MB WAY só se vê com um pagamento verdadeiro: confirmar na bilheteira real que a folga está acima dela.
+
+### Pagamento Stripe sem id (a resposta da criação perdeu-se)
+
+Se a chamada que cria o pagamento no Stripe der tempo limite, o Stripe pode tê-lo criado na mesma e a pessoa aprová-lo, mas nós ficamos **sem o id** (a API responde `500`, a transação fica `pending` e a pessoa não pode comprar outra vez até ela acabar). Dois caminhos a recuperam sozinhos:
+
+- **O webhook** (`payment_intent.succeeded`), se estiver registado: a referência vai nos metadados do pagamento, por isso confirma a transação e emite o bilhete, sem a pessoa fazer nada.
+- **A consulta normal do estado:** uma transação Stripe sem id procura o PaymentIntent no Stripe pela referência (`metadata['reference']`), guarda o id e segue o caminho normal (confirma, ou cancela depois do prazo). A pesquisa do Stripe pode atrasar-se até cerca de um minuto, e até lá nada muda; no máximo uma pergunta por pagamento no intervalo de `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`.
+
+Sem nenhum dos dois, a transação só expira meia hora depois do prazo (`MBWAY_UNRESOLVED_MAX_WAIT_SECONDS`). Se nessa altura a pessoa comprou outra vez e o primeiro pagamento for aprovado, chega como `refund_due` e reembolsa-se com o comando acima.
 
 Para ver se há lugares presos por pagamentos que ninguém acompanha (pendentes há mais de 15 minutos, quando o MB WAY dá o pagamento por expirado aos 4):
 

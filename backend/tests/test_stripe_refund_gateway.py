@@ -2,7 +2,7 @@
 
 import io
 import json
-from urllib import error
+from urllib import error, parse
 
 import pytest
 
@@ -11,6 +11,7 @@ from app.domains.payments.gateway import (
     AlreadyRefundedError,
     CancellingGateway,
     IfThenPayMBWayGateway,
+    LookupGateway,
     PaymentGatewayError,
     RefundingGateway,
     SimulatedMBWayGateway,
@@ -130,6 +131,16 @@ def test_a_refund_that_stripe_is_still_processing_counts_as_accepted():
     assert refund(gateway) == "re_1"
 
 
+@pytest.mark.parametrize("refund_id", ["re_3USkVi", "pyr_1UTtBwKnHPoxsDHGHc9dIga1"])
+def test_the_refund_id_of_a_card_and_of_an_mb_way_payment_are_both_accepted(refund_id):
+    """The sandbox answers an MB WAY refund with a ``pyr_`` id, still ``pending``."""
+    gateway, _ = build(
+        {GET_INTENT: paid(), POST_REFUND: {"id": refund_id, "status": "pending"}}
+    )
+
+    assert refund(gateway) == refund_id
+
+
 @pytest.mark.parametrize("status", ["failed", "canceled", "requires_action", None])
 def test_a_refund_stripe_did_not_accept_is_an_error(status):
     gateway, _ = build(
@@ -245,6 +256,43 @@ def test_approved_at_the_very_moment_it_is_paid_and_not_expired():
     assert len(posts(calls)) == 1
 
 
+def test_a_refusal_with_only_a_message_and_no_code_is_read_the_same_way():
+    """The sandbox sometimes answers "already in a terminal state" with no code."""
+    gateway, _ = build(
+        {
+            GET_INTENT: [waiting(), paid()],
+            POST_CANCEL: PaymentGatewayError("already in a terminal state"),
+        }
+    )
+
+    assert cancel(gateway) is TransactionStatus.CONFIRMED
+
+
+def test_a_refusal_while_the_intent_still_reads_as_waiting_leaves_the_payment_alone():
+    """Approval in flight: Stripe refuses and still says it waits; nothing decided."""
+    gateway, _ = build(
+        {
+            GET_INTENT: [waiting(), waiting()],
+            POST_CANCEL: PaymentGatewayError("already in a terminal state"),
+        }
+    )
+
+    with pytest.raises(PaymentGatewayError, match="terminal state"):
+        cancel(gateway)
+
+
+def test_when_the_intent_cannot_be_read_again_the_original_refusal_is_raised():
+    gateway, _ = build(
+        {
+            GET_INTENT: [waiting(), PaymentGatewayError("stripe unreachable")],
+            POST_CANCEL: PaymentGatewayError("already in a terminal state"),
+        }
+    )
+
+    with pytest.raises(PaymentGatewayError, match="terminal state"):
+        cancel(gateway)
+
+
 def test_cancelled_by_stripe_at_the_very_moment_is_expired():
     gateway, _ = build(
         {
@@ -287,6 +335,64 @@ def test_a_payment_intent_of_another_payment_is_never_cancelled():
         cancel(gateway)
 
     assert posts(calls) == []
+
+
+# --- finding a payment whose id we never saved -------------------------------------
+
+
+def search_url(reference=REFERENCE):
+    query = parse.urlencode({"query": f"metadata['reference']:'{reference}'"})
+    return ("GET", f"{BASE}/payment_intents/search?{query}")
+
+
+def find(gateway, reference=REFERENCE):
+    return gateway.find_payment(reference=reference)
+
+
+def test_a_payment_whose_id_was_lost_is_found_by_its_reference():
+    gateway, calls = build({search_url(): {"data": [waiting()]}})
+
+    assert find(gateway) == INTENT
+    assert calls[0][0] == "GET"
+
+
+def test_not_found_yet_is_not_an_answer():
+    gateway, _ = build({search_url(): {"data": []}})
+
+    assert find(gateway) is None
+
+
+def test_more_than_one_match_is_not_an_answer():
+    other = {**waiting(), "id": "pi_3OtherIntentIdxxxxxxxx"}
+    gateway, _ = build({search_url(): {"data": [waiting(), other]}})
+
+    assert find(gateway) is None
+
+
+def test_a_match_of_another_reference_is_ignored():
+    stray = waiting(metadata={"reference": "ENEI-9999999999"})
+    gateway, _ = build({search_url(): {"data": [stray]}})
+
+    assert find(gateway) is None
+
+
+@pytest.mark.parametrize(
+    "bad", ["", "ENEI-1", "x' OR 1=1", "ENEI-00000000011", "enei-0000000001"]
+)
+def test_only_a_well_formed_reference_is_ever_sent_in_a_search(bad):
+    gateway, calls = build({})
+
+    with pytest.raises(PaymentGatewayError, match="not a payment reference"):
+        find(gateway, bad)
+
+    assert calls == []
+
+
+def test_a_failed_search_is_an_error_and_not_an_answer():
+    gateway, _ = build({search_url(): stripe_error("api_error", 500)})
+
+    with pytest.raises(PaymentGatewayError):
+        find(gateway)
 
 
 # --- the error code travels with the error ------------------------------------
@@ -346,6 +452,8 @@ def test_only_stripe_cancels_and_only_stripe_and_the_simulator_refund():
     assert isinstance(stripe, RefundingGateway) and isinstance(
         stripe, CancellingGateway
     )
+    assert isinstance(stripe, LookupGateway)
+    assert not isinstance(ifthenpay, LookupGateway)
     assert isinstance(simulated, RefundingGateway)
     assert not isinstance(simulated, CancellingGateway)
     # ifthenpay has no refund API: that is done by hand in its panel.

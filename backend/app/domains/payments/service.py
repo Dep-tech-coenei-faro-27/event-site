@@ -23,6 +23,7 @@ from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
     AlreadyRefundedError,
     CancellingGateway,
+    LookupGateway,
     MBWayGateway,
     PaymentGatewayError,
     RefundingGateway,
@@ -596,6 +597,9 @@ def _sync_provider_status(
     # provider must not keep a connection busy while we wait for its answer.
     db.commit()
 
+    if not provider_reference and provider == "stripe":
+        provider_reference = _recover_provider_reference(db, reference, gateway)
+
     if provider_reference and not _should_ask_provider(reference):
         return  # asked a moment ago: nothing can have changed that the callback misses
 
@@ -650,6 +654,45 @@ def _sync_provider_status(
         return
 
     _settle_pending(db, transaction, provider_status)
+
+
+def _recover_provider_reference(
+    db: Session, reference: str, gateway: MBWayGateway
+) -> str | None:
+    """Find a Stripe payment whose id we never saved, and save it.
+
+    It happens when Stripe created the payment but the answer got lost (a timeout):
+    the person may well approve it. Without the id the payment cannot be read,
+    cancelled or refunded, so it is looked up by its reference. The search can lag
+    a little behind a new payment: "not found yet" changes nothing and the next look
+    tries again. Asked at most as often as any other question to the provider.
+    """
+    if not isinstance(gateway, LookupGateway) or not _should_ask_provider(
+        f"find:{reference}"
+    ):
+        return None
+    try:
+        found = gateway.find_payment(reference=reference)
+    except PaymentGatewayError:
+        logger.warning("Payment %s could not be looked up at Stripe", reference)
+        return None
+    if found is None:
+        return None
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    if transaction is None or transaction.provider_reference not in (None, found):
+        db.rollback()
+        return None
+    if transaction.provider_reference is None:
+        transaction.provider_reference = found
+        logger.warning(
+            "Payment %s had no Stripe id (the answer to its creation was lost): "
+            "found it by its reference",
+            reference,
+        )
+    db.commit()
+    return found
 
 
 def _cancel_if_overdue(
