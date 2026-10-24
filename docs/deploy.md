@@ -194,6 +194,19 @@ Funciona com um `refund_due` e com um pagamento `confirmed` (o bilhete **desse**
 
 O reembolso fica registado no Stripe (painel, em *Payments*, no pagamento) e nos logs do backend (`Payment ENEI-... refunded (… cents, refund …)`); a base só guarda o estado `refunded`. No MB WAY o id do reembolso começa por `pyr_` (não por `re_`) e o estado é `pending` durante alguns segundos antes de `succeeded`; o comando aceita os dois.
 
+### Reembolso automático dos `refund_due`
+
+Um `refund_due` é um erro nosso (a pessoa pagou e não há bilhete para dar), por isso o reembolso é sempre o total e não precisa de ninguém a decidir. Para não ficar à espera de alguém reparar no log, o servidor corre `refund --due` de 5 em 5 minutos. Com o cron do sistema (o mesmo da limpeza diária), uma linha no `crontab -e` do utilizador `debian`:
+
+```
+*/5 * * * * cd /home/debian/enei/event-site && flock -n /tmp/enei-refund.lock docker compose --env-file backend/.env --env-file tunnel.env exec -T backend /app/.venv/bin/python -m app.domains.payments.refund --due --quiet >> /home/debian/enei/refund.log 2>&1
+```
+
+- **`--due` só toca nos `refund_due`.** Um bilhete pago nunca é reembolsado por aqui: cancelar um bilhete, ou um pedido de reembolso de uma pessoa, continua a ser manual (`refund ENEI-XXXXXXXXXX`).
+- **`--quiet`** não escreve nada quando não há nada à espera e põe a hora (UTC) em cada linha: o `refund.log` só cresce quando alguém é reembolsado ou quando uma tentativa falha. O `flock -n` impede que duas corridas se sobreponham.
+- **Se uma tentativa falhar** (o Stripe em baixo, ou um pagamento que não passa as verificações), a linha `ENEI-…: NOT refunded: …` fica no `refund.log` e repete-se na corrida seguinte, até resolver. Convém olhar para o `refund.log` todos os dias: `grep 'NOT refunded' /home/debian/enei/refund.log | tail`. Um `refund_due` que falhe sempre precisa de uma pessoa a ver porquê.
+- **Para confirmar que funciona:** `crontab -l`, `systemctl is-active cron`, e corre o comando uma vez à mão (sem `--quiet` imprime `Nothing waiting for a refund.`). Se houver um `refund_due`, a corrida seguinte escreve `…Z ENEI-…: refunded (…)` e a transação passa a `refunded`.
+
 ### Pagamentos Stripe que ficam à espera
 
 O Stripe termina sozinho a espera do MB WAY. Se um pagamento Stripe continuar à espera `STRIPE_CANCEL_GRACE_SECONDS` (120 s por omissão) depois do prazo, o backend cancela o PaymentIntent no Stripe quando alguém o consulta ou quando o stock precisa do lugar: a transação passa a `expired`, o lugar liberta-se e o pagamento deixa de poder ser aprovado. Se a pessoa o aprovou nesse mesmo instante, o Stripe recusa o cancelamento (às vezes só com a mensagem «already in a terminal state», sem código): o pagamento é lido outra vez e passa a `confirmed` com o bilhete, ou, se o Stripe ainda o mostra à espera, fica como estava até à consulta seguinte. A janela real de aprovação do MB WAY só se vê com um pagamento verdadeiro: confirmar na bilheteira real que a folga está acima dela.
@@ -415,6 +428,7 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 - [ ] Sem o aviso `FORWARDED_ALLOW_IPS` no log do arranque.
 - [ ] Base de dados sem porta pública (só `127.0.0.1`).
 - [ ] Limpeza diária no cron e confirmada.
+- [ ] Reembolso automático dos `refund_due` no cron (de 5 em 5 minutos) e confirmado; alguém olha para o `refund.log`.
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.

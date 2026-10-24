@@ -1,5 +1,6 @@
 """Ending a Stripe payment that waits too long, and refunding payments and tickets."""
 
+import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -802,6 +803,71 @@ def test_a_failure_is_reported_exits_with_an_error_and_goes_on_with_the_rest(
     out = capsys.readouterr().out
     assert "ENEI-0000000010: NOT refunded" in out
     assert "ENEI-0000000011: refunded" in out
+
+
+def test_quiet_prints_nothing_when_nothing_waits(
+    db_session, shop, stripe, command, capsys
+):
+    assert command(["--due", "--quiet"]) == 0
+
+    assert capsys.readouterr().out == ""
+
+
+def test_quiet_puts_the_time_on_every_line_and_still_refunds(
+    db_session, shop, stripe, command, capsys
+):
+    make_payment(
+        db_session, shop, "ENEI-0000000010", status=TransactionStatus.REFUND_DUE
+    )
+
+    assert command(["--due", "--quiet"]) == 0
+
+    out = capsys.readouterr().out.strip()
+    assert re.fullmatch(
+        r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ ENEI-0000000010: refunded \(25\.00 EUR\)", out
+    )
+    assert len(stripe.refund_calls) == 1
+
+
+def test_quiet_still_reports_a_failure_and_exits_with_an_error(
+    db_session, shop, stripe, command, capsys
+):
+    stripe.refund_error = PaymentGatewayError("stripe unreachable")
+    make_payment(
+        db_session, shop, "ENEI-0000000010", status=TransactionStatus.REFUND_DUE
+    )
+
+    assert command(["--due", "--quiet"]) == 1
+
+    out = capsys.readouterr().out
+    assert "ENEI-0000000010: NOT refunded" in out
+    assert out.startswith("20")  # the time
+
+
+def test_without_quiet_the_output_has_no_time(
+    db_session, shop, stripe, command, capsys
+):
+    make_payment(
+        db_session, shop, "ENEI-0000000010", status=TransactionStatus.REFUND_DUE
+    )
+
+    command(["--due"])
+
+    assert capsys.readouterr().out.startswith("ENEI-0000000010: refunded")
+
+
+def test_a_payment_that_is_not_a_refund_due_is_never_taken_by_the_schedule(
+    db_session, shop, stripe, command
+):
+    """``--due`` is the only thing a schedule runs: a paid ticket is never refunded."""
+    paid = paid_with_ticket(
+        db_session, shop, "ENEI-0000000012", provider_reference="pi_3"
+    )
+
+    assert command(["--due", "--quiet"]) == 0
+
+    assert stripe.refund_calls == []
+    assert reload(db_session, paid).status is TransactionStatus.CONFIRMED
 
 
 def test_the_command_needs_a_reference_or_due_and_not_both(command):
