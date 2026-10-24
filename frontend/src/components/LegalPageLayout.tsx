@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import '../legal.css';
 import { useBodyPage } from '../utils/useBodyPage';
+import { usePageMeta } from '../utils/usePageMeta';
 
 export interface LegalSection {
     id?: string;
@@ -43,6 +44,7 @@ export default function LegalPageLayout({
     sections,
 }: LegalPageLayoutProps) {
     useBodyPage('legal');
+    usePageMeta(`${title} · ENEI 2027`, lead);
 
     return (
         <>

@@ -7,6 +7,7 @@ import Field from "../components/Field";
 import { http, ApiError } from "../utils/http";
 import { retryAfterMessage } from "../utils/RetryAfter";
 import { validationMessages } from "../utils/ValidationErrors";
+import { usePageMeta } from "../utils/usePageMeta";
 
 const points = [
   "Evita palavras-passe reutilizadas.",
@@ -34,6 +35,7 @@ function messageFor400(detail: string): string {
 }
 
 export default function ResetPasswordPage() {
+  usePageMeta("Nova palavra-passe · ENEI 2027", "Define uma nova palavra-passe para a tua conta ENEI 2027.");
   const token = useMemo(
     () => new URLSearchParams(window.location.search).get("token") ?? "",
     [],

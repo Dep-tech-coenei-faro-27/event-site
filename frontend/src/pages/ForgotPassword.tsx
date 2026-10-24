@@ -5,6 +5,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import Field from "../components/Field";
 import { http, ApiError } from "../utils/http";
 import { retryAfterMessage } from "../utils/RetryAfter";
+import { usePageMeta } from "../utils/usePageMeta";
 
 const points = [
   "Introduz o email da conta.",
@@ -15,6 +16,7 @@ const points = [
 type Status = "idle" | "loading" | "sent" | "error";
 
 export default function ForgotPasswordPage() {
+  usePageMeta("Recuperar acesso · ENEI 2027", "Recupera o acesso à tua conta ENEI 2027.");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
