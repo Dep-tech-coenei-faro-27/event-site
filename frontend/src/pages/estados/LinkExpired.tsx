@@ -1,10 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 import SystemState from "./SystemState";
 
-/** `ui-ux/conta/link-expirado`: a ligação de verificação ou de recuperação expirou ou já foi usada. */
+/**
+ * `ui-ux/conta/link-expirado`: a ligação de verificação ou de recuperação expirou ou já foi usada.
+ * Vinda da verificação do email (`state.link === "verificacao"`), pede-se um novo email de
+ * verificação; nos outros casos, uma nova ligação de recuperação.
+ */
 export default function LinkExpired() {
+  const { state } = useLocation();
+  const fromVerification = (state as { link?: string } | null)?.link === "verificacao";
   useBodyPage("estado", "system-state-page system-state-page--warning");
   usePageMeta("Ligação expirada · ENEI 2027", "Esta ligação já não está disponível. Pede uma nova.");
   return (
@@ -20,8 +26,8 @@ export default function LinkExpired() {
       lead="A ligação expirou ou já foi utilizada. Pede uma nova para continuares a verificação do email ou a recuperação da conta."
       actions={
         <>
-          <Link className="btn btn--primary" to="/conta/recuperar">
-            Pedir nova ligação
+          <Link className="btn btn--primary" to={fromVerification ? "/conta/verificar" : "/conta/recuperar"}>
+            {fromVerification ? "Pedir novo email" : "Pedir nova ligação"}
           </Link>
           <Link className="btn btn--secondary" to="/conta">
             Voltar ao início de sessão
