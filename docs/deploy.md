@@ -172,7 +172,7 @@ Em produção, `PAYMENTS_MODE=live` sem `MBWAY_KEY` (em falta, vazia ou só com 
 
 ## Pagamentos a reembolsar
 
-Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado. **Não devia acontecer**: um lugar fica reservado enquanto o pagamento espera (só o MB WAY o termina) e uma pessoa só pode ter um pagamento à espera. Se acontecer, não ocupa stock e o backend regista um erro `Payment ENEI-... needs a refund`, que deve ser investigado e reembolsado à mão no painel do gateway (ifthenpay ou Stripe). Para os listar:
+Uma transação `refund_due` é um pagamento que chegou mas a que não se pode dar bilhete: a pessoa já tinha um, ou a modalidade esgotou depois de o pagamento ter sido dado por terminado. **Não devia acontecer**: um lugar fica reservado enquanto o pagamento espera (só o MB WAY o termina) e uma pessoa só pode ter um pagamento à espera. Se acontecer, não ocupa stock e o backend regista um erro `Payment ENEI-... needs a refund`, que deve ser investigado e depois reembolsado (ver o comando abaixo; uma transação da ifthenpay reembolsa-se à mão no painel dela). Para os listar:
 
 ```bash
 $COMPOSE exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
@@ -183,7 +183,20 @@ ORDER BY t.confirmed_at;
 SQL
 ```
 
-Depois do reembolso a pessoa é avisada por fora do sistema. Para registar que um `refund_due` já foi reembolsado (e o tirar da lista), no mesmo `psql`: `UPDATE transactions SET status = 'refunded' WHERE reference = 'ENEI-XXXXXXXXXX' AND status = 'refund_due';`. Um bilhete cancelado pelo código (`cancel_ticket`) passa a transação a `refunded` sozinho e liberta o lugar.
+### Reembolsar pelo Stripe
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.refund ENEI-XXXXXXXXXX   # um pagamento
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.refund --due             # todos os refund_due
+```
+
+Funciona com um `refund_due` e com um pagamento `confirmed` (o bilhete **desse** pagamento é cancelado e o lugar liberta-se; o bilhete de outro pagamento da mesma pessoa nunca é tocado). Chama `POST /v1/refunds` com o valor cobrado, depois de confirmar no Stripe que o PaymentIntent é deste pagamento, está pago e foi pago pelo valor certo; senão não reembolsa. **É seguro repetir**: o Stripe recebe uma chave de idempotência por pagamento, e um pagamento já `refunded` fica como está sem voltar a chamar o Stripe. Se o Stripe estiver em baixo o pagamento mantém o estado e basta repetir. Mostra só a referência e o valor, nunca dados da pessoa. Com uma transação da ifthenpay recusa e diz para a reembolsar no painel dela. Depois do reembolso a pessoa é avisada por fora do sistema.
+
+O reembolso fica registado no Stripe (painel, em *Payments*, no pagamento) e nos logs do backend (`Payment ENEI-... refunded (… cents, refund re_…)`); a base só guarda o estado `refunded`.
+
+### Pagamentos Stripe que ficam à espera
+
+O Stripe termina sozinho a espera do MB WAY. Se um pagamento Stripe continuar à espera `STRIPE_CANCEL_GRACE_SECONDS` (120 s por omissão) depois do prazo, o backend cancela o PaymentIntent no Stripe quando alguém o consulta ou quando o stock precisa do lugar: a transação passa a `expired`, o lugar liberta-se e o pagamento deixa de poder ser aprovado. Se a pessoa o aprovou nesse mesmo instante, o cancelamento falha no Stripe e a transação passa a `confirmed` com o bilhete. A janela real de aprovação do MB WAY só se vê com um pagamento verdadeiro: confirmar na bilheteira real que a folga está acima dela.
 
 Para ver se há lugares presos por pagamentos que ninguém acompanha (pendentes há mais de 15 minutos, quando o MB WAY dá o pagamento por expirado aos 4):
 
