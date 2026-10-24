@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import PageStatus from "../../components/PageStatus";
 import { getAccount } from "../../payments/api";
 import type { Account } from "../../payments/types";
-import { isUnauthorized, loadErrorMessage } from "../../utils/loadError";
+import { isSessionEnded, isUnauthorized, loadErrorMessage } from "../../utils/loadError";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 
@@ -25,6 +25,7 @@ export default function CheckoutSuccess() {
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         // Sem sessão: entra e volta aqui. Outra falha não quer dizer «sem bilhete».
+        if (isSessionEnded(error)) return; // o AuthProvider já levou ao login com o aviso
         if (isUnauthorized(error)) navigate("/conta", { replace: true, state: { from: location } });
         else setLoadError(error);
       });

@@ -25,6 +25,9 @@ function redirectTarget(state: unknown): string {
   return path.startsWith("/") && !path.startsWith("//") ? path : "/perfil";
 }
 
+const sessionEndedMessage = (search: string) =>
+  new URLSearchParams(search).get("sessao") === "terminada" ? "A tua sessão terminou. Entra novamente." : null;
+
 export default function LoginPage() {
 
     usePageMeta("Entrar · ENEI 2027", "Entra na tua conta ENEI 2027 para acompanhares a tua inscrição.");
@@ -36,11 +39,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unverified, setUnverified] = useState(false);
-  const [info, setInfo] = useState<string | null>(() =>
-    new URLSearchParams(window.location.search).get("sessao") === "terminada"
-      ? "A tua sessão terminou. Entra novamente."
-      : null,
-  );
+  const [info, setInfo] = useState<string | null>(() => sessionEndedMessage(location.search));
+  // O login pode já estar aberto quando o endereço ganha `?sessao=terminada` (o 401 chega depois):
+  // o aviso segue o endereço e não só o primeiro desenho.
+  const [infoSearch, setInfoSearch] = useState(location.search);
+  if (location.search !== infoSearch) {
+    setInfoSearch(location.search);
+    setInfo(sessionEndedMessage(location.search));
+  }
   const [resending, setResending] = useState(false);
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {

@@ -6,7 +6,7 @@ import { getAccount } from "../../payments/api";
 import { loadReference, saveReference } from "../../payments/reference";
 import { parseServerDate } from "../../payments/time";
 import { usePaymentPolling } from "../../payments/usePaymentPolling";
-import { isUnauthorized, loadErrorMessage } from "../../utils/loadError";
+import { isSessionEnded, isUnauthorized, loadErrorMessage } from "../../utils/loadError";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
 
@@ -41,6 +41,7 @@ export default function CheckoutWaiting() {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
+        if (isSessionEnded(error)) return; // o AuthProvider já levou ao login com o aviso
         if (isUnauthorized(error)) navigate("/conta", { replace: true, state: { from: location } });
         else setResumeError(error);
       });

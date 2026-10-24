@@ -12,7 +12,7 @@ import logo from "../assets/ENEI-logo.svg";
 import TicketQr from "../components/TicketQr";
 import { EVENT_DATES } from "../data/Event";
 import PageStatus from "../components/PageStatus";
-import { isUnauthorized, loadErrorMessage } from "../utils/loadError";
+import { isSessionEnded, isUnauthorized, loadErrorMessage } from "../utils/loadError";
 
 /** Visão geral: bilhete digital e preparação para o encontro. */
 export default function ProfilePage() {
@@ -30,6 +30,7 @@ export default function ProfilePage() {
       .then((data) => setMe(data))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
+        if (isSessionEnded(error)) return; // o AuthProvider já levou ao login com o aviso
         if (isUnauthorized(error)) navigate("/conta?sessao=terminada", { replace: true });
         else setLoadError(error);
       });

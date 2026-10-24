@@ -7,7 +7,7 @@ import PageStatus from './PageStatus';
 const BELOW_TOPBAR = 'mx-auto max-w-[720px] px-5 pb-8 pt-[calc(64px+32px)] md:pt-[calc(76px+32px)]';
 
 export default function ProtectedRoute() {
-  const { user, loading, error, retry } = useAuth();
+  const { user, loading, error, sessionEnded, retry } = useAuth();
   const location = useLocation();
 
   if (loading) return <PageStatus state="loading" className={BELOW_TOPBAR} />;
@@ -27,8 +27,10 @@ export default function ProtectedRoute() {
     );
   }
 
+  // Depois de um 401 a meio, o aviso «A tua sessão terminou» vai no endereço; sem isto, este
+  // redirecionamento (ainda no endereço antigo) apagava o do AuthProvider.
   if (!user) {
-    return <Navigate to="/conta" replace state={{ from: location }} />;
+    return <Navigate to={sessionEnded ? '/conta?sessao=terminada' : '/conta'} replace state={{ from: location }} />;
   }
   return <Outlet />;
 }

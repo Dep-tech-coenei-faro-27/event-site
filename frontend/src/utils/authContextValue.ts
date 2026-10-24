@@ -25,6 +25,8 @@ export interface AuthContextValue {
    * não se sabe se há sessão: mostra-se o erro com «Tentar novamente», sem ir ao login.
    */
   error: unknown;
+  /** A sessão terminou a meio (401 num pedido privado). O ProtectedRoute leva ao login com o aviso. */
+  sessionEnded?: boolean;
   refresh: () => Promise<void>;
   /** Volta a verificar a sessão, passando por `loading`. */
   retry: () => Promise<void>;

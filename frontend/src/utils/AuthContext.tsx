@@ -9,6 +9,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
   const navigate = useNavigate();
 
   // GET /api/auth/me. Só um 401 quer dizer «sem sessão»; uma falha de rede, um 5xx ou um 429 não
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (signal?.aborted) return;
           setUser(me);
           setError(null);
+          setSessionEnded(false);
         })
         .catch((err: unknown) => {
           if (signal?.aborted) return;
@@ -49,11 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => controller.abort();
   }, [check]);
 
-  // 401 em qualquer pedido privado: limpa estado e vai ao login
+  // 401 em qualquer pedido privado: limpa estado e vai ao login com «A tua sessão terminou».
+  // Guarda a página onde se estava, para voltar a ela depois de entrar.
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      const { pathname, search, hash } = window.location;
+      setSessionEnded(true);
       setUser(null);
-      navigate('/conta?sessao=terminada', { replace: true });
+      navigate('/conta?sessao=terminada', { replace: true, state: { from: { pathname, search, hash } } });
     });
     return () => {
       setUnauthorizedHandler(() => { });
@@ -68,12 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setError(null);
+      setSessionEnded(false);
       navigate('/conta', { replace: true });
     }
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, refresh, retry, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, sessionEnded, refresh, retry, logout }}>
       {children}
     </AuthContext.Provider>
   );

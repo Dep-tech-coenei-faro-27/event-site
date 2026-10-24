@@ -4,6 +4,8 @@ export class ApiError extends Error {
   status: number;
   detail: unknown;
   retryAfter: string | null;
+  /** O 401 já foi tratado como «sessão terminada» (o AuthProvider levou ao login). */
+  sessionEnded = false;
 
   constructor(status: number, message: string, detail?: unknown, retryAfter: string | null = null) {
     super(message);
@@ -55,9 +57,12 @@ export async function http<T = unknown>(path: string, options: HttpOptions = {})
       path === '/auth/me' ||
       (path === '/auth/password' && data?.detail === 'Current password is incorrect');
     const noSession = data?.detail === 'Not authenticated. Missing access token cookie.';
-    if (res.status === 401 && !isFormError401 && !noSession) onUnauthorized();
-
-    throw new ApiError(res.status, message, data?.detail, res.headers.get('Retry-After'));
+    const error = new ApiError(res.status, message, data?.detail, res.headers.get('Retry-After'));
+    if (res.status === 401 && !isFormError401 && !noSession) {
+      error.sessionEnded = true;
+      onUnauthorized();
+    }
+    throw error;
   }
 
   return (res.status === 204 ? null : await res.json()) as T;
