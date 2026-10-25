@@ -5,7 +5,7 @@ import Registo from '../src/pages/Registo';
 import ResetPassword from '../src/pages/ResetPassword';
 import Seguranca from '../src/pages/Seguranca';
 import { AuthContext, type AuthContextValue } from '../src/utils/authContextValue';
-import { failedPasswordRules, passwordRules } from '../src/utils/passwordChange';
+import { failedPasswordRules, newPasswordError, passwordRules } from '../src/utils/passwordChange';
 import { validationMessages } from '../src/utils/ValidationErrors';
 import { renderRoute } from '../src/test/routes';
 
@@ -61,6 +61,25 @@ describe('as regras da palavra-passe são as do backend', () => {
     expect(minLength.test('Ab1!😀😀')).toBe(false); // 6 caracteres, 8 unidades UTF-16
     expect(minLength.test('Ab1!😀😀😀😀')).toBe(true);
   });
+
+  test('aceita como número os algarismos que `str.isdigit()` aceita', () => {
+    expect(failedPasswordRules('Abcdefg²')).toEqual([]); // «²» não é ASCII, por isso também é símbolo
+    expect(failedPasswordRules('Abcdefg₉')).toEqual([]);
+    expect(failedPasswordRules('Abcdefg①')).toEqual([]);
+    expect(failedPasswordRules('Abcdefg½')).toEqual(['missing_digit']); // numérico, mas não algarismo
+  });
+});
+
+describe('newPasswordError', () => {
+  test('aceita até 72 bytes e recusa a partir daí', () => {
+    expect(newPasswordError('Ab1!' + 'a'.repeat(68))).toBeNull();
+    expect(newPasswordError('Ab1!' + 'a'.repeat(69))).toBe('A palavra-passe é demasiado longa.');
+    expect(newPasswordError('Ab1!' + 'é'.repeat(35))).toBe('A palavra-passe é demasiado longa.');
+  });
+
+  test('recusa uma palavra-passe que não cumpre as regras', () => {
+    expect(newPasswordError('abcdefgh')).toBe('A palavra-passe não cumpre todos os requisitos.');
+  });
 });
 
 const auth: AuthContextValue = {
@@ -73,31 +92,109 @@ const auth: AuthContextValue = {
 };
 
 const pages = [
-  { name: 'Registo', path: '/conta/criar', element: <Registo />, field: 'Palavra-passe' },
-  { name: 'Redefinir', path: '/conta/redefinir?token=abc', element: <ResetPassword />, field: 'Nova palavra-passe' },
-  { name: 'Segurança', path: '/conta/seguranca', element: <Seguranca />, field: 'Nova palavra-passe' },
+  { name: 'Registo', path: '/conta/criar', element: <Registo />, field: 'Palavra-passe', variant: 'conta' },
+  {
+    name: 'Redefinir',
+    path: '/conta/redefinir?token=abc',
+    element: <ResetPassword />,
+    field: 'Nova palavra-passe',
+    variant: 'conta',
+  },
+  { name: 'Segurança', path: '/conta/seguranca', element: <Seguranca />, field: 'Nova palavra-passe', variant: 'painel' },
 ];
 
-describe.each(pages)('$name mostra as regras ao vivo', ({ path, element, field }) => {
-  const open = () =>
-    render(
-      <AuthContext.Provider value={auth}>
-        <MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>
-      </AuthContext.Provider>,
-    );
+const open = (path: string, element: React.ReactNode) =>
+  render(
+    <AuthContext.Provider value={auth}>
+      <MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>
+    </AuthContext.Provider>,
+  );
+
+describe.each(pages)('$name mostra as regras ao vivo', ({ path, element, field, variant }) => {
   const rules = () => within(screen.getByRole('list', { name: /requisitos/i })).getAllByRole('listitem');
 
   test('a mesma lista de regras', () => {
-    open();
+    open(path, element);
     expect(rules()).toHaveLength(passwordRules.length);
     rules().forEach((li, i) => expect(li).toHaveTextContent(passwordRules[i].label));
   });
 
   test('marca as regras como o backend as avalia', () => {
-    open();
+    open(path, element);
     expect(rules().every((li) => li.getAttribute('data-ok') === 'false')).toBe(true);
     fireEvent.change(screen.getByLabelText(field), { target: { value: 'Ébène#١٢٣' } });
     expect(rules().map((li) => li.getAttribute('data-ok'))).toEqual(['true', 'true', 'true', 'true']);
+  });
+
+  test('diz aos leitores de ecrã se cada regra está cumprida', () => {
+    open(path, element);
+    rules().forEach((li) => expect(li).toHaveTextContent('(por cumprir)'));
+    fireEvent.change(screen.getByLabelText(field), { target: { value: 'Abcdefgh' } });
+    expect(rules().map((li) => li.textContent?.includes('(cumprido)'))).toEqual([true, true, false, false]);
+  });
+
+  test(`usa o desenho «${variant}»`, () => {
+    open(path, element);
+    const list = screen.getByRole('list', { name: /requisitos/i });
+    const marks = list.querySelectorAll('[aria-hidden="true"]');
+    if (variant === 'conta') {
+      expect(list).toHaveClass('password-rules');
+      expect(marks).toHaveLength(0);
+    } else {
+      expect(list).not.toHaveClass('password-rules');
+      expect(marks).toHaveLength(passwordRules.length);
+    }
+  });
+});
+
+const forms = [
+  {
+    name: 'Registo',
+    path: '/conta/criar',
+    element: <Registo />,
+    fill: (password: string) => {
+      fireEvent.change(screen.getByLabelText('Nome completo'), { target: { value: 'Ana Silva' } });
+      fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ana@exemplo.pt' } });
+      fireEvent.change(screen.getByLabelText('Palavra-passe'), { target: { value: password } });
+      fireEvent.change(screen.getByLabelText('Confirmar palavra-passe'), { target: { value: password } });
+      fireEvent.click(screen.getByRole('checkbox'));
+      fireEvent.submit(screen.getByRole('button', { name: 'Criar conta' }).closest('form')!);
+    },
+  },
+  {
+    name: 'Redefinir',
+    path: '/conta/redefinir?token=abc',
+    element: <ResetPassword />,
+    fill: (password: string) => {
+      fireEvent.change(screen.getByLabelText('Nova palavra-passe'), { target: { value: password } });
+      fireEvent.change(screen.getByLabelText('Confirmar palavra-passe'), { target: { value: password } });
+      fireEvent.submit(screen.getByRole('button', { name: 'Guardar palavra-passe' }).closest('form')!);
+    },
+  },
+];
+
+describe.each(forms)('$name valida a palavra-passe antes de pedir à API', ({ path, element, fill }) => {
+  const fetchMock = vi.fn();
+  const start = () => {
+    fetchMock.mockReset().mockResolvedValue(new Response(JSON.stringify({ message: 'ok' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    open(path, element);
+  };
+
+  test.each([
+    ['abcdefgh', 'A palavra-passe não cumpre todos os requisitos.'],
+    ['Ab1!' + 'a'.repeat(69), 'A palavra-passe é demasiado longa.'],
+  ])('%j não chega a ser enviada', (password, message) => {
+    start();
+    fill(password);
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test('uma palavra-passe válida é enviada', async () => {
+    start();
+    fill('Ab1!' + 'a'.repeat(68));
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   });
 });
 
