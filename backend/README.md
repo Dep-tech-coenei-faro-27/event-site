@@ -95,7 +95,7 @@ Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_li
 | --- | --- | --- |
 | `POST /auth/login` | 5 por minuto por email e IP | `RATE_LIMIT_LOGIN_PER_MINUTE` |
 | | 20 por minuto por email (de qualquer IP) | `RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE` |
-| | 30 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
+| | 60 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
 | `POST /auth/register` | 2 por minuto por IP | `RATE_LIMIT_REGISTER_PER_MINUTE` |
 | `POST /auth/resend-verification-email` e `POST /auth/forgot-password` | 1 por minuto por email | `RATE_LIMIT_EMAIL_PER_MINUTE` |
 | | 5 por hora por email | `RATE_LIMIT_EMAIL_PER_HOUR` |
