@@ -6,9 +6,9 @@ import Eyebrow from "../components/EyeBrow";
 import Field from "../components/Field";
 import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
-import { ApiError, http } from "../utils/http";
+import { http } from "../utils/http";
+import { nameErrors, profileSaveError } from "../utils/profileName";
 import { useAuth } from "../utils/useAuth";
-import { validationMessages } from "../utils/ValidationErrors";
 
 /**
  * Dados pessoais: usa o mesmo layout (hero + barra lateral) da visão geral.
@@ -22,6 +22,7 @@ export default function DadosPessoais() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string[]>([]);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
@@ -30,11 +31,14 @@ export default function DadosPessoais() {
     setSaveStatus(null);
     setSaveError(null);
 
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setSaveError("Indica o teu nome.");
+    // As mesmas regras do servidor: um nome inválido nem chega a ser enviado.
+    const errors = nameErrors(name);
+    setNameError(errors);
+    if (errors.length) {
+      document.getElementById("name")?.focus();
       return;
     }
+    const trimmed = name.trim();
 
     setSaving(true);
     try {
@@ -42,16 +46,13 @@ export default function DadosPessoais() {
       await refresh();
       setSaveStatus("Dados atualizados.");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 422) {
-        const messages = validationMessages(err.detail);
-        setSaveError(messages.length ? messages.join(" ") : "O nome não é válido.");
-      } else if (err instanceof ApiError && err.status === 403) {
-        setSaveError("Confirma o teu email antes de alterares os dados.");
-      } else if (err instanceof ApiError) {
-        setSaveError("Não foi possível guardar. Tenta novamente.");
-      } else {
-        setSaveError("Não foi possível contactar o servidor.");
+      // Um 422 do nome aparece no próprio campo; o resto, no fim do formulário.
+      const failure = profileSaveError(err);
+      if (failure.name) {
+        setNameError(failure.name);
+        document.getElementById("name")?.focus();
       }
+      if (failure.form) setSaveError(failure.form);
     } finally {
       setSaving(false);
     }
@@ -113,13 +114,16 @@ export default function DadosPessoais() {
         <form className="grid gap-[18px]" onSubmit={handleSubmit}>
           <Field
             label="Nome completo"
+            id="name"
             name="name"
             type="text"
             value={name}
+            error={nameError}
             onChange={(e) => {
               setName(e.target.value);
               setSaveStatus(null);
               setSaveError(null);
+              setNameError([]);
             }}
             autoComplete="name"
             required
