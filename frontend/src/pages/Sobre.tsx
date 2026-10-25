@@ -40,43 +40,6 @@ export default function Sobre() {
       </figure>
       </div>
       </section>
-      <section className="section">
-      <div className="container split">
-      <div>
-      <p className="eyebrow">&lt;HISTÓRIA /&gt;</p>
-      <h2>Uma história de inovação.</h2>
-      <p className="lead">
-      Uma iniciativa estudantil que atravessa gerações e continua a
-      aproximar o ensino superior do ecossistema tecnológico nacional.
-      </p>
-      </div>
-      <div className="timeline">
-      <div className="timeline-item">
-      <small>ORIGEM</small>
-      <h3>Uma comunidade nacional</h3>
-      <p>
-      Estudantes de informática juntam-se para trocar conhecimento e
-      experiências.
-      </p>
-      </div>
-      <div className="timeline-item">
-      <small>EVOLUÇÃO</small>
-      <h3>Mais formatos, mais ligações</h3>
-      <p>
-      O encontro cresce com workshops, palestras, desafios e contacto
-      empresarial.
-      </p>
-      </div>
-      <div className="timeline-item">
-      <small>2027</small>
-      <h3>O ENEI chega a Faro</h3>
-      <p>
-      Uma nova edição, preparada pela comunidade académica do Algarve.
-      </p>
-      </div>
-      </div>
-      </div>
-      </section>
       <section className="section section--surface">
       <div className="container">
       <p className="eyebrow">&lt;CONTEXTO /&gt;</p>
@@ -94,54 +57,6 @@ export default function Sobre() {
       <div className="fact">
       <strong>300+</strong><span>Dias de sol por ano na região.</span>
       </div>
-      </div>
-      </div>
-      </section>
-      <section className="section section--panel">
-      <div className="container center">
-      <p className="eyebrow">&lt;VALORES /&gt;</p>
-      <h2>Os nossos pilares</h2>
-      <div className="pillar-list" style={{ marginTop: "42px", textAlign: "left" }}>
-      <article className="pillar-item">
-      <div className="icon icon--teal" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-      <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z" />
-      </svg>
-      </div>
-      <h3>Conhecimento</h3>
-      <p>
-      Aprender com especialistas, experimentar novas ferramentas e
-      descobrir caminhos profissionais.
-      </p>
-      </article>
-      <article className="pillar-item">
-      <div className="icon icon--periwinkle" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <circle cx="9" cy="8" r="3" />
-      <circle cx="17" cy="9" r="2.5" />
-      <path d="M3.5 20a5.5 5.5 0 0 1 11 0M14 15.5a4.5 4.5 0 0 1 6.5 4" />
-      </svg>
-      </div>
-      <h3>Networking</h3>
-      <p>
-      Criar relações genuínas entre estudantes, comunidades, academia
-      e indústria.
-      </p>
-      </article>
-      <article className="pillar-item">
-      <div className="icon icon--teal" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M12 3 5 6v5c0 4.7 2.9 8.1 7 10 4.1-1.9 7-5.3 7-10V6z" />
-      <path d="m9 12 2 2 4-4" />
-      </svg>
-      </div>
-      <h3>Cidadania</h3>
-      <p>
-      Construir uma comunidade tecnológica mais responsável, diversa e
-      participativa.
-      </p>
-      </article>
       </div>
       </div>
       </section>
@@ -197,64 +112,6 @@ export default function Sobre() {
       </div>
       <div className="photo campus-photo">
       <img src={gambelas} alt="Campus das Gambelas da Universidade do Algarve" />
-      </div>
-      </div>
-      </section>
-      <section className="section section--surface">
-      <div className="container">
-      <div className="section-heading">
-      <div>
-      <p className="eyebrow">&lt;ORGANIZAÇÃO /&gt;</p>
-      <h2>Quem organiza o ENEI 2027?</h2>
-      </div>
-      <p className="lead">
-      Uma equipa multidisciplinar de estudantes, apoiada por estruturas
-      académicas e parceiros.
-      </p>
-      </div>
-      <div className="department-strip">
-      <div className="department-strip__item">
-      <div className="icon icon--periwinkle" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <circle cx="12" cy="12" r="9" />
-      <path d="m15.5 8.5-2 5-5 2 2-5z" />
-      </svg>
-      </div>
-      <h3>Coordenação</h3>
-      <p>Estratégia e articulação geral.</p>
-      </div>
-      <div className="department-strip__item">
-      <div className="icon icon--sand" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <rect x="3" y="5" width={18} height={16} rx="2" />
-      <path d="M8 3v4M16 3v4M3 10h18M8 14h3M8 17h6" />
-      </svg>
-      </div>
-      <h3>Programa</h3>
-      <p>Conteúdos e experiências.</p>
-      </div>
-      <div className="department-strip__item">
-      <div className="icon icon--teal" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9" />
-      </svg>
-      </div>
-      <h3>Operações</h3>
-      <p>Logística e produção.</p>
-      </div>
-      <div className="department-strip__item">
-      <div className="icon icon--coral" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M3 11v2a2 2 0 0 0 2 2h2l2 5h3l-2-5 9 3V6L7 9H5a2 2 0 0 0-2 2z" />
-      <path d="M19 9a3 3 0 0 1 0 6" />
-      </svg>
-      </div>
-      <h3>Comunicação</h3>
-      <p>Marca e comunidade.</p>
-      </div>
-      </div>
-      <div className="actions" style={{ justifyContent: "center" }}>
-      <Link to="/equipa" className="btn btn--primary">Conhecer a equipa</Link>
       </div>
       </div>
       </section>
