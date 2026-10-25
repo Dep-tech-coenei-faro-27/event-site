@@ -110,7 +110,7 @@ export default function Seguranca() {
             />
           </div>
 
-          <PasswordRules password={newPassword} />
+          <PasswordRules password={newPassword} variant="painel" />
 
           {passwordError && (
             <p role="alert" className="m-0 text-[13px] text-coral-vivo">

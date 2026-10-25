@@ -14,7 +14,6 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
-import ChangePasswordPage from './pages/ChangePassword';
 import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 import NotFound from './pages/NotFound';
@@ -91,7 +90,7 @@ export function AppShell() {
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/perfil" element={<ProfilePage />} />
-                <Route path="/conta/alterar-palavra-passe" element={<ChangePasswordPage />} />
+                <Route path="/conta/alterar-palavra-passe" element={<Navigate to="/conta/seguranca" replace />} />
                 <Route path="/conta/perfil" element={<Navigate to="/perfil" replace />} />
                 <Route path="/conta/dados" element={<DadosPessoais />} />
                 <Route path="/conta/seguranca" element={<Seguranca />} />
