@@ -691,18 +691,11 @@ body[data-page="inicio"] .home-closing__passer img {
 }
 
 /* ===== Ajustes do utilizador sobre o protótipo (17/10) ===== */
-/* Caixa final: degradê mais calmo (do azul fundo, onde está o texto, para um azul vivo sem ser
-   neon; contraste do texto ~5,5:1), sem o brilho do protótipo, e o azulejo mais visível. */
+/* Caixa final: o degradê e o brilho do protótipo (decidido a 25/10; o degradê «calmo» de 17/10 ficou
+   de fora), com os cantos mais redondos e a sombra; o azulejo volta à opacidade do protótipo (0,24 sobre o degradê vivo ficava carregado). */
 body[data-page="inicio"] .cta {
-  background: linear-gradient(125deg, #006fa6, #0089cf);
   border-radius: clamp(32px, 4vw, 40px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-}
-body[data-page="inicio"] .cta::after {
-  content: none;
-}
-body[data-page="inicio"] .cta.azulejo-bg {
-  --azulejo-opacity: 0.24;
 }
 body[data-page="inicio"] .cta > .home-closing__passer {
   /* Sem o anel e o esbatido do protótipo: a figura fica solta no fundo da caixa. */
@@ -743,6 +736,10 @@ body[data-page="inicio"] .home-faro-photo {
 /* O Convívio ganha a sua cor (areia, a do ícone): no protótipo partilhava o violeta com o Networking. */
 body[data-page="inicio"] .programme-preview__item:nth-child(4) {
   --tile-color: #E5BF78;
+}
+/* O traço no topo de cada secção, na primeira (logo por baixo do cartão data/local/bilhetes), não aparece (pedido do presidente). */
+body[data-page="inicio"] .home-edition > .motion-section__trace {
+  display: none;
 }
 /* Parceiros e apoios (substitui a página Parcerias). Placeholders com o nome até haver logótipos. */
 html body[data-page="inicio"][data-page] main .home-partners__grid {
