@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     EMAIL_SENDER: str = ""
     SMTP_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
     SMTP_TIMEOUT_SECONDS: int = Field(default=5, gt=0, le=60)
+    # Emails the first server may send per UTC day (0: only its own refusal counts).
+    SMTP_DAILY_LIMIT: int = Field(default=0, ge=0)
+    # A second SMTP server, used when the first is over its quota or failing.
+    SMTP2_HOST: str = ""
+    SMTP2_PORT: int = 587
+    SMTP2_USER: str = ""
+    SMTP2_PASSWORD: str = ""
+    SMTP2_SECURITY: Literal["auto", "starttls", "ssl", "none"] = "auto"
+    # The sender on the second server; empty uses EMAIL_SENDER.
+    SMTP2_EMAIL_SENDER: str = ""
     # Emails go to the email_outbox table and a worker sends them (and retries).
     EMAIL_OUTBOX_WORKER: bool = True
     EMAIL_OUTBOX_POLL_SECONDS: int = Field(default=5, gt=0, le=300)
@@ -355,6 +365,8 @@ class Settings(BaseSettings):
             problems.append("SMTP_HOST and EMAIL_SENDER must be set.")
         if self.SMTP_SECURITY == "none":
             problems.append("SMTP_SECURITY=none is not allowed in production.")
+        if self.SMTP2_HOST and self.SMTP2_SECURITY == "none":
+            problems.append("SMTP2_SECURITY=none is not allowed in production.")
         if not self.FRONTEND_URL.startswith("https://"):
             problems.append("FRONTEND_URL must start with https://.")
         insecure = [o for o in self.CORS_ALLOW_ORIGINS if not o.startswith("https://")]

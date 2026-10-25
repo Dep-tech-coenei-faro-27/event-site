@@ -1,3 +1,4 @@
+import re
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -84,5 +85,45 @@ class SmtpEmailSender(EmailSender):
             masked = mask_email(to_email)
             reason = str(exc).replace(to_email, masked)
             raise EmailDeliveryError(
-                f"Could not send email to {masked}: {reason}"
+                f"Could not send email to {masked}: {reason}", classify_error(exc)
             ) from exc
+
+
+# Words providers use when they refuse because of a sending quota, for example
+# "450 Daily sending quota exceeded" or "550 5.4.5 Daily user sending limit".
+LIMIT_PATTERN = re.compile(
+    rb"quota|limit|too many|exceeded|throttl|5\.4\.5|4\.7\.28", re.IGNORECASE
+)
+# "552 5.3.4 Message size exceeds fixed limit" is about this email, not the day.
+SIZE_PATTERN = re.compile(rb"size|5\.3\.4", re.IGNORECASE)
+
+
+def _responses(exc: Exception) -> list[tuple[int, bytes]]:
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        return [
+            (code, message if isinstance(message, bytes) else str(message).encode())
+            for code, message in exc.recipients.values()
+        ]
+    if isinstance(exc, smtplib.SMTPResponseException):
+        message = exc.smtp_error
+        if not isinstance(message, bytes):
+            message = str(message).encode()
+        return [(exc.smtp_code, message)]
+    return []
+
+
+def classify_error(exc: Exception) -> str:
+    """Whether a failure was a quota, a refused recipient or the server itself.
+
+    A refused recipient never goes to the fallback: the other server would refuse
+    the same address, and the email would only spend the fallback's quota.
+    """
+    responses = _responses(exc)
+    if any(
+        LIMIT_PATTERN.search(message) and not SIZE_PATTERN.search(message)
+        for _, message in responses
+    ):
+        return EmailDeliveryError.LIMIT
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        return EmailDeliveryError.RECIPIENT
+    return EmailDeliveryError.SERVER

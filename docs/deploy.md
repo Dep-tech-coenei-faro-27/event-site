@@ -63,7 +63,8 @@ e é o passo 2 acima que o apanha.
 - **Sessões e tokens:** `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`,
   `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`, `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`,
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
-- **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`.
+- **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`; o SMTP de reserva (opcional)
+  `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
 - **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
@@ -94,6 +95,8 @@ de erro diz qual.
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`                | obrigatórios                      | `SMTP_HOST` e `EMAIL_SENDER` são obrigatórios em produção.                                                                                                                          |
 | `SMTP_SECURITY`                                                                       | `auto`                            | `auto` usa TLS direto na porta 465 e STARTTLS nas outras. Também aceita `starttls` e `ssl`. `none` só serve para o Mailpit local e é recusado em produção.                          |
 | `SMTP_TIMEOUT_SECONDS`                                                                | `5`                               | Tempo máximo de espera pelo servidor SMTP.                                                                                                                                          |
+| `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`      | vazios (sem reserva)              | Segundo SMTP, só usado quando o primeiro esgota a quota ou falha (ver «SMTP de reserva»).                                                                                           |
+| `SMTP_DAILY_LIMIT`                                                                    | `0`                               | Envios por dia UTC do primeiro SMTP antes de passar ao segundo. `0`: só a recusa do fornecedor conta.                                                                               |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`             | `60`, `10080`                     | Duração da sessão: 60 minutos, ou 7 dias com "lembrar-me".                                                                                                                          |
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
 | `FORWARDED_ALLOW_IPS`                                                                 | `172.16.0.0/12` (valor da imagem) | Ver "IP dos visitantes".                                                                                                                                                            |
@@ -405,6 +408,35 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 - Em desenvolvimento, sem `SMTP_HOST`, os emails aparecem no log do backend, com os links. Com o
   `docker-compose.dev.yml`, ficam no Mailpit em `http://localhost:8025`.
 
+### SMTP de reserva
+
+Os planos gratuitos (o do Resend incluído) enviam algumas centenas de emails por dia, menos do que o primeiro dia de
+vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que só envia quando o primeiro não consegue:
+
+- **Quota do primeiro esgotada:** quando o primeiro recusa por limite (respostas com `quota`, `limit`, `exceeded`,
+  `too many`, `5.4.5`...) ou chega a `SMTP_DAILY_LIMIT` envios no dia, **todos os emails seguem pelo segundo até à
+  meia-noite UTC** (1 h da manhã em Portugal no verão, meia-noite no inverno). No dia UTC seguinte volta ao primeiro.
+  Põe em `SMTP_DAILY_LIMIT` o limite diário do plano do primeiro, para passar ao segundo antes de o fornecedor
+  começar a recusar; com `0` (por omissão) só a recusa do fornecedor faz a troca.
+- **Falha do servidor** (não responde, *timeout*, login recusado, outro erro): **só esse email** segue pelo segundo; o
+  seguinte volta a tentar o primeiro.
+- **Destinatário recusado** (`550 User unknown`, endereço inválido): **nunca** vai para o segundo, que o recusaria
+  igual e gastava-lhe a quota. O email fica na fila e é repetido como antes.
+- Se os dois falharem, o email fica na fila e é repetido com a espera habitual.
+- A contagem de cada dia está na tabela `email_transport_usage`, partilhada por todos os *workers*: dois processos
+  nunca passam juntos o `SMTP_DAILY_LIMIT`. As contagens apagam-se ao fim de 30 dias, no comando diário da limpeza.
+- **Avisos:** nos logs aparece `Primary SMTP is out for today ... the fallback SMTP sends until midnight UTC` (uma vez por
+  dia e processo) e `Primary SMTP failed for the email to a***@dominio ...` em cada falha do servidor. O `--status` da
+  fila mostra `primary_sent_today`, `primary_exhausted_today` e `fallback_sent_today`, e acaba com uma linha
+  `WARNING: the fallback SMTP sent N emails today` sempre que o segundo enviou nesse dia.
+- O email do bilhete sai **igual** pelos dois servidores (o mesmo `multipart/related` com o QR). Só muda o remetente
+  se definires `SMTP2_EMAIL_SENDER`: vazio usa o `EMAIL_SENDER`, que tem de estar verificado nos dois fornecedores.
+- Variáveis: `SMTP2_HOST`, `SMTP2_PORT` (587), `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_SECURITY` (`auto`; `none` é
+  recusado em produção), `SMTP2_EMAIL_SENDER` e `SMTP_DAILY_LIMIT` (0). O `SMTP_TIMEOUT_SECONDS` vale para os dois.
+- Ao fazer `alembic downgrade` desta migration apaga-se a tabela das contagens: nesse dia o primeiro volta a ser
+  tentado até recusar outra vez.
+
+
 ## Verificar um deploy
 
 1. No GitHub, em Actions, o "CD" fica verde e o log tem `backend OK`.
@@ -432,6 +464,8 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
+- [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
+      `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus): cada IP partilhado conta como uma só pessoa. Se for preciso, sobe
   `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
