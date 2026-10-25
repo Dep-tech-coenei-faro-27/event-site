@@ -73,7 +73,11 @@ def create_app() -> FastAPI:
     if settings.PAYMENTS_MODE == "live" and settings.PAYMENTS_PROVIDER == "stripe":
         mode = stripe_key_mode(settings.STRIPE_SECRET_KEY)
         logger.info("Stripe payments run with a %s key", mode)
-        if mode == "test" and settings.ENVIRONMENT == "prod":
+        if (
+            mode == "test"
+            and settings.ENVIRONMENT == "prod"
+            and settings.STRIPE_ALLOW_TEST_KEY
+        ):
             logger.warning(
                 "STRIPE_ALLOW_TEST_KEY is on: payments use the Stripe sandbox and "
                 "nobody is charged. Remove it, and use the live key, before real sales."

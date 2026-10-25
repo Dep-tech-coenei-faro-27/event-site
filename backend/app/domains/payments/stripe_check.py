@@ -37,6 +37,11 @@ def _host(url: object) -> str:
     return parse.urlparse(url).netloc if isinstance(url, str) else "?"
 
 
+def _safe(exc: Exception, key: str) -> str:
+    """The error text with the key (if Stripe repeats it) hidden."""
+    return str(exc).replace(key, "<key>") if key else str(exc)
+
+
 def run_checks(
     read: Callable[[str, dict | None], dict],
     *,
@@ -62,7 +67,7 @@ def run_checks(
     try:
         account = read("/account", None)
     except PaymentGatewayError as exc:
-        lines.append(Line(False, f"cannot read the account: {exc}"))
+        lines.append(Line(False, f"cannot read the account: {_safe(exc, key)}"))
         account = {}
     if account:
         name = (
@@ -101,7 +106,9 @@ def run_checks(
     try:
         endpoints = read("/webhook_endpoints", {"limit": 100}).get("data") or []
     except PaymentGatewayError as exc:
-        lines.append(Line(False, f"cannot read the webhook endpoints: {exc}"))
+        lines.append(
+            Line(False, f"cannot read the webhook endpoints: {_safe(exc, key)}")
+        )
         return lines
     ours = [
         e for e in endpoints if isinstance(e, dict) and e.get("url") == expected_url
@@ -139,7 +146,8 @@ def run_checks(
             Line(
                 same,
                 "the endpoint is in "
-                f"{'live' if endpoint.get('livemode') else 'test'} mode, like the key",
+                f"{'live' if endpoint.get('livemode') else 'test'} mode, "
+                f"{'like' if same else 'unlike'} the key",
             )
         )
     return lines

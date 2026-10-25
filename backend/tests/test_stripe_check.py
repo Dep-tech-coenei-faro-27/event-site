@@ -197,20 +197,32 @@ def test_read_is_a_get_with_the_query_and_no_body():
 
 
 @pytest.mark.parametrize(
-    ("key", "environment", "expected"),
+    ("key", "environment", "allow", "expected"),
     [
-        ("sk_test_" + "a" * 20, "prod", ["test key", "STRIPE_ALLOW_TEST_KEY is on"]),
-        ("sk_test_" + "a" * 20, "dev", ["test key"]),
-        ("sk_live_" + "a" * 20, "prod", ["live key"]),
+        # a exceção do staging: chave de teste em produção, com a Variable ligada
+        (
+            "sk_test_" + "a" * 20,
+            "prod",
+            True,
+            ["test key", "STRIPE_ALLOW_TEST_KEY is on"],
+        ),
+        # o arranque recusa isto (a guarda da configuração); se o log fosse
+        # chamado assim, não podia dizer que a Variable está ligada
+        ("sk_test_" + "a" * 20, "prod", False, ["test key"]),
+        ("sk_test_" + "a" * 20, "dev", True, ["test key"]),
+        ("sk_test_" + "a" * 20, "dev", False, ["test key"]),
+        ("sk_live_" + "a" * 20, "prod", False, ["live key"]),
+        ("sk_live_" + "a" * 20, "prod", True, ["live key"]),
     ],
 )
 def test_the_startup_log_says_which_kind_of_key_is_in_use(
-    monkeypatch, caplog, key, environment, expected
+    monkeypatch, caplog, key, environment, allow, expected
 ):
     monkeypatch.setattr(settings, "PAYMENTS_MODE", "live")
     monkeypatch.setattr(settings, "PAYMENTS_PROVIDER", "stripe")
     monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", key)
     monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.setattr(settings, "STRIPE_ALLOW_TEST_KEY", allow)
     with caplog.at_level("INFO"):
         create_app()
     text = " | ".join(record.getMessage() for record in caplog.records)
@@ -220,3 +232,59 @@ def test_the_startup_log_says_which_kind_of_key_is_in_use(
     assert ("STRIPE_ALLOW_TEST_KEY is on" in text) == (
         "STRIPE_ALLOW_TEST_KEY is on" in expected
     )
+
+
+def test_an_endpoint_of_another_site_with_the_same_path_is_not_ours():
+    """The NEEI endpoint ends in the same path: only the whole address counts."""
+    other = endpoint(url="https://neei.online/api/payment/stripe/webhook")
+
+    found = wrong(check(reader(endpoints=[other])))
+
+    assert found and "no webhook endpoint for" in found[0]
+    assert "neei.online" in found[0]
+
+
+def test_a_mode_mismatch_says_unlike_not_like():
+    found = wrong(check(reader(endpoints=[endpoint(livemode=True)])))
+
+    assert found == ["the endpoint is in live mode, unlike the key"]
+
+
+def test_a_stripe_error_that_repeats_the_key_is_hidden():
+    key = "sk_test_" + "SECRETVALUE" * 3
+
+    def read(path, params):
+        raise PaymentGatewayError(
+            f"stripe responded with HTTP 401: Invalid API Key provided: {key}"
+        )
+
+    lines = check(read, key=key)
+
+    text = " | ".join(line.text for line in lines)
+    assert "SECRETVALUE" not in text
+    assert "<key>" in text
+
+
+@pytest.mark.parametrize(("good", "code"), [(True, 0), (False, 1)])
+def test_the_command_exits_with_1_when_something_is_wrong(
+    monkeypatch, capsys, good, code
+):
+    from app.domains.payments import stripe_check
+
+    class FakeGateway:
+        def __init__(self, **kwargs):
+            pass
+
+        read = staticmethod(reader(endpoints=None if good else []))
+
+    monkeypatch.setattr(stripe_check, "StripeMBWayGateway", FakeGateway)
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", "sk_test_" + "a" * 20)
+    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", WHSEC)
+    monkeypatch.setattr(settings, "FRONTEND_URL", SITE)
+    monkeypatch.setattr(settings, "ENVIRONMENT", "dev")
+
+    with pytest.raises(SystemExit) as exit_info:
+        stripe_check.main()
+
+    assert exit_info.value.code == code
+    assert ("All good." in capsys.readouterr().out) == good
