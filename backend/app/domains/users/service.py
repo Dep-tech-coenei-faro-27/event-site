@@ -56,8 +56,6 @@ def create_user(db: Session, payload: UserRegister) -> User:
         student_verified_at=student_verified_at,
         terms_accepted_at=now,
         term_version=CURRENT_TERMS_VERSION,
-        institution=payload.institution,
-        course=payload.course,
     )
     db.add(user)
     try:
@@ -74,12 +72,6 @@ def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
 
     if "name" in update_data and update_data["name"] is not None:
         user.name = update_data["name"].strip()
-
-    if "institution" in update_data:
-        user.institution = update_data["institution"]
-
-    if "course" in update_data:
-        user.course = update_data["course"]
 
     db.commit()
     db.refresh(user)

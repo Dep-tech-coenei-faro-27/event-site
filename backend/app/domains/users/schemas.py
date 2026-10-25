@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
-from app.domains.users.enums import Course, PortugueseInstitution, Role
+from app.domains.users.enums import Role
 from app.domains.users.models import StudentVerificationStatus
 
 
@@ -13,8 +13,6 @@ class UserRegister(BaseModel):
     email: AsciiEmail
     password: str = Field(min_length=8, max_length=200)
     accept_terms: bool
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
 
     @field_validator("name")
     @classmethod
@@ -43,8 +41,6 @@ class UserRead(BaseModel):
     role: Role
     is_verified: bool
     student_verification_status: StudentVerificationStatus
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
 
 
 class TicketSummaryRead(BaseModel):
@@ -85,8 +81,6 @@ class UserProfileRead(UserRead):
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
 
     @field_validator("name")
     @classmethod
