@@ -52,6 +52,7 @@ def test_create_confirms_a_mb_way_payment_intent_with_the_phone_from_our_form():
         amount_cents=2500,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     assert payment.provider_reference == INTENT
@@ -65,6 +66,7 @@ def test_create_confirms_a_mb_way_payment_intent_with_the_phone_from_our_form():
         "payment_method_data[type]": "mb_way",
         "payment_method_data[billing_details][phone]": "+351912345678",
         "confirm": "true",
+        "description": "ENEI - Passe geral",
         "metadata[reference]": REFERENCE,
     }
     # The person's email stays with us: Stripe only needs the phone.
@@ -75,7 +77,11 @@ def test_create_is_idempotent_per_payment_and_pins_the_api_version():
     gateway, calls = build_gateway(intent("requires_action"))
 
     gateway.create_payment(
-        reference=REFERENCE, amount_cents=800, phone="912345678", email="a@b.pt"
+        reference=REFERENCE,
+        amount_cents=800,
+        phone="912345678",
+        email="a@b.pt",
+        description="ENEI - Passe geral",
     )
 
     headers = calls[0][3]
@@ -94,7 +100,11 @@ def test_create_without_a_usable_payment_intent_id_fails(answer):
 
     with pytest.raises(PaymentGatewayError, match="PaymentIntent id"):
         gateway.create_payment(
-            reference=REFERENCE, amount_cents=800, phone="912345678", email="a@b.pt"
+            reference=REFERENCE,
+            amount_cents=800,
+            phone="912345678",
+            email="a@b.pt",
+            description="ENEI - Passe geral",
         )
 
 
@@ -210,7 +220,11 @@ def test_a_stripe_error_keeps_the_code_and_message_but_never_the_key(monkeypatch
 
     with pytest.raises(PaymentGatewayError) as raised:
         real_gateway().create_payment(
-            reference=REFERENCE, amount_cents=800, phone="912345678", email="a@b.pt"
+            reference=REFERENCE,
+            amount_cents=800,
+            phone="912345678",
+            email="a@b.pt",
+            description="ENEI - Passe geral",
         )
     message = str(raised.value)
     assert "400" in message and "phone_number_invalid" in message
