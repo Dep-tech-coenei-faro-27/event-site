@@ -2,21 +2,42 @@ import { ApiError } from "./http";
 import { retryAfterMessage } from "./RetryAfter";
 import { validationMessages } from "./ValidationErrors";
 
-/** Regras da nova palavra-passe (as do backend) e mensagens de `PUT /api/auth/password`. */
+/**
+ * Regras da palavra-passe, as mesmas de `validate_password` (backend/app/core/security.py) e do
+ * `min_length=8` dos schemas. `code` é o nome que o backend usa em `ctx.rules` (o mínimo vem como
+ * `string_too_short`). Como em Python, os caracteres contam-se por code point e as maiúsculas e os
+ * algarismos não se limitam ao ASCII (os algarismos em expoente, como «²», ficam de fora).
+ */
 export const passwordRules = [
-  { label: "Mínimo de 8 caracteres", test: (p: string) => p.length >= 8 },
-  { label: "Uma letra maiúscula", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "Um número", test: (p: string) => /\d/.test(p) },
-  { label: "Um símbolo", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  { code: "too_short", label: "Mínimo de 8 caracteres", test: (p: string) => [...p].length >= 8 },
+  { code: "missing_uppercase", label: "Uma letra maiúscula", test: (p: string) => /\p{Uppercase}/u.test(p) },
+  { code: "missing_digit", label: "Um número", test: (p: string) => /\p{Nd}/u.test(p) },
+  { code: "missing_symbol", label: "Um símbolo", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
 // Mesmo limite do backend (bcrypt só usa os primeiros 72 bytes).
 export const byteLength = (s: string) => new TextEncoder().encode(s).length;
 
+/** Os `ctx.rules` que o backend devolveria para `password`, pela mesma ordem. */
+export function failedPasswordRules(password: string): string[] {
+  const failed = byteLength(password) > 72 ? ["too_long"] : [];
+  for (const rule of passwordRules) {
+    if (rule.code !== "too_short" && !rule.test(password)) failed.push(rule.code);
+  }
+  return failed;
+}
+
+/** Erro da nova palavra-passe antes de pedir à API, ou `null` se cumpre as regras. */
+export function newPasswordError(password: string): string | null {
+  if (!passwordRules.every((rule) => rule.test(password))) return "A palavra-passe não cumpre todos os requisitos.";
+  if (byteLength(password) > 72) return "A palavra-passe é demasiado longa.";
+  return null;
+}
+
 /** Erro do formulário antes de pedir à API, ou `null` se estiver bem. */
 export function passwordFormError(current: string, next: string, confirm: string): string | null {
-  if (!passwordRules.every((rule) => rule.test(next))) return "A nova palavra-passe não cumpre todos os requisitos.";
-  if (byteLength(next) > 72) return "A palavra-passe é demasiado longa.";
+  const problem = newPasswordError(next);
+  if (problem) return problem;
   if (next !== confirm) return "As palavras-passe não coincidem.";
   if (next === current) return "A nova palavra-passe tem de ser diferente da atual.";
   return null;

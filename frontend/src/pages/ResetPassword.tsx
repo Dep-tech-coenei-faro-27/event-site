@@ -3,10 +3,10 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout, { AuthEyebrow, AuthStateIcon } from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import AuthAlert from "../components/auth/AuthAlert";
-import AuthPasswordRules from "../components/auth/AuthPasswordRules";
+import PasswordRules from "../components/PasswordRules";
 import { usePageMeta } from "../utils/usePageMeta";
 import { formErrorsFrom, formMessage, useAuthForm } from "../utils/authForm";
-import { passwordRules } from "../utils/passwordChange";
+import { newPasswordError } from "../utils/passwordChange";
 import { http, ApiError } from "../utils/http";
 
 const points = [
@@ -34,8 +34,9 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!passwordRules.every((rule) => rule.test(password))) {
-      fail(formMessage("A palavra-passe não cumpre todos os requisitos."));
+    const problem = newPasswordError(password);
+    if (problem) {
+      fail(formMessage(problem));
       return;
     }
     if (password !== confirm) {
@@ -126,7 +127,7 @@ export default function ResetPasswordPage() {
               required
             />
 
-            <AuthPasswordRules password={password} />
+            <PasswordRules password={password} variant="conta" />
 
             <AuthAlert message={errors.message} alertRef={alertRef} />
 

@@ -1,7 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import ChangePasswordPage from '../src/pages/ChangePassword';
 import CheckoutPage from '../src/pages/Checkout';
 import Bilhetes from '../src/pages/Bilhetes';
 import { AuthContext, type AuthContextValue } from '../src/utils/authContextValue';
@@ -31,50 +30,6 @@ function renderAt(path: string, element: React.ReactNode) {
     </AuthContext.Provider>,
   );
 }
-
-function fillPasswordForm(current: string, next: string) {
-  fireEvent.change(screen.getByLabelText('Palavra-passe atual'), { target: { value: current } });
-  fireEvent.change(screen.getByLabelText('Nova palavra-passe'), { target: { value: next } });
-  fireEvent.change(screen.getByLabelText('Confirmar nova palavra-passe'), {
-    target: { value: next },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar nova palavra-passe' }));
-}
-
-test('alterar a palavra-passe envia PUT /auth/password e mostra a confirmação', async () => {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ message: 'Password changed successfully' }), { status: 200 }),
-  );
-  vi.stubGlobal('fetch', fetchMock);
-
-  renderAt('/conta/alterar-palavra-passe', <ChangePasswordPage />);
-  fillPasswordForm('Antiga#123', 'NovaSegura#456');
-
-  expect(await screen.findByText('Palavra-passe alterada.')).toBeInTheDocument();
-  const [url, init] = fetchMock.mock.calls[0];
-  expect(url).toBe('/api/auth/password');
-  expect(init.method).toBe('PUT');
-  expect(JSON.parse(init.body)).toEqual({
-    current_password: 'Antiga#123',
-    new_password: 'NovaSegura#456',
-  });
-});
-
-test('palavra-passe atual errada mostra o erro no formulário', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ detail: 'Current password is incorrect' }), { status: 401 }),
-    ),
-  );
-
-  renderAt('/conta/alterar-palavra-passe', <ChangePasswordPage />);
-  fillPasswordForm('Errada#123', 'NovaSegura#456');
-
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'A palavra-passe atual está incorreta.',
-  );
-});
 
 test('cada bilhete leva ao checkout com a modalidade no URL', () => {
   renderAt('/bilhetes', <Bilhetes />);

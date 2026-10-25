@@ -9,7 +9,7 @@ type ValidationItem = {
 };
 
 const passwordRules: Record<string, string> = {
-  too_long: "A palavra-passe é demasiado longa (máximo de 200 caracteres).",
+  too_long: "A palavra-passe é demasiado longa.",
   missing_uppercase: "A palavra-passe tem de incluir uma letra maiúscula.",
   missing_digit: "A palavra-passe tem de incluir um número.",
   missing_symbol: "A palavra-passe tem de incluir um símbolo.",
