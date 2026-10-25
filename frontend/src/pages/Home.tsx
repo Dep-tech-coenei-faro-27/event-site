@@ -5,6 +5,7 @@ import ProgramSection from '../components/ProgramSection';
 import QuickInfo from '../components/QuickInfo';
 import LocationSection from '../components/LocationSection'
 import ExperienceSection from '../components/ExperienceSection';
+import PartnersSection from '../components/PartnersSection';
 import CtaBanner from '../components/CtaBanner';
 import { usePageMeta } from "../utils/usePageMeta";
 import { useBodyPage } from "../utils/useBodyPage";
@@ -24,6 +25,7 @@ function Home() {
             <ProgramSection />
             <LocationSection />
             <ExperienceSection />
+            <PartnersSection />
             <CtaBanner />
         </>
     )
