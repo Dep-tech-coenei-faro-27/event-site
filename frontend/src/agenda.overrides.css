@@ -1,0 +1,24 @@
+/*
+ * Ajustes à mão sobre o `agenda.css` (gerado: não se edita): linha de local e de orador de cada item da agenda.
+ * (o prefixo `html body[...][data-page]` iguala o peso das regras da própria página no ficheiro gerado)
+ */
+html body[data-page="agenda"][data-page] main .schedule-item__meta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+html body[data-page="agenda"][data-page] main .schedule-item__speaker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+html body[data-page="agenda"][data-page] main .schedule-item__speaker img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+html body[data-page="agenda"][data-page] main .schedule-item__speaker strong {
+  color: var(--text);
+  font-weight: 600;
+}

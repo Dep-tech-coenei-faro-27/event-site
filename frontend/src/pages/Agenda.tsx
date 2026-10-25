@@ -1,13 +1,39 @@
 import { useState, type KeyboardEvent } from "react";
 import "../agenda.css";
+import "../agenda.overrides.css";
 import { useBodyPage } from "../utils/useBodyPage";
 import { usePageMeta } from "../utils/usePageMeta";
+import {
+  AGENDA,
+  AGENDA_DAYS,
+  AGENDA_UTC_OFFSET,
+  itemsOfDay,
+  timeOf,
+  type AgendaDay,
+  type AgendaItem,
+  type AgendaSpeaker,
+} from "../content/agenda";
 
-const DAYS = ["quinta", "sexta", "sabado", "domingo"] as const;
-type Day = (typeof DAYS)[number];
+const DAYS = AGENDA_DAYS.map((d) => d.key);
+type Day = AgendaDay["key"];
+
+const speakerPhotos = import.meta.glob("../assets/speakers/*", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
+
+function Speaker({ speaker }: { speaker: AgendaSpeaker }) {
+  const src = speaker.photo ? speakerPhotos[`../assets/speakers/${speaker.photo}`] : undefined;
+  return (
+    <p className="schedule-item__meta schedule-item__speaker">
+      {src && <img src={src} alt={speaker.photoAlt ?? ""} width={40} height={40} loading="lazy" />}
+      <span>
+        <strong>{speaker.name}</strong>
+        {speaker.company && <> · {speaker.company}</>}
+      </span>
+    </p>
+  );
+}
 
 /** `ui-ux/agenda/index.html` no React. CSS gerado em `agenda.css` (ver `scripts/ui-port/genpage.py`). */
-export default function Agenda() {
+export default function Agenda({ items = AGENDA }: { items?: AgendaItem[] }) {
   useBodyPage("agenda");
   const [day, setDay] = useState<Day>("quinta");
 
@@ -56,166 +82,28 @@ export default function Agenda() {
       </p>
       </div>
       <div className="tabs agenda-day-tabs" role="tablist" aria-label="Dias do programa">
-      <button className="tab agenda-day-tab" id="tab-quinta" type="button" role="tab" aria-selected={day === "quinta"} aria-controls="agenda-quinta" tabIndex={day === "quinta" ? 0 : -1} onClick={() => setDay("quinta")} onKeyDown={onTabKey}>
-      <span>Quinta</span><strong>1 Abr</strong>
+      {AGENDA_DAYS.map((d) => (
+      <button className="tab agenda-day-tab" id={`tab-${d.key}`} key={d.key} type="button" role="tab" aria-selected={day === d.key} aria-controls={`agenda-${d.key}`} tabIndex={day === d.key ? 0 : -1} onClick={() => setDay(d.key)} onKeyDown={onTabKey}>
+      <span>{d.weekday}</span><strong>{d.short}</strong>
       </button>
-      <button className="tab agenda-day-tab" id="tab-sexta" type="button" role="tab" aria-selected={day === "sexta"} aria-controls="agenda-sexta" tabIndex={day === "sexta" ? 0 : -1} onClick={() => setDay("sexta")} onKeyDown={onTabKey}>
-      <span>Sexta</span><strong>2 Abr</strong>
-      </button>
-      <button className="tab agenda-day-tab" id="tab-sabado" type="button" role="tab" aria-selected={day === "sabado"} aria-controls="agenda-sabado" tabIndex={day === "sabado" ? 0 : -1} onClick={() => setDay("sabado")} onKeyDown={onTabKey}>
-      <span>Sábado</span><strong>3 Abr</strong>
-      </button>
-      <button className="tab agenda-day-tab" id="tab-domingo" type="button" role="tab" aria-selected={day === "domingo"} aria-controls="agenda-domingo" tabIndex={day === "domingo" ? 0 : -1} onClick={() => setDay("domingo")} onKeyDown={onTabKey}>
-      <span>Domingo</span><strong>4 Abr</strong>
-      </button>
+      ))}
       </div>
-      <div className={day === "quinta" ? "schedule" : "schedule hidden"} id="agenda-quinta" role="tabpanel" aria-labelledby="tab-quinta">
-      <p className="schedule-day-label">Quinta-feira · 1 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T14:00">14:00</time>
-      <div><h3>Check-ins</h3></div>
-      <span className="tag tag--sand">Check-in</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T18:00">18:00</time>
-      <div><h3>Sessão de boas-vindas</h3></div>
-      <span className="tag tag--cyan">Boas-vindas</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T20:00">20:00</time>
-      <div><h3>Jantar e arraial académico</h3></div>
-      <span className="tag tag--teal">Jantar</span>
-      </article>
+      {AGENDA_DAYS.map((d) => (
+      <div className={day === d.key ? "schedule" : "schedule hidden"} id={`agenda-${d.key}`} key={d.key} role="tabpanel" aria-labelledby={`tab-${d.key}`}>
+      <p className="schedule-day-label">{d.label}</p>
+      {itemsOfDay(items, d).map((item) => (
+      <article className="schedule-item" id={item.id} key={item.id}>
+      <time dateTime={`${item.start}${AGENDA_UTC_OFFSET}`}>{timeOf(item)}</time>
+      <div>
+      <h3>{item.title}</h3>
+      {item.location && <p className="schedule-item__meta">{item.location}</p>}
+      {item.speaker && <Speaker speaker={item.speaker} />}
       </div>
-      <div className={day === "sexta" ? "schedule" : "schedule hidden"} id="agenda-sexta" role="tabpanel" aria-labelledby="tab-sexta">
-      <p className="schedule-day-label">Sexta-feira · 2 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T10:00">10:00</time>
-      <div><h3>Palestra e workshops #1, #2 e #3</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
+      <span className={`tag tag--${item.tag.tone}`}>{item.tag.label}</span>
       </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T11:00">11:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T14:00">14:00</time>
-      <div><h3>Palestra e workshops #4, #5 e #6</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T15:00">15:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T16:30">16:30</time>
-      <div><h3>Coffee break</h3></div>
-      <span className="tag tag--sand">Networking</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T17:00">17:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T18:00">18:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T20:00">20:00</time>
-      <div><h3>Jantar</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T22:00">22:00</time>
-      <div><h3>Atividades noturnas</h3></div>
-      <span className="tag tag--periwinkle">Noite</span>
-      </article>
+      ))}
       </div>
-      <div className={day === "sabado" ? "schedule" : "schedule hidden"} id="agenda-sabado" role="tabpanel" aria-labelledby="tab-sabado">
-      <p className="schedule-day-label">Sábado · 3 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T10:00">10:00</time>
-      <div><h3>Palestra e workshops #10, #11 e #12</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T11:00">11:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T14:00">14:00</time>
-      <div><h3>Palestra e workshops #13, #14 e #15</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T15:00">15:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T16:30">16:30</time>
-      <div><h3>Coffee break</h3></div>
-      <span className="tag tag--sand">Networking</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T17:00">17:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T18:00">18:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T20:00">20:00</time>
-      <div><h3>Jantar</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T22:00">22:00</time>
-      <div><h3>Atividades noturnas</h3></div>
-      <span className="tag tag--periwinkle">Noite</span>
-      </article>
-      </div>
-      <div className={day === "domingo" ? "schedule" : "schedule hidden"} id="agenda-domingo" role="tabpanel" aria-labelledby="tab-domingo">
-      <p className="schedule-day-label">Domingo · 4 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T10:00">10:00</time>
-      <div><h3>Nascer do sol na praia</h3></div>
-      <span className="tag tag--sand">Social</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T14:00">14:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T16:00">16:00</time>
-      <div><h3>Sessão de encerramento</h3></div>
-      <span className="tag tag--cyan">Encerramento</span>
-      </article>
-      </div>
+      ))}
       </div>
       </section>
       <section className="section section--panel">
