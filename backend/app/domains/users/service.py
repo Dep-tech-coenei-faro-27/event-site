@@ -73,6 +73,9 @@ def update_user_profile(db: Session, user: User, payload: UserUpdate) -> User:
     if "name" in update_data and update_data["name"] is not None:
         user.name = update_data["name"].strip()
 
+    if "phone" in update_data:
+        user.phone = update_data["phone"]
+
     db.commit()
     db.refresh(user)
     return user
