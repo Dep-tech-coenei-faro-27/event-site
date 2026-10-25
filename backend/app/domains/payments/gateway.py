@@ -56,6 +56,7 @@ class MBWayGateway(Protocol):
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment: ...
 
     def get_status(
@@ -70,7 +71,12 @@ class RefundingGateway(Protocol):
     name: str
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Refund the whole payment and return the provider's refund id."""
         ...
@@ -195,6 +201,7 @@ class IfThenPayMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         payload = {
             "mbWayKey": self.mbway_key,
@@ -368,6 +375,7 @@ class StripeMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         form = {
             "amount": str(amount_cents),
@@ -376,6 +384,7 @@ class StripeMBWayGateway:
             "payment_method_data[type]": "mb_way",
             "payment_method_data[billing_details][phone]": f"+351{phone}",
             "confirm": "true",
+            "description": description,
             "metadata[reference]": reference,
         }
         # The same reference always means the same PaymentIntent: a repeated request
@@ -446,7 +455,12 @@ class StripeMBWayGateway:
         return matches[0] if matches else None
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Give back the whole payment through ``POST /refunds``.
 
@@ -469,6 +483,9 @@ class StripeMBWayGateway:
             "payment_intent": str(provider_reference),
             "amount": str(amount_cents),
             "reason": "requested_by_customer",
+            # A Stripe refund has no ``description`` field (only metadata and a fixed
+            # ``reason``): the metadata is what the dashboard shows on the refund.
+            "metadata[description]": description,
             "metadata[reference]": reference,
         }
         headers = self._headers({"Idempotency-Key": f"enei-refund-{reference}"})
@@ -561,6 +578,7 @@ class SimulatedMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         # The creation instant travels inside the provider reference so the gateway
         # stays stateless and ``get_status`` can measure the elapsed time.
@@ -571,7 +589,12 @@ class SimulatedMBWayGateway:
         )
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Nothing moves: lets the refund flow be tried locally."""
         return f"SIMREFUND-{reference}"

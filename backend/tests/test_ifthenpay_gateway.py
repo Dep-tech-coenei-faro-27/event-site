@@ -48,6 +48,7 @@ def test_create_accepts_only_the_success_code_and_returns_the_request_id():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     assert payment.provider_reference == "itp-42"
@@ -65,6 +66,7 @@ def test_create_rejects_every_non_success_code(code):
             amount_cents=5000,
             phone="912345678",
             email="ana@example.com",
+            description="ENEI - Passe geral",
         )
 
 
@@ -77,6 +79,7 @@ def test_create_fails_when_the_success_response_has_no_request_id():
             amount_cents=5000,
             phone="912345678",
             email="ana@example.com",
+            description="ENEI - Passe geral",
         )
 
 

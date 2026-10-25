@@ -46,6 +46,7 @@ def test_simulated_gateway_stays_pending_by_default():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     assert payment.status is TransactionStatus.PENDING
@@ -67,6 +68,7 @@ def test_simulator_expires_the_payment_like_the_real_provider():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     def status() -> TransactionStatus:
@@ -90,6 +92,7 @@ def test_simulator_confirms_before_it_expires_when_the_delay_is_shorter():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
     clock.advance(10)
 
@@ -118,6 +121,7 @@ def test_confirming_simulator_waits_the_configured_delay():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     assert (
