@@ -432,7 +432,8 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
-- [ ] Muita gente na mesma rede (campus): cada IP partilhado conta como uma só pessoa. Se for preciso, sobe
+- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
+  é de 60 por minuto (cada tentativa gasta cerca de 0,3 s de CPU de `bcrypt`: não subir muito); se for preciso, sobe
   `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 
