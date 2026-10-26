@@ -5,7 +5,7 @@ os pedia ao registar, e o comprovativo de estudante reconhece a instituição pe
 assinatura. As listas fechadas deixam de existir.
 
 Revision ID: b7c4e1a92d35
-Revises: f1a8d3c6e902
+Revises: a7c4e2b9d513
 Create Date: 2026-10-25 18:30:00.000000
 
 """
@@ -18,7 +18,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "b7c4e1a92d35"
-down_revision: str | None = "f1a8d3c6e902"
+down_revision: str | None = "a7c4e2b9d513"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

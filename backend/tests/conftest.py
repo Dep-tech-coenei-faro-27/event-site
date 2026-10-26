@@ -13,6 +13,9 @@ os.environ["SMTP_HOST"] = ""
 os.environ["SMTP_USER"] = ""
 os.environ["SMTP_PASSWORD"] = ""
 os.environ["EMAIL_SENDER"] = ""
+os.environ["SMTP2_HOST"] = ""
+os.environ["SMTP2_USER"] = ""
+os.environ["SMTP2_PASSWORD"] = ""
 # Tests ask the provider every time; the throttle has its own tests.
 os.environ.setdefault("PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS", "0")
 

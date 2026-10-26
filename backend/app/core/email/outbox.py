@@ -20,7 +20,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.email.base import EmailDeliveryError, EmailSender, mask_email
-from app.core.email.models import EmailOutbox, EmailStatus
+from app.core.email.failover import usage_on
+from app.core.email.models import EmailOutbox, EmailStatus, EmailTransportUsage
 
 logger = logging.getLogger(__name__)
 
@@ -202,13 +203,15 @@ def delete_old_emails(
     sent_older_than_days: int = 7,
     failed_older_than_days: int = 30,
     failed_body_days: int = 1,
+    usage_days: int = 30,
 ) -> int:
     """Housekeeping: the queue is not an archive of what people received.
 
     Rows that were sent are deleted after a week and failed ones after a month.
     A failed email keeps its body for a day (so it can be sent again by hand) and
     is blanked after that, together with its inline images (the ticket QR), because
-    the links inside have long expired.
+    the links inside have long expired. The daily counts of each transport are kept
+    for a month.
     """
     now = _now()
     db.execute(
@@ -235,6 +238,11 @@ def delete_old_emails(
                 ),
             )
         )
+        .execution_options(synchronize_session=False)
+    )
+    db.execute(
+        delete(EmailTransportUsage)
+        .where(EmailTransportUsage.day < (now - timedelta(days=usage_days)).date())
         .execution_options(synchronize_session=False)
     )
     db.commit()
@@ -290,7 +298,11 @@ def queue_stats(db: Session, *, now: datetime | None = None) -> dict[str, object
         if oldest.tzinfo is None:
             oldest = oldest.replace(tzinfo=UTC)
         age = int((when - oldest).total_seconds())
-    return {**counts, "oldest_pending_seconds": age}
+    return {
+        **counts,
+        "oldest_pending_seconds": age,
+        **usage_on(db, when.astimezone(UTC).date()),
+    }
 
 
 class OutboxEmailSender(EmailSender):
@@ -400,7 +412,18 @@ def main(argv: list[str] | None = None) -> None:
 
     with SessionLocal() as db:
         if args.status:
-            print(queue_stats(db))
+            stats = queue_stats(db)
+            print(stats)
+            if stats["primary_exhausted_today"] or stats["fallback_sent_today"]:
+                print(
+                    f"WARNING: the fallback SMTP sent {stats['fallback_sent_today']} "
+                    "emails today"
+                    + (
+                        "; the primary is over its daily quota until midnight UTC"
+                        if stats["primary_exhausted_today"]
+                        else ""
+                    )
+                )
         elif args.requeue_failed:
             print(f"Requeued {requeue_failed(db)} failed emails")
         else:

@@ -69,6 +69,10 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             EMAIL_SENDER=${{ secrets.EMAIL_SENDER }}
+            SMTP2_HOST=${{ secrets.SMTP2_HOST }}
+            SMTP2_USER=${{ secrets.SMTP2_USER }}
+            SMTP2_PASSWORD=${{ secrets.SMTP2_PASSWORD }}
+            SMTP2_EMAIL_SENDER=${{ secrets.SMTP2_EMAIL_SENDER }}
             FRONTEND_URL=${{ secrets.FRONTEND_URL }}
             JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
             CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
@@ -83,6 +87,14 @@ jobs:
             # (vazio reprova a validação e o código tem o seu valor por omissão).
             if [ -n "${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" ]; then
               echo "RATE_LIMIT_PAYMENT_PER_MINUTE=${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" >> .env
+            fi
+            # Porta do segundo SMTP e limite diário do primeiro; só entram quando existem
+            # (vazio reprova a validação e o código tem 587 e 0, sem limite).
+            if [ -n "${{ secrets.SMTP2_PORT }}" ]; then
+              echo "SMTP2_PORT=${{ secrets.SMTP2_PORT }}" >> .env
+            fi
+            if [ -n "${{ vars.SMTP_DAILY_LIMIT }}" ]; then
+              echo "SMTP_DAILY_LIMIT=${{ vars.SMTP_DAILY_LIMIT }}" >> .env
             fi
             # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
             # e o default do código é "off".
