@@ -5,7 +5,7 @@ import DadosPessoais from "../src/pages/DadosPessoais";
 import Profile from "../src/pages/Profile";
 import Seguranca from "../src/pages/Seguranca";
 import type { User } from "../src/utils/authContextValue";
-import { ApiError } from "../src/utils/http";
+import { ApiError, NetworkError } from "../src/utils/http";
 
 const mocks = vi.hoisted(() => ({
   http: vi.fn(),
@@ -203,6 +203,70 @@ describe("dados pessoais: só o nome se guarda, e pela API", () => {
     renderPage(<DadosPessoais />);
     fireEvent.click(screen.getByRole("button", { name: /guardar alterações/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/não foi possível guardar/i);
+    expect(screen.queryByText("Dados atualizados.")).toBeNull();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  const save = (value?: string) => {
+    if (value !== undefined) fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value } });
+    fireEvent.click(screen.getByRole("button", { name: /guardar alterações/i }));
+  };
+
+  it("um nome que o servidor recusaria não se envia: o erro aparece no campo e o foco vai para lá", async () => {
+    renderPage(<DadosPessoais />);
+    save("<123>");
+
+    const input = screen.getByLabelText(/nome completo/i);
+    await waitFor(() => expect(input).toHaveAttribute("aria-invalid", "true"));
+    const describedBy = document.getElementById(input.getAttribute("aria-describedby")!);
+    expect(describedBy).toHaveTextContent("O nome contém caracteres não permitidos.");
+    expect(describedBy).toHaveTextContent("O nome tem de incluir pelo menos uma letra.");
+    expect(document.activeElement).toBe(input);
+    expect(mocks.http).not.toHaveBeenCalled();
+  });
+
+  it("um nome só com espaços não se envia", () => {
+    renderPage(<DadosPessoais />);
+    save("    ");
+    expect(screen.getByLabelText(/nome completo/i)).toHaveAttribute("aria-invalid", "true");
+    expect(mocks.http).not.toHaveBeenCalled();
+  });
+
+  it("422 do nome aparece no campo do nome, não no fim do formulário", async () => {
+    mocks.http.mockRejectedValue(
+      new ApiError(422, "x", [{ type: "name_invalid", loc: ["body", "name"], msg: "x", ctx: { rules: ["invalid_characters"] } }]),
+    );
+    renderPage(<DadosPessoais />);
+    save("Francisco Melo");
+
+    const input = screen.getByLabelText(/nome completo/i);
+    await waitFor(() => expect(input).toHaveAttribute("aria-invalid", "true"));
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)).toHaveTextContent(
+      "O nome contém caracteres não permitidos.",
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.queryByText("Dados atualizados.")).toBeNull();
+  });
+
+  it("mudar o nome depois de um erro limpa o erro do campo", async () => {
+    renderPage(<DadosPessoais />);
+    save("123");
+    expect(screen.getByLabelText(/nome completo/i)).toHaveAttribute("aria-invalid", "true");
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: "Ana" } });
+    expect(screen.getByLabelText(/nome completo/i)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it.each([
+    ["401", new ApiError(401, "Session expired"), "A tua sessão terminou. Entra novamente."],
+    ["erro de rede", new NetworkError(), "Não foi possível contactar o servidor."],
+    ["429", new ApiError(429, "x", undefined, "30"), "Demasiados pedidos. Tenta novamente dentro de 30 segundos."],
+  ])("%s mostra a mensagem certa e não diz que guardou", async (_label, err, message) => {
+    mocks.http.mockRejectedValue(err);
+    renderPage(<DadosPessoais />);
+    save("Francisco Melo");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByLabelText(/nome completo/i)).not.toHaveAttribute("aria-invalid");
     expect(screen.queryByText("Dados atualizados.")).toBeNull();
     expect(mocks.refresh).not.toHaveBeenCalled();
   });
