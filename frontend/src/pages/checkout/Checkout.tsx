@@ -302,7 +302,7 @@ function CheckoutForm() {
                 <small id="nif-help" role={nifTouched && nifMessage ? "alert" : undefined}>
                   {nifTouched && nifMessage
                     ? nifMessage
-                    : "Preenche só se quiseres a fatura com o teu número de contribuinte."}
+                    : "Preenche só se quiseres a fatura com o teu número de contribuinte. A fatura é emitida manualmente e enviada por email até 20 dias úteis após a compra."}
                 </small>
               </label>
 
