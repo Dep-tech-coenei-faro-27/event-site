@@ -465,8 +465,9 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
-      `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
-- [ ] Muita gente na mesma rede (campus): cada IP partilhado conta como uma só pessoa. Se for preciso, sobe
+  `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
+- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
+  é de 60 por minuto (cada tentativa gasta cerca de 0,3 s de CPU de `bcrypt`: não subir muito); se for preciso, sobe
   `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 

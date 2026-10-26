@@ -3,10 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout, { AuthEyebrow } from "../components/auth/AuthLayout";
 import AuthField from "../components/auth/AuthField";
 import AuthAlert from "../components/auth/AuthAlert";
-import AuthPasswordRules from "../components/auth/AuthPasswordRules";
+import PasswordRules from "../components/PasswordRules";
 import { usePageMeta } from "../utils/usePageMeta";
 import { formErrorsFrom, formMessage, useAuthForm } from "../utils/authForm";
-import { byteLength, passwordRules } from "../utils/passwordChange";
+import { newPasswordError } from "../utils/passwordChange";
 import { http, ApiError } from "../utils/http";
 
 const points = [
@@ -40,11 +40,9 @@ export default function RegisterPage() {
     if (!/^[\x21-\x7E]+$/.test(email.trim())) {
       return "O email só pode conter caracteres ASCII.";
     }
-    if (password.length > 200 || !passwordRules.every((rule) => rule.test(password))) {
-      return "A palavra-passe não cumpre todos os requisitos.";
-    }
-    if (byteLength(password) > 72) {
-      return "A palavra-passe é demasiado longa (máximo de 72 bytes).";
+    const passwordProblem = newPasswordError(password);
+    if (passwordProblem) {
+      return passwordProblem;
     }
     if (password !== confirm) {
       return "As palavras-passe não coincidem.";
@@ -148,7 +146,7 @@ export default function RegisterPage() {
           />
         </div>
 
-        <AuthPasswordRules password={password} />
+        <PasswordRules password={password} variant="conta" />
 
         <label className="auth-check">
           <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} required />

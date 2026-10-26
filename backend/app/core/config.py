@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
     RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
-    RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=30, gt=0)
+    RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=2, gt=0)
     RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
     RATE_LIMIT_EMAIL_PER_HOUR: int = Field(default=5, gt=0)
