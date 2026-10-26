@@ -15,7 +15,7 @@ const passwordRules: Record<string, string> = {
   missing_symbol: "A palavra-passe tem de incluir um símbolo.",
 };
 
-const nameRules: Record<string, string> = {
+export const nameRules: Record<string, string> = {
   blank: "O nome não pode estar vazio.",
   invalid_characters: "O nome contém caracteres não permitidos.",
   no_letter: "O nome tem de incluir pelo menos uma letra.",
