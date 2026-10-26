@@ -1,7 +1,16 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, Integer, String, Text, func
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    Date,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -53,5 +62,22 @@ class EmailOutbox(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class EmailTransportUsage(Base):
+    """How many emails a transport sent on one UTC day, shared by every worker.
+
+    ``exhausted_at`` is set when the provider refused for its daily quota: the
+    transport is then skipped until the next UTC day, which has a new row.
+    """
+
+    __tablename__ = "email_transport_usage"
+
+    transport: Mapped[str] = mapped_column(String(20), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    sent: Mapped[int] = mapped_column(Integer, default=0)
+    exhausted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
