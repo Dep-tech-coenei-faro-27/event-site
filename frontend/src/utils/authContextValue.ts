@@ -1,4 +1,5 @@
 import { createContext } from 'react';
+import type { StudentVerificationStatus } from './studentProof';
 
 export interface User {
   id: number | string;
@@ -9,6 +10,8 @@ export interface User {
   course: string | null;
   institution?: string | null;
   qr_code: string | null;
+  /** Estudante verificado, comprovativo à espera ou recusado (de /users/me e /auth/me). */
+  student_verification_status?: StudentVerificationStatus;
   /** O bilhete emitido (de GET /users/me); `null` enquanto não há compra confirmada. */
   ticket?: { reference: string; tier: string; tier_name: string; holder_name: string; paid_at: string | null } | null;
   /** Um pagamento à espera de ser aprovado ou terminado pelo fornecedor. */

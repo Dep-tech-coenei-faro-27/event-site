@@ -16,9 +16,10 @@ describe("describeInitiateError (uma linha por erro de docs/api-payments.md)", (
     expect(f).toMatchObject({ kind: "email-unverified", action: "resend-verification" });
   });
 
-  it("403 estudante sem verificação: sugerir outra modalidade", () => {
+  it("403 estudante sem verificação: levar ao comprovativo ou a outra modalidade", () => {
     const f = describeInitiateError(api(403, "Student verification is required to buy this ticket"));
-    expect(f).toMatchObject({ kind: "student-required", action: "choose-another-tier" });
+    expect(f).toMatchObject({ kind: "student-required", action: "send-student-proof" });
+    expect(f.message).toMatch(/comprovativo/);
   });
 
   it("409 esgotado e 409 já tem bilhete são casos diferentes (nunca dizer «esgotado» a quem já tem)", () => {

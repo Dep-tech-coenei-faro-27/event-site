@@ -4,6 +4,7 @@ import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
 import AccountLayout from "../components/dashboard/AccountLayout";
 import AccountPanel from "../components/dashboard/AccountPanel";
+import StudentProofSection from "../components/dashboard/StudentProofSection";
 import { BORDER, panelClass } from "../components/dashboard/AccountStyles";
 import { useAuth } from "../utils/useAuth";
 import { getMe } from "../utils/users";
@@ -230,6 +231,12 @@ export default function ProfilePage() {
               </div>
             </AccountPanel>
           )}
+
+          <StudentProofSection
+            status={me.student_verification_status}
+            onStatusChange={(status) => setMe((prev) => prev && { ...prev, student_verification_status: status })}
+            onStale={retry}
+          />
 
           {/* Antes do Encontro */}
           <section aria-labelledby="account-ready-title" className={`${panelClass} print:hidden`}>

@@ -1,3 +1,5 @@
+import type { StudentVerificationStatus } from "../utils/studentProof";
+
 // Formas das respostas da API de pagamentos (ver docs/api-payments.md e docs/api-auth.md).
 // Dinheiro sempre em cêntimos. As modalidades vêm de GET /payment/tiers e vão crescer:
 // `tier` é um texto, não uma lista fixa, e nenhum nome nem preço fica escrito no código.
@@ -74,8 +76,6 @@ export type AccountRefundDue = {
 };
 
 /** O que `GET /users/me` diz sobre a compra. Os campos são `null` quando não se aplicam. */
-export type StudentVerificationStatus = "pending" | "verified";
-
 export type Account = {
   /** Se a conta já foi verificada como estudante (as modalidades de estudante só abrem então). */
   student_verification_status?: StudentVerificationStatus;

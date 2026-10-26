@@ -280,7 +280,7 @@ Os textos de `detail` estão em inglês e são para os logs e para distinguir ca
 | --- | --- | --- | --- |
 | `401` | sem sessão ou sessão expirada | «A tua sessão terminou. Entra outra vez para continuar.» | Levar ao login e voltar ao checkout |
 | `403` com `Please verify your email address to continue.` | email por verificar | «Confirma o teu email para poderes comprar.» | Oferecer reenviar o email de verificação |
-| `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é para estudantes com a conta verificada.» | Sugerir o passe geral ou o contacto da organização |
+| `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é só para estudantes com a conta verificada. Envia o comprovativo de matrícula ou escolhe outra modalidade.» | Ligação ao comprovativo no perfil (`/perfil#comprovativo`) e o contacto da organização (`geral@enei.pt`) |
 | `409` com `This ticket tier is sold out` | modalidade esgotada | «Esta modalidade esgotou.» | Voltar à escolha de modalidade |
 | `409` com `You already have a ticket or a payment in progress` | já tem bilhete ou pagamento em curso | «Já tens um bilhete ou um pagamento em curso.» (**não** dizer «esgotado») | Se `/users/me` tem `qr_code`, mostrar o bilhete; senão, ir para o ecrã de espera com a referência guardada |
 | `422` | telemóvel, NIF, modalidade ou quantidade inválidos | Erro junto ao campo (o telemóvel ou o NIF; `loc` diz qual) | Deixar corrigir e reenviar |
