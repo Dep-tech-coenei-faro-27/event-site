@@ -10,7 +10,21 @@ def mask_email(address: str) -> str:
 
 
 class EmailDeliveryError(RuntimeError):
-    """Raised when an email cannot be delivered by a transport."""
+    """Raised when an email cannot be delivered by a transport.
+
+    ``kind`` says whose fault it was, so a fallback transport is only tried when
+    another server could do better: ``"limit"`` (the provider's sending quota),
+    ``"server"`` (unreachable, timeout, refused login, any other refusal) or
+    ``"recipient"`` (the address was refused, which another server would refuse too).
+    """
+
+    LIMIT = "limit"
+    SERVER = "server"
+    RECIPIENT = "recipient"
+
+    def __init__(self, message: str, kind: str = SERVER) -> None:
+        super().__init__(message)
+        self.kind = kind
 
 
 class EmailSender(ABC):
