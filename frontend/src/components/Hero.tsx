@@ -6,7 +6,7 @@ import { EVENT_DATES } from '../data/Event';
 export default function Hero() {
   return (
     <section
-      className="hero-home relative w-full grid items-center overflow-clip border-b border-white/10"
+      className="hero-home relative w-full grid items-center overflow-clip"
       style={{
         backgroundImage: `
           linear-gradient(
