@@ -29,8 +29,6 @@ const baseUser: User = {
   email: "francisco@example.com",
   role: "user",
   is_verified: true,
-  course: "Engenharia Informática",
-  institution: null,
   qr_code: null,
 };
 
@@ -189,15 +187,15 @@ describe("dados pessoais: só o nome se guarda, e pela API", () => {
     fireEvent.click(screen.getByRole("button", { name: /guardar alterações/i }));
 
     expect(await screen.findByText("Dados atualizados.")).toBeInTheDocument();
-    expect(mocks.http).toHaveBeenCalledWith("/users/me", { method: "PUT", body: { name: "Francisco M. Melo" } });
+    expect(mocks.http).toHaveBeenCalledWith("/users/me", { method: "PUT", body: { name: "Francisco M. Melo", phone: null } });
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("o email, a instituição e o curso só se mostram (não se fingem editáveis)", () => {
+  it("o email só se mostra (não se finge editável) e a instituição e o curso já não aparecem", () => {
     renderPage(<DadosPessoais />);
     expect(screen.getByLabelText(/^email/i)).toHaveAttribute("readonly");
-    expect(screen.getByLabelText(/instituição/i)).toHaveAttribute("readonly");
-    expect(screen.getByLabelText(/curso/i)).toHaveAttribute("readonly");
+    expect(screen.queryByLabelText(/instituição/i)).toBeNull();
+    expect(screen.queryByLabelText(/curso/i)).toBeNull();
   });
 
   it("se a API recusa, mostra o erro e não diz que guardou", async () => {
