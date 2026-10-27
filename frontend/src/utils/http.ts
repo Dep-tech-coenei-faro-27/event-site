@@ -31,13 +31,16 @@ export const setUnauthorizedHandler = (fn: () => void) => {
 export async function http<T = unknown>(path: string, options: HttpOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options;
 
+  // Um ficheiro vai em multipart: o browser põe o Content-Type com o boundary.
+  const isForm = body instanceof FormData;
+
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
       credentials: 'include', // envia sempre o cookie de sessão
       ...rest,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
+      headers: isForm ? headers : { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined || typeof body === 'string' || isForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new NetworkError(); // nunca chama onUnauthorized

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Account, Tier } from "../../payments/types";
@@ -181,6 +181,55 @@ describe("checkout", () => {
     await fillAndSubmit();
     expect(await screen.findByRole("alert")).toHaveTextContent("Esta modalidade esgotou.");
     expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("403 de estudante: diz porquê, leva ao comprovativo e dá o contacto da organização", async () => {
+    mocks.initiatePayment.mockRejectedValue(
+      new ApiError(403, "x", "Student verification is required to buy this ticket"),
+    );
+    renderAt();
+    await fillAndSubmit();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/só para estudantes com a conta verificada/i);
+    expect(within(alert).getByRole("link", { name: /enviar comprovativo de estudante/i })).toHaveAttribute(
+      "href",
+      "/perfil#comprovativo",
+    );
+    expect(within(alert).getByRole("link", { name: "geral@eneiconf.pt" })).toHaveAttribute("href", "mailto:geral@eneiconf.pt");
+  });
+
+  it("sem verificação de estudante aponta para o envio do comprovativo", async () => {
+    renderAt();
+    await screen.findByRole("radio", { name: /passe geral/i });
+    expect(screen.getByRole("link", { name: "Enviar comprovativo" })).toHaveAttribute("href", "/perfil#comprovativo");
+  });
+
+  it("comprovativo em revisão: a modalidade de estudante fica fechada e diz porquê", async () => {
+    mocks.getAccount.mockResolvedValue(account({ student_verification_status: "submitted" }));
+    renderAt();
+    expect(await screen.findByRole("radio", { name: /apenas acesso/i })).toBeDisabled();
+    expect(screen.getByText(/disponível quando o teu comprovativo for aprovado/i)).toBeInTheDocument();
+    expect(screen.getByText(/está em revisão/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /comprovativo/i })).toBeNull();
+  });
+
+  it("comprovativo recusado: a modalidade de estudante fica fechada e leva ao motivo", async () => {
+    mocks.getAccount.mockResolvedValue(account({ student_verification_status: "rejected" }));
+    renderAt();
+    expect(await screen.findByRole("radio", { name: /apenas acesso/i })).toBeDisabled();
+    expect(screen.getByText("O teu comprovativo foi recusado.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver o comprovativo" })).toHaveAttribute("href", "/perfil#comprovativo");
+  });
+
+  it("comprovativo aprovado: compra a modalidade de estudante sem aviso de verificação", async () => {
+    mocks.getAccount.mockResolvedValue(account({ student_verification_status: "verified" }));
+    mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-EST" });
+    renderAt("/bilhetes/checkout?bilhete=acesso");
+    await waitFor(() => expect(screen.getByRole("radio", { name: /apenas acesso/i })).toBeChecked());
+    expect(screen.queryByRole("link", { name: /comprovativo/i })).toBeNull();
+    await fillAndSubmit();
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/bilhetes/checkout/aguardar"));
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "acesso", phone: "912345678" });
   });
 
   it("falha de rede: avisa e não repete o pedido sozinho", async () => {
