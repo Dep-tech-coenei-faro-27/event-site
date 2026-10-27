@@ -48,3 +48,15 @@ html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:n
     width: auto;
   }
 }
+
+/* Aviso do comprovativo de estudante: uma coluna só, por baixo da lista de dados. */
+html body[data-page="bilhetes"][data-page] main .registration-checklist--proof {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* «Prepara a tua inscrição»: duas colunas (dados pessoais e canal oficial) acima de 620 px; a do comprovativo ocupa a largura toda. */
+@media (min-width: 621px) {
+  html body[data-page="bilhetes"][data-page] main .registration-checklist:not(.registration-checklist--proof) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
