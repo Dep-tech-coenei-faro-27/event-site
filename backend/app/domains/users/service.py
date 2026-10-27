@@ -116,14 +116,7 @@ def replace_unverified_user(db: Session, user: User, payload: UserRegister) -> U
     if replaced != 1:
         db.rollback()
         raise AccountAlreadyVerifiedError
-    db.execute(
-        update(ResetPasswordToken)
-        .where(
-            ResetPasswordToken.user_id == user.id,
-            ResetPasswordToken.used_at.is_(None),
-        )
-        .values(used_at=now)
-    )
+    _close_pending_reset_links(db, user.id, now)
     db.commit()
     db.refresh(user)
     return user
@@ -152,9 +145,25 @@ def mark_user_verified(db: Session, user: User) -> User:
     return user
 
 
+def _close_pending_reset_links(db: Session, user_id: int, now: datetime) -> None:
+    db.execute(
+        update(ResetPasswordToken)
+        .where(
+            ResetPasswordToken.user_id == user_id,
+            ResetPasswordToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+
 def update_user_password(db: Session, user: User, new_password: str) -> User:
+    """Set a new password, end the other sessions and close pending reset links.
+
+    A reset link asked for before the change must not be able to undo it.
+    """
     user.password_hash = hash_password(new_password)
     user.token_version = User.token_version + 1
+    _close_pending_reset_links(db, user.id, datetime.now(UTC))
     db.commit()
     db.refresh(user)
     return user
@@ -175,14 +184,7 @@ def reset_user_password(
         db.rollback()
         raise ResetTokenUsedError
 
-    db.execute(
-        update(ResetPasswordToken)
-        .where(
-            ResetPasswordToken.user_id == user.id,
-            ResetPasswordToken.used_at.is_(None),
-        )
-        .values(used_at=now)
-    )
+    _close_pending_reset_links(db, user.id, now)
     user.password_hash = password_hash
     user.token_version = User.token_version + 1
     if not user.is_verified:

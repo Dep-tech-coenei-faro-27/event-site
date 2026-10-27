@@ -66,6 +66,7 @@ e é o passo 2 acima que o apanha.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`; o SMTP de reserva (opcional)
   `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
 - **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
+- **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 60).
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
 Regras para criar os valores:
@@ -101,6 +102,7 @@ de erro diz qual.
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
 | `FORWARDED_ALLOW_IPS`                                                                 | `172.16.0.0/12` (valor da imagem) | Ver "IP dos visitantes".                                                                                                                                                            |
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
+| `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE`                                                  | `60`                              | Inícios de sessão por minuto por IP. Vem da Variable do mesmo nome, que o CD só escreve no `.env` se existir (ver «Antes do evento»). |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
@@ -144,7 +146,12 @@ COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
 $COMPOSE ps                       # estado dos contentores
 $COMPOSE logs --tail 50 backend   # logs do backend
 $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, sem efeito)
+$COMPOSE logs backend 2>&1 | grep auth_event=login_failed | tail   # inícios de sessão falhados
 ```
+
+Os eventos de autenticação (`auth_event=login_succeeded`, `login_failed`, `password_changed`) trazem só o id da conta
+e um hash do IP, nunca o email nem a password (ver «Registo de eventos» em `docs/api-auth.md`). Muitos `login_failed`
+com o mesmo `ip_hash` e contas diferentes é alguém a tentar palavras-passe.
 
 ## Abrir a bilheteira
 
@@ -471,8 +478,11 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
-  é de 60 por minuto (cada tentativa gasta cerca de 0,3 s de CPU de `bcrypt`: não subir muito); se for preciso, sobe
-  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
+  é de 60 por minuto, o que chega para 300 pessoas a entrar no mesmo minuto a partir de 5 IPs (cada tentativa gasta
+  cerca de 0,3 s de CPU de `bcrypt`: não subir muito). Para o mudar, cria a Variable
+  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and variables → Actions → Variables) e faz deploy; para voltar
+  ao valor do código, apaga-a. O limite por conta (5 por minuto por email e IP) não muda com isto.
+  `RATE_LIMIT_REGISTER_PER_MINUTE` só se muda no `.env` da VPS.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 
 ## Reverter um deploy
