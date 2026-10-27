@@ -14,8 +14,8 @@ const paths = [
     label: 'Empresas',
     title: 'Liga-te ao talento.',
     text: 'Participa no ecossistema, apresenta oportunidades e cria relações com a comunidade.',
-    linkText: 'Conhecer parcerias',
-    to: '/parcerias',
+    linkText: 'Ver parceiros',
+    to: '/#parceiros',
   },
   {
     number: '03',

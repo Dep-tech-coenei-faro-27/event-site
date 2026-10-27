@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useContext, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Eyebrow from "../components/EyeBrow";
 import SecondaryButton from "../components/SecundaryButton";
 import AccountLayout from "../components/dashboard/AccountLayout";
@@ -7,42 +7,28 @@ import AccountPanel from "../components/dashboard/AccountPanel";
 import StudentProofSection from "../components/dashboard/StudentProofSection";
 import { BORDER, panelClass } from "../components/dashboard/AccountStyles";
 import { useAuth } from "../utils/useAuth";
-import { getMe } from "../utils/users";
-import type { User } from "../utils/authContextValue";
+import { MeContext, useMeData } from "../utils/useMeData";
 import logo from "../assets/ENEI-logo.svg";
 import TicketQr from "../components/TicketQr";
 import { EVENT_DATES } from "../data/Event";
 import PageStatus from "../components/PageStatus";
-import { isUnauthorized, loadErrorMessage } from "../utils/loadError";
+import { loadErrorMessage } from "../utils/loadError";
 
 /** Visão geral: bilhete digital e preparação para o encontro. */
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
-  const navigate = useNavigate();
-  // O bilhete e os pagamentos só vêm de /users/me: até lá não se mostra nenhum estado da compra
-  // (o utilizador de /auth/me não os traz, e parecia «sem inscrição»).
-  const [me, setMe] = useState<User | null>(null);
-  const [loadError, setLoadError] = useState<unknown>(null);
-  const [attempt, setAttempt] = useState(0);
-
+  // Dentro da moldura da área pessoal os dados vêm dela (já carregados ao mudar de separador); fora, a página pede-os.
+  const shared = useContext(MeContext);
+  const own = useMeData(!shared);
+  const { me, error: loadError, retry, revalidate } = shared ?? own;
+  // Ao voltar a este separador atualiza-se em segundo plano, sem «a carregar» nem saltos.
+  const isShared = shared !== null;
   useEffect(() => {
-    const controller = new AbortController();
-    getMe({ signal: controller.signal })
-      .then((data) => setMe(data))
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        if (isUnauthorized(error)) navigate("/conta?sessao=terminada", { replace: true });
-        else setLoadError(error);
-      });
-    return () => controller.abort();
-  }, [attempt, navigate]);
+    if (isShared) revalidate();
+  }, [isShared, revalidate]);
 
-  const retry = () => {
-    setLoadError(null);
-    setAttempt((n) => n + 1);
-  };
-
-  const firstName = (me?.name ?? authUser?.name ?? "").trim().split(/\s+/)[0] || "Participante";
+  // O nome da conta (atualizado logo ao guardar os dados pessoais) manda: `me` pode estar uma visita atrasado.
+  const firstName = (authUser?.name ?? me?.name ?? "").trim().split(/\s+/)[0] || "Participante";
 
   const qrCode = me?.qr_code ?? null;
   const ticket = me?.ticket ?? null;

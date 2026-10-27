@@ -61,7 +61,7 @@ function stubApi(map: Record<string, Reply | Reply[]>) {
 
 const BASE_USER: User = {
   id: 3, name: "Francisco Melo", email: "francisco@example.com", role: "user", is_verified: true,
-  course: null, institution: null, qr_code: null, ticket: null, pending_payment: null, refund_due: null,
+  qr_code: null, ticket: null, pending_payment: null, refund_due: null,
 };
 const TICKET = { reference: "ENEI-OK1", tier: "geral", tier_name: "Passe geral", holder_name: "Francisco Melo", paid_at: null };
 const WITH_TICKET = { ...BASE_USER, qr_code: "QR-123", ticket: TICKET };

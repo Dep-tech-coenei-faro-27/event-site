@@ -75,7 +75,7 @@ export default function Footer() {
               <ul className={listClass}>
                 <li><Link to="/sobre" className="transition-colors hover:text-branco">Sobre</Link></li>
                 <li><Link to="/agenda" className="transition-colors hover:text-branco">Agenda</Link></li>
-                <li><Link to="/parcerias" className="transition-colors hover:text-branco">Parcerias</Link></li>
+                <li><Link to="/#parceiros" className="transition-colors hover:text-branco">Parceiros</Link></li>
               </ul>
             </div>
             <div>

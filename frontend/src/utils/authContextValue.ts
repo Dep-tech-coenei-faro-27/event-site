@@ -7,8 +7,8 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   is_verified: boolean;
-  course: string | null;
-  institution?: string | null;
+  /** Contacto opcional da conta (Dados pessoais). */
+  phone?: string | null;
   qr_code: string | null;
   /** Estudante verificado, comprovativo à espera ou recusado (de /users/me e /auth/me). */
   student_verification_status?: StudentVerificationStatus;

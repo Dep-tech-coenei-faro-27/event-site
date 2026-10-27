@@ -156,7 +156,7 @@ body.motion-page-leave {
     90deg,
     transparent,
     rgba(var(--accent-rgb), 0.75) 30%,
-    rgba(170, 170, 255, 0.45) 65%,
+    rgba(var(--accent-rgb), 0.75) 70%,
     transparent
   );
   /* O traço cresce com a secção a entrar no ecrã (`--reveal` vem do hook). */
