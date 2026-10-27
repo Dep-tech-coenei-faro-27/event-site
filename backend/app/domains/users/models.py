@@ -129,5 +129,8 @@ class User(Base):
         onupdate=func.now(),
     )
 
+    # Contacto opcional da pessoa (o telemóvel do pagamento fica na transação).
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)
