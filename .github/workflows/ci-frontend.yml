@@ -45,3 +45,33 @@ jobs:
       - name: Check nginx config and logs
         working-directory: .
         run: sh scripts/check-nginx.sh
+
+  # Vulnerabilidades high ou critical nas dependências de produção (npm audit --omit=dev).
+  # As exceções estão em audit-exceptions.toml, cada uma com motivo e data de revisão.
+  audit:
+    name: Dependency audit (npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: npm audit
+        run: python3 scripts/audit_deps.py frontend
+
+  # A imagem do frontend (frontend/Dockerfile) constrói-se: npm ci, build e nginx.
+  image:
+    name: Frontend image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: docker build
+        run: docker build -t event-site-frontend:ci frontend

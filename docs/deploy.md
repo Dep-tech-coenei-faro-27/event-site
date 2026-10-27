@@ -52,6 +52,46 @@ mesmo de ser, a linha (ou a linha de cima) leva um comentário `# destructive: o
 deploys. O CI também aplica todas as migrations a uma base vazia, confirma que não há diferenças em relação aos modelos
 e testa o `downgrade` (passo "Check migrations").
 
+## A imagem e as dependências no CI
+
+Além dos testes, o CI apanha imagens que não arrancam e dependências com vulnerabilidades conhecidas. São jobs à parte,
+que correm em paralelo com os testes; os do backend fazem parte do "CI - Backend", por isso **uma falha também impede o
+deploy**.
+
+- **"Backend image starts"** (`scripts/check-backend-container.sh`): constrói a imagem do `backend/Dockerfile` e
+  arranca-a como no servidor, contra um PostgreSQL vazio: o entrypoint aplica as migrations e o uvicorn sobe com
+  `ENVIRONMENT=prod` (com segredos gerados na hora, por isso a validação de produção também corre). Espera até 30 s por
+  `/api/health` e corre o teste de fumo. Se o contentor parar ou não responder, falha e mostra os registos. Nenhum
+  email sai: o `SMTP_HOST` é um domínio `.invalid` e o worker do outbox está desligado.
+- **"Frontend image builds"**: `docker build` do `frontend/Dockerfile` (npm ci, build e nginx).
+- **"Dependency audit"** (`scripts/audit_deps.py`): `pip-audit` sobre o `backend/uv.lock`, sem o grupo dev, e
+  `npm audit --omit=dev` no frontend, onde só contam as vulnerabilidades `high` e `critical`. As dependências de
+  desenvolvimento (testes, lint, o servidor do Vite) não vão para as imagens e ficam de fora.
+
+Para correr o mesmo localmente:
+
+```bash
+python3 scripts/audit_deps.py backend     # precisa do uv
+python3 scripts/audit_deps.py frontend    # precisa do npm
+# Uma base vazia e um utilizador cuja palavra-passe não seja "postgres" (a validação de produção recusa-a):
+POSTGRES_PORT=5434 POSTGRES_USER=... POSTGRES_PASSWORD=... POSTGRES_DB=... sh scripts/check-backend-container.sh
+```
+
+### Vulnerabilidades nas dependências
+
+Quando o audit falha, a saída diz o pacote, o aviso (GHSA, CVE ou PYSEC) e a versão que o corrige. Por ordem de
+preferência:
+
+1. **Atualizar:** `uv lock --upgrade-package NOME` no backend, `npm audit fix` no frontend, e correr os testes.
+2. **Exceção:** se ainda não houver correção, ou se a correção partir alguma coisa e a falha não nos afetar, acrescenta
+   uma entrada em `audit-exceptions.toml` (na raiz) com o ecossistema, o identificador, o pacote, o motivo e a data de
+   revisão (`review_by`). Uma exceção sem motivo ou sem data faz o CI falhar, e depois da data de revisão volta a
+   falhar até alguém ver outra vez. Não ponhas datas a mais de um ou dois meses.
+
+Um aviso novo pode aparecer sem ninguém mudar nada, e então o CI de `dev` fica vermelho e não há deploy até se resolver
+como acima. Se for urgente pôr uma correção no ar antes disso, o "Run workflow" do CD (ver "Reverter um deploy") faz o
+deploy sem esperar pelo CI.
+
 ## Secrets do repositório
 
 Estão em Settings, Secrets and variables, Actions, e **nunca vão para o Git**. Um segredo em falta fica vazio no `.env`,
