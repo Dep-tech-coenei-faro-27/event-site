@@ -150,4 +150,6 @@ jobs:
           SMTP_HOST: ""
           SMTP2_HOST: ""
           EMAIL_OUTBOX_WORKER: "0"
+          # O servidor do teste de fumo pode ainda estar a fechar na porta 8000.
+          E2E_PORT: "8001"
         run: sh ../scripts/e2e-full-flow.sh
