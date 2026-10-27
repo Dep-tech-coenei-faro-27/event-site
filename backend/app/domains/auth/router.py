@@ -45,6 +45,12 @@ from app.domains.auth.dependencies import (
     get_current_verified_session,
     get_current_verified_user,
 )
+from app.domains.auth.events import (
+    LOGIN_FAILED,
+    LOGIN_SUCCEEDED,
+    PASSWORD_CHANGED,
+    log_auth_event,
+)
 from app.domains.auth.schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -237,15 +243,21 @@ def login(
     response: Response,
     db: Session = Depends(get_db),
 ):
-    enforce_rate_limits(db, _login_checks(payload.email, client_ip(request)))
+    ip = client_ip(request)
+    enforce_rate_limits(db, _login_checks(payload.email, ip))
     user = authenticate_user(db, payload.email, payload.password)
     if user is None:
+        known = get_user_by_email(db, payload.email)
+        log_auth_event(
+            LOGIN_FAILED, ip, known.id if known else None, "invalid_credentials"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
 
     if not user.is_verified:
+        log_auth_event(LOGIN_FAILED, ip, user.id, "email_not_verified")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=EMAIL_VERIFICATION_REQUIRED_MESSAGE,
@@ -257,6 +269,7 @@ def login(
         expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
     _start_session(response, user, expires_delta)
+    log_auth_event(LOGIN_SUCCEEDED, ip, user.id)
 
     return {"message": "Login successful"}
 
@@ -301,6 +314,7 @@ def logout(
 @router.put("/password")
 def change_password(
     payload: ChangePasswordRequest,
+    request: Request,
     response: Response,
     auth: AuthSession = Depends(get_current_verified_session),
     db: Session = Depends(get_db),
@@ -325,6 +339,7 @@ def change_password(
         )
 
     update_user_password(db, current_user, payload.new_password)
+    log_auth_event(PASSWORD_CHANGED, client_ip(request), current_user.id, "change")
     remaining = datetime.fromtimestamp(auth.payload["exp"], UTC) - datetime.now(UTC)
     _start_session(response, current_user, max(remaining, MIN_SESSION_AFTER_CHANGE))
     _send_password_changed_email(email_sender, current_user)
@@ -450,6 +465,7 @@ def reset_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password reset token has already been used",
         ) from None
+    log_auth_event(PASSWORD_CHANGED, client_ip(request), user.id, "reset")
     _send_password_changed_email(email_sender, user)
 
     return {"message": "Password reset successfully"}

@@ -125,7 +125,8 @@ body {
     z-index: 2;
     height: 8px;
     pointer-events: none;
-    background: linear-gradient(90deg, var(--accent) 0 48%, #ee9185 48% 63%, #aaaaff 63%);
+    /* Uma só cor (a inicial): com o cartão por cima, o degradê de três cores ficava azul de um lado e roxo do outro. */
+    background: var(--accent);
     transform: scaleX(0);
     transform-origin: left center;
     animation: hero-signal-enter 520ms 260ms cubic-bezier(0.2, 0, 0, 1) forwards;

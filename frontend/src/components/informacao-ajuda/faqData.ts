@@ -27,5 +27,5 @@ export const FAQ_DATA: { id: number; category: Category; question: string; answe
   { id: 15, category: 'transporte', question: 'Como chego a Faro?', answer: 'Faro tem aeroporto internacional e ligações nacionais por comboio e autocarro. Planeia a viagem até Faro com antecedência e consulta os operadores para horários e preços atualizados.' },
   { id: 16, category: 'transporte', question: 'Como chego ao Campus das Gambelas?', answer: 'O mapa e o botão Obter direções nesta página indicam o recinto principal. As opções de transporte local e os pontos de encontro serão detalhados no guia de mobilidade do evento.' },
   { id: 17, category: 'transporte', question: 'Haverá transporte dedicado?', answer: 'Uma rede dedicada de transporte liga os principais pontos da experiência ENEI.' },
-  { id: 18, category: 'parcerias', question: 'Como posso tornar-me parceiro?', answer: 'Consulta a página de Parcerias e pede o dossier comercial à equipa responsável através de coenei@aaualg.pt. Existem níveis de participação adaptáveis a organizações com diferentes objetivos e dimensões.' },
+  { id: 18, category: 'parcerias', question: 'Como posso tornar-me parceiro?', answer: 'Pede o dossier comercial à equipa responsável através de geral@eneiconf.pt. Existem níveis de participação adaptáveis a organizações com diferentes objetivos e dimensões.' },
 ];

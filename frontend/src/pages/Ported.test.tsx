@@ -6,7 +6,6 @@ import Agenda from "./Agenda";
 import Bilhetes from "./Bilhetes";
 import Equipa from "./Equipa";
 import InformacaoAjuda from "./InformacaoAjuda";
-import Parcerias from "./Parcerias";
 import Privacidade from "./Privacidade";
 import Sobre from "./Sobre";
 import TermosCondicoes from "./TermosCondicoes";
@@ -30,7 +29,6 @@ describe("páginas no desenho novo: o que cada uma marca e liga", () => {
     ["Sobre", <Sobre />, "sobre"],
     ["Agenda", <Agenda />, "agenda"],
     ["Equipa", <Equipa />, "equipa"],
-    ["Parcerias", <Parcerias />, "parcerias"],
     ["Informação e Ajuda", <InformacaoAjuda />, "informacao-ajuda"],
     ["Bilhetes", <Bilhetes />, "bilhetes"],
     ["Termos", <TermosCondicoes />, "legal"],
@@ -44,7 +42,7 @@ describe("páginas no desenho novo: o que cada uma marca e liga", () => {
   });
 
   it("todas as ligações internas vão a páginas reais (nenhuma é `#` solta)", () => {
-    for (const page of [<Sobre />, <Parcerias />, <Bilhetes />, <Equipa />]) {
+    for (const page of [<Sobre />, <Bilhetes />, <Equipa />]) {
       const { container, unmount } = at(page);
       container.querySelectorAll("a").forEach((a) => {
         const href = a.getAttribute("href") ?? "";

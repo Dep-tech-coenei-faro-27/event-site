@@ -4,6 +4,7 @@
 
 - [`docs/deploy.md`](docs/deploy.md): como o site chega ao servidor (GitHub Actions e túnel da Cloudflare), segredos, cron, cópias de segurança, como verificar e reverter um deploy.
 - [`docs/api-auth.md`](docs/api-auth.md): contrato dos endpoints de autenticação, para quem faz o frontend.
+- [`docs/testes-e2e.md`](docs/testes-e2e.md): o teste do fluxo completo (registo, verificação, login, compra e QR) contra o servidor a sério, no CI e localmente.
 - [`backend/README.md`](backend/README.md): o backend (configuração, sessões, limites de pedidos, testes).
 
 ## Docker

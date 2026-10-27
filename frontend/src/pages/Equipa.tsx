@@ -1,8 +1,7 @@
 import "../equipa.css";
-import TeamCta from "../components/equipa/TeamCta";
+import "../equipa.overrides.css";
 import TeamDepartment from "../components/equipa/TeamDepartment";
 import TeamHero from "../components/equipa/TeamHero";
-import TeamIntro from "../components/equipa/TeamIntro";
 import { departments } from "../data/Team";
 import { useBodyPage } from "../utils/useBodyPage";
 import { usePageMeta } from "../utils/usePageMeta";
@@ -15,11 +14,9 @@ export default function Equipa() {
   return (
     <>
       <TeamHero />
-      <TeamIntro />
       {departments.map((department) => (
         <TeamDepartment key={department.id} {...department} />
       ))}
-      <TeamCta />
     </>
   );
 }

@@ -14,7 +14,6 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
-import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 import NotFound from './pages/NotFound';
 import Bilhetes from './pages/Bilhetes';
@@ -72,7 +71,7 @@ export function AppShell() {
               <Route path="/bilhetes/checkout/sucesso" element={<CheckoutSuccess />} />
               <Route path="/bilhetes/checkout/erro" element={<CheckoutError />} />
               <Route path="/sobre" element={<Sobre />} />
-              <Route path="/parcerias" element={<Parcerias />} />
+              <Route path="/parcerias" element={<Navigate to="/#parceiros" replace />} />
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
               <Route path="/acessibilidade" element={<Acessibilidade />} />
               <Route path="/termos" element={<Termos />} />

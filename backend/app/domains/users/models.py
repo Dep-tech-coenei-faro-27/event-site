@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import TypeDecorator
 
 from app.db.base import Base
-from app.domains.users.enums import Course, PortugueseInstitution, Role
+from app.domains.users.enums import Role
 
 
 class StudentVerificationStatus(StrEnum):
@@ -128,27 +128,9 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    institution: Mapped[PortugueseInstitution | None] = mapped_column(
-        SAEnum(
-            PortugueseInstitution,
-            name="ck_users_institution",
-            native_enum=False,
-            create_constraint=True,
-            values_callable=lambda obj: [e.value for e in obj],
-        ),
-        nullable=True,
-    )
 
-    course: Mapped[Course | None] = mapped_column(
-        SAEnum(
-            Course,
-            name="ck_users_course",
-            native_enum=False,
-            create_constraint=True,
-            values_callable=lambda obj: [e.value for e in obj],
-        ),
-        nullable=True,
-    )
+    # Contacto opcional da pessoa (o telemóvel do pagamento fica na transação).
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
 
 Index("uq_users_email_lower", func.lower(User.email), unique=True)
