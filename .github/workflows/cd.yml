@@ -119,11 +119,14 @@ jobs:
             # Monitorização: segredos em ficheiros fora do repositório, que o compose monta no Alertmanager.
             # Têm de existir antes do up: o Docker cria uma PASTA onde falta um ficheiro montado.
             mkdir -p /home/debian/enei/alerts /home/debian/enei/metrics
-            for f in discord_webhook smtp_password; do
+            for f in discord_webhook smtp_password watchdog_url; do
               if [ -d "/home/debian/enei/alerts/$f" ]; then rmdir "/home/debian/enei/alerts/$f"; fi
             done
             if [ -n "${{ secrets.ALERT_DISCORD_WEBHOOK }}" ]; then
               printf '%s' "${{ secrets.ALERT_DISCORD_WEBHOOK }}" > /home/debian/enei/alerts/discord_webhook
+            fi
+            if [ -n "${{ secrets.WATCHDOG_URL }}" ]; then
+              printf '%s' "${{ secrets.WATCHDOG_URL }}" > /home/debian/enei/alerts/watchdog_url
             fi
             SMTP_PW="$(grep '^SMTP_PASSWORD=' .env | cut -d= -f2-)"
             if [ -n "$SMTP_PW" ]; then
