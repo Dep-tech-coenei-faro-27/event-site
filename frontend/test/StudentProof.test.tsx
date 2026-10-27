@@ -31,8 +31,6 @@ const user = (status: User["student_verification_status"]): User => ({
   email: "francisco@gmail.com",
   role: "user",
   is_verified: true,
-  course: null,
-  institution: null,
   qr_code: null,
   student_verification_status: status,
 });
@@ -205,8 +203,9 @@ describe("perfil: comprovativo de estudante", () => {
 
   it("409 (o estado mudou noutro lado): volta a ler a conta e mostra o estado novo", async () => {
     mocks.http.mockRejectedValue(new ApiError(409, "x", "A proof is already waiting for a decision"));
+    // A segunda leitura (a de depois do 409) já traz o estado novo.
+    mocks.getMe.mockResolvedValueOnce(user("none")).mockResolvedValue(user("submitted"));
     await chooseAndSend();
-    mocks.getMe.mockResolvedValue(user("submitted"));
 
     await waitFor(() => expect(mocks.getMe).toHaveBeenCalledTimes(2));
     expect(await (await section()).findByText("Em revisão")).toBeInTheDocument();
@@ -225,7 +224,7 @@ describe("perfil: comprovativo de estudante", () => {
     const panel = await openProfile();
     expect(panel.getByText("Recusado")).toBeInTheDocument();
     expect(panel.getByRole("heading", { name: /porque não tens o preço de estudante/i })).toBeInTheDocument();
-    expect(panel.getByRole("link", { name: "geral@enei.pt" })).toHaveAttribute("href", "mailto:geral@enei.pt");
+    expect(panel.getByRole("link", { name: "geral@eneiconf.pt" })).toHaveAttribute("href", "mailto:geral@eneiconf.pt");
     expect(panel.getByText(/nome igual ao da conta/i)).toBeInTheDocument();
     expect(panel.getByRole("button", { name: "Enviar comprovativo" })).toBeEnabled();
   });

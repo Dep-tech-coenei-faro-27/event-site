@@ -190,7 +190,7 @@ describe("checkout", () => {
       "href",
       "/perfil#comprovativo",
     );
-    expect(within(alert).getByRole("link", { name: "geral@enei.pt" })).toHaveAttribute("href", "mailto:geral@enei.pt");
+    expect(within(alert).getByRole("link", { name: "geral@eneiconf.pt" })).toHaveAttribute("href", "mailto:geral@eneiconf.pt");
   });
 
   it("sem verificação de estudante aponta para o envio do comprovativo", async () => {

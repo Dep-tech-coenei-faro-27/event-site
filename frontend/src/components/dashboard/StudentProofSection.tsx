@@ -35,12 +35,15 @@ const BADGE: Record<StudentStatus, { label: string; className: string } | null> 
  * mostram-se as regras de aceitação e o contacto da organização.
  */
 export default function StudentProofSection({ status, onStatusChange, onStale }: StudentProofSectionProps) {
-  const current = studentStatus(status);
+  // O estado que o servidor devolveu ao enviar vale até a conta ser lida outra vez (aí `status` muda).
+  const [sent, setSent] = useState<{ base: StudentVerificationStatus | undefined; status: StudentVerificationStatus } | null>(null);
+  const current = studentStatus(sent && sent.base === status ? sent.status : status);
   const badge = BADGE[current];
   // O formulário desaparece depois do envio: o resultado é anunciado aqui.
   const [notice, setNotice] = useState("");
 
   const onSent = (next: StudentVerificationStatus) => {
+    setSent({ base: status, status: next });
     setNotice(
       studentStatus(next) === "verified"
         ? "Comprovativo aceite. A tua conta já é de estudante."

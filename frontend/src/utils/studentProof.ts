@@ -22,7 +22,7 @@ export const STUDENT_PROOF_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/
 
 const ALLOWED_EXTENSION = /\.(pdf|jpe?g|png)$/i;
 
-export const ORGANIZATION_EMAIL = "geral@enei.pt";
+export const ORGANIZATION_EMAIL = "geral@eneiconf.pt";
 
 /** O que a pessoa precisa para o comprovativo ser aceite (as regras do backend, #218). */
 export const STUDENT_PROOF_RULES = [

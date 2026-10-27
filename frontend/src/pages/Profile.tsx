@@ -220,7 +220,7 @@ export default function ProfilePage() {
 
           <StudentProofSection
             status={me.student_verification_status}
-            onStatusChange={(status) => setMe((prev) => prev && { ...prev, student_verification_status: status })}
+            onStatusChange={revalidate}
             onStale={retry}
           />
 
