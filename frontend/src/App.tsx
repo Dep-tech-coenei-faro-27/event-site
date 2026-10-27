@@ -14,7 +14,6 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProfilePage from './pages/Profile';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
-import Parcerias from './pages/Parcerias';
 import Agenda from './pages/Agenda';
 import NotFound from './pages/NotFound';
 import Bilhetes from './pages/Bilhetes';
@@ -35,6 +34,7 @@ import UnverifiedAccount from './pages/estados/UnverifiedAccount';
 import { AuthProvider } from './utils/AuthContext';
 
 import Seguranca from './pages/Seguranca';
+import { AccountShell } from './components/dashboard/AccountLayout';
 import DadosPessoais from './pages/DadosPessoais';
 // Um erro numa página mostra o ecrã de erro dentro do layout (com Navbar e Footer) e
 // desaparece ao navegar para outra página.
@@ -72,7 +72,7 @@ export function AppShell() {
               <Route path="/bilhetes/checkout/sucesso" element={<CheckoutSuccess />} />
               <Route path="/bilhetes/checkout/erro" element={<CheckoutError />} />
               <Route path="/sobre" element={<Sobre />} />
-              <Route path="/parcerias" element={<Parcerias />} />
+              <Route path="/parcerias" element={<Navigate to="/#parceiros" replace />} />
               <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
               <Route path="/acessibilidade" element={<Acessibilidade />} />
               <Route path="/termos" element={<Termos />} />
@@ -89,11 +89,13 @@ export function AppShell() {
               <Route path="/conta/sessao-terminada" element={<SessionEnded />} />
 
               <Route element={<ProtectedRoute />}>
-                <Route path="/perfil" element={<ProfilePage />} />
+                <Route element={<AccountShell />}>
+                  <Route path="/perfil" element={<ProfilePage />} />
+                  <Route path="/conta/dados" element={<DadosPessoais />} />
+                  <Route path="/conta/seguranca" element={<Seguranca />} />
+                </Route>
                 <Route path="/conta/alterar-palavra-passe" element={<Navigate to="/conta/seguranca" replace />} />
                 <Route path="/conta/perfil" element={<Navigate to="/perfil" replace />} />
-                <Route path="/conta/dados" element={<DadosPessoais />} />
-                <Route path="/conta/seguranca" element={<Seguranca />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -167,7 +167,8 @@ o email.
 
 Muda a password de quem tem sessão. Envia um email a avisar que a password mudou. **Termina as sessões dos outros
 dispositivos**; este dispositivo continua com sessão, com um cookie novo que dura o que restava à sessão (no mínimo 1
-minuto).
+minuto). **Fecha também os links de recuperação já pedidos**: um link enviado antes da mudança responde
+`Password reset token has already been used`. Um link pedido depois da mudança funciona normalmente.
 
 |       |                                                                                                          |
 |-------|----------------------------------------------------------------------------------------------------------|
@@ -253,11 +254,53 @@ bloqueados também contam. Os valores mudam com as variáveis `RATE_LIMIT_*` (ve
 
 | Endpoint                                   | Limite                                                                     |
 |--------------------------------------------|----------------------------------------------------------------------------|
-| login                                      | 5 por minuto por email e IP, 20 por minuto por email, 30 por minuto por IP |
+| login                                      | 5 por minuto por email e IP, 20 por minuto por email, 300 por minuto por IP |
 | register                                   | 2 por minuto por IP                                                        |
 | resend-verification-email, forgot-password | 1 por minuto e 5 por hora por email, 10 por minuto por IP                  |
 | PUT password                               | 2 por 15 minutos por utilizador                                            |
 | verify-email, reset-password               | 20 por minuto por IP                                                       |
+
+O limite por IP é generoso porque um campus ou o recinto do evento partilham poucos IPs: 300 pessoas a entrar no mesmo
+minuto a partir de 5 IPs passam. Quem trava as tentativas contra uma conta é o limite por email e IP. Em produção, o
+limite por IP muda com a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (ver `docs/deploy.md`).
+
+## Registo de eventos
+
+O backend escreve no log (logger `app.auth.events`, nível `INFO`) uma linha por evento de autenticação:
+
+```
+auth_event=login_failed user_id=42 ip_hash=5562044bd66b6e87 detail=invalid_credentials
+```
+
+| `auth_event`       | Quando                                    | `detail`                                         |
+|--------------------|-------------------------------------------|--------------------------------------------------|
+| `login_succeeded`  | login com sucesso                         | `-`                                              |
+| `login_failed`     | `401` ou `403` do login                   | `invalid_credentials` ou `email_not_verified`    |
+| `password_changed` | `PUT password` ou `reset-password` com `200` | `change` ou `reset`                           |
+
+`user_id` é `-` quando o email não tem conta. `ip_hash` são os primeiros 16 caracteres de um HMAC-SHA256 do IP com uma
+chave derivada do `JWT_SECRET_KEY`: o mesmo IP dá sempre o mesmo valor (dá para ver ataques), mas não se recupera o IP
+sem a chave. A linha **nunca** tem o email, a password, o token nem o IP. Os pedidos bloqueados pelo limite (`429`) não
+geram evento.
+
+## O que as mensagens de erro revelam
+
+Revisto na #166. Só estas respostas distinguem casos, e de propósito:
+
+- `409` do registo diz que o email já tem conta verificada (sem isso ninguém percebe porque não se consegue registar).
+  O limite de 2 registos por minuto por IP trava quem queira usá-lo para listar contas.
+- `403` do login (email por verificar) só aparece com a password certa.
+- Os `401` de sessão (`User not found`, `Inactive user`, `Token has been revoked.`) só aparecem a quem já tem um token
+  assinado por nós.
+- Os `400` do `reset-password` só aparecem a quem tem um link válido, que chegou ao email da conta. O
+  `Your new password must be different...` confirma a password atual a quem tem o link; fica, porque quem tem o link já
+  pode mudar a password, e o pedido está limitado a 20 por minuto por IP.
+
+Tudo o resto responde igual para contas que existem e que não existem: o login (`Invalid email or password` para email
+desconhecido, password errada e conta inativa, com uma verificação de `bcrypt` em todos os casos), o
+`forgot-password`, o `resend-verification-email` e os `429`. Os `422` não repetem o valor enviado (no email, o `msg`
+pode citar o carácter inválido, nunca o endereço). Os logs não têm emails (`mask_email`) nem os parâmetros das
+consultas SQL (`hide_parameters`).
 
 ## Links dos emails
 

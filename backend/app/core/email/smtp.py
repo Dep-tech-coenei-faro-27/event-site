@@ -89,13 +89,13 @@ class SmtpEmailSender(EmailSender):
             ) from exc
 
 
-# Words providers use when they refuse because of a sending quota, for example
-# "450 Daily sending quota exceeded" or "550 5.4.5 Daily user sending limit".
-LIMIT_PATTERN = re.compile(
-    rb"quota|limit|too many|exceeded|throttl|5\.4\.5|4\.7\.28", re.IGNORECASE
-)
-# "552 5.3.4 Message size exceeds fixed limit" is about this email, not the day.
-SIZE_PATTERN = re.compile(rb"size|5\.3\.4", re.IGNORECASE)
+# Words a provider uses when it refuses for the whole day, for example
+# "550 5.4.5 Daily user sending quota exceeded". Only a permanent (5xx) answer counts:
+# it keeps the primary out until midnight UTC, so it must be about the day.
+DAILY_PATTERN = re.compile(rb"quota|daily|per day|5\.4\.5", re.IGNORECASE)
+# Answers that match those words but are about this one email or mailbox:
+# "552 5.3.4 Message size exceeds fixed limit", "552 5.2.2 Mailbox over quota".
+NOT_DAILY_PATTERN = re.compile(rb"size|mailbox|5\.3\.4|5\.2\.2", re.IGNORECASE)
 
 
 def _responses(exc: Exception) -> list[tuple[int, bytes]]:
@@ -113,17 +113,25 @@ def _responses(exc: Exception) -> list[tuple[int, bytes]]:
 
 
 def classify_error(exc: Exception) -> str:
-    """Whether a failure was a quota, a refused recipient or the server itself.
+    """Whether a failure was the day's quota, a refused recipient or the server.
 
-    A refused recipient never goes to the fallback: the other server would refuse
-    the same address, and the email would only spend the fallback's quota.
+    - A refused recipient never goes to the fallback (the other server would refuse
+      the same address) and never marks the day: a full mailbox is that person's.
+      A temporary (4xx) refusal of the recipient is the server's: that email only.
+    - Any other temporary (4xx) answer, "421 rate limited" or "454 too many login
+      attempts" included, sends that email only through the fallback.
+    - Only a permanent (5xx) answer that names the daily quota is ``"limit"``.
     """
     responses = _responses(exc)
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        if responses and all(400 <= code < 500 for code, _ in responses):
+            return EmailDeliveryError.SERVER
+        return EmailDeliveryError.RECIPIENT
     if any(
-        LIMIT_PATTERN.search(message) and not SIZE_PATTERN.search(message)
-        for _, message in responses
+        code >= 500
+        and DAILY_PATTERN.search(message)
+        and not NOT_DAILY_PATTERN.search(message)
+        for code, message in responses
     ):
         return EmailDeliveryError.LIMIT
-    if isinstance(exc, smtplib.SMTPRecipientsRefused):
-        return EmailDeliveryError.RECIPIENT
     return EmailDeliveryError.SERVER

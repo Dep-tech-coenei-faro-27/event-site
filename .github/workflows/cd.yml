@@ -88,6 +88,11 @@ jobs:
             if [ -n "${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" ]; then
               echo "RATE_LIMIT_PAYMENT_PER_MINUTE=${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" >> .env
             fi
+            # Inícios de sessão por minuto por IP (o recinto partilha poucos IPs); só entra
+            # quando a Variable existe: o código tem 300 por omissão.
+            if [ -n "${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" ]; then
+              echo "RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE=${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" >> .env
+            fi
             # Porta do segundo SMTP e limite diário do primeiro; só entram quando existem
             # (vazio reprova a validação e o código tem 587 e 0, sem limite).
             if [ -n "${{ secrets.SMTP2_PORT }}" ]; then

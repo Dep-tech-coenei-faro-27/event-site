@@ -1,11 +1,28 @@
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
-from app.domains.users.enums import Course, PortugueseInstitution, Role
+from app.domains.users.enums import Role
 from app.domains.users.models import StudentVerificationStatus
+
+
+def normalize_contact_phone(value: str) -> str | None:
+    """Número de contacto: 9 a 15 dígitos, com ou sem + e indicativo.
+
+    Aceita espaços, pontos, hífenes e parênteses ("+351 912 345 678", "00351912345678")
+    e guarda só o + opcional e os dígitos. Texto vazio quer dizer «sem contacto».
+    """
+    cleaned = re.sub(r"[\s.\-()]", "", value)
+    if not cleaned:
+        return None
+    if cleaned.startswith("00"):
+        cleaned = "+" + cleaned[2:]
+    if not re.fullmatch(r"\+?[0-9]{9,15}", cleaned):
+        raise ValueError("phone must have 9 to 15 digits, optionally starting with +")
+    return cleaned
 
 
 class UserRegister(BaseModel):
@@ -13,8 +30,6 @@ class UserRegister(BaseModel):
     email: AsciiEmail
     password: str = Field(min_length=8, max_length=200)
     accept_terms: bool
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
 
     @field_validator("name")
     @classmethod
@@ -43,8 +58,7 @@ class UserRead(BaseModel):
     role: Role
     is_verified: bool
     student_verification_status: StudentVerificationStatus
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
+    phone: str | None = None
 
 
 class TicketSummaryRead(BaseModel):
@@ -85,8 +99,7 @@ class UserProfileRead(UserRead):
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    institution: PortugueseInstitution | None = None
-    course: Course | None = None
+    phone: str | None = None
 
     @field_validator("name")
     @classmethod
@@ -94,3 +107,10 @@ class UserUpdate(BaseModel):
         if value is None:
             return value
         return validate_name(value)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return normalize_contact_phone(value)

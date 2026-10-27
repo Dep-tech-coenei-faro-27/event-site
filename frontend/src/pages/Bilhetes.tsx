@@ -120,19 +120,26 @@ export default function Bilhetes() {
       <li>Contacto</li>
       </ul>
       </article>
-      <article className="checklist-column">
-      <h3>Participação</h3>
-      <ul className="feature-list">
-      <li>Instituição</li>
-      <li>Curso</li>
-      <li>Necessidades alimentares</li>
-      </ul>
-      </article>
       <article className="checklist-column checklist-column--notice">
       <h3>Canal oficial</h3>
       <p>
-      Usa apenas a área pessoal do ENEI para enviar dados e acompanhar
-      o bilhete.
+      Compra e acompanha o teu bilhete aqui no site e na tua área pessoal.
+      </p>
+      <p>
+      Para qualquer dúvida, escreve para geral@eneiconf.pt.
+      </p>
+      </article>
+      </div>
+      <div className="registration-checklist registration-checklist--proof" style={{ marginTop: "24px" }}>
+      <article className="checklist-column checklist-column--notice">
+      <h3>Bilhete de estudante</h3>
+      <p>
+      As modalidades de estudante pedem um documento que prove que és
+      estudante: o comprovativo de matrícula, o cartão de estudante ou outro
+      documento da tua instituição.
+      </p>
+      <p>
+      Envia a comprovação para geral@eneiconf.pt ou um PDF na tua área pessoal.
       </p>
       </article>
       </div>

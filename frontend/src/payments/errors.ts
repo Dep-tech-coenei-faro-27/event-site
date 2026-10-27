@@ -24,6 +24,7 @@ export type InitiateAction =
   | "login"
   | "resend-verification"
   | "choose-another-tier"
+  | "send-student-proof"
   | "view-account"
   | "fix-field"
   | "wait-and-retry"
@@ -125,10 +126,12 @@ export function describeInitiateError(error: unknown): InitiateFailure {
         };
       }
       if (detail === DETAIL.studentRequired) {
+        // O checkout mostra também o contacto da organização (#203) e o caminho para o comprovativo.
         return {
           kind: "student-required",
-          action: "choose-another-tier",
-          message: "Esta modalidade é para estudantes com a conta verificada.",
+          action: "send-student-proof",
+          message:
+            "Esta modalidade é só para estudantes com a conta verificada. Envia o comprovativo de matrícula ou escolhe outra modalidade.",
         };
       }
       break;

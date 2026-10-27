@@ -141,9 +141,11 @@ def test_accounts_from_before_keep_working_and_read_as_none(scratch_database):
             text("SELECT student_verification_status FROM users")
         ).scalar_one()
     assert stored == "pending"
+    # Só a coluna que interessa: a base está numa revisão antiga e o modelo `User` já
+    # tem colunas de revisões posteriores (um `session.query(User)` pedia-as e falhava).
     with Session(bind=engine) as session:
-        user = session.query(User).one()
-        assert user.student_verification_status is StudentVerificationStatus.NONE
+        status = session.query(User.student_verification_status).scalar()
+        assert status is StudentVerificationStatus.NONE
 
 
 def test_the_migration_can_be_undone(scratch_database):

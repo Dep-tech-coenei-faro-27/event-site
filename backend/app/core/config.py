@@ -388,6 +388,12 @@ class Settings(BaseSettings):
             problems.append("SMTP_SECURITY=none is not allowed in production.")
         if self.SMTP2_HOST and self.SMTP2_SECURITY == "none":
             problems.append("SMTP2_SECURITY=none is not allowed in production.")
+        if self.SMTP2_HOST and not (self.SMTP2_USER and self.SMTP2_PASSWORD):
+            # Otherwise the mistake only shows when the primary runs out, on the
+            # busiest day.
+            problems.append(
+                "SMTP2_USER and SMTP2_PASSWORD must be set when SMTP2_HOST is."
+            )
         if not self.FRONTEND_URL.startswith("https://"):
             problems.append("FRONTEND_URL must start with https://.")
         insecure = [o for o in self.CORS_ALLOW_ORIGINS if not o.startswith("https://")]

@@ -99,19 +99,23 @@ def _failover(test_engine, primary, fallback, clock=None, daily_limit=0):
     ("error", "kind"),
     [
         (QUOTA, "limit"),
-        (smtplib.SMTPDataError(450, b"4.7.28 Rate limited, try later"), "limit"),
-        (
-            smtplib.SMTPRecipientsRefused(
-                {"ana@example.com": (452, b"Too many emails sent today")}
-            ),
-            "limit",
-        ),
         (
             smtplib.SMTPSenderRefused(
                 550, b"You have exceeded your daily limit", "no-reply@example.com"
             ),
             "limit",
         ),
+        (smtplib.SMTPDataError(554, b"Daily sending quota reached"), "limit"),
+        # A temporary answer, even about rates, sends that email only.
+        (smtplib.SMTPDataError(450, b"4.7.28 Rate limited, try later"), "server"),
+        (smtplib.SMTPDataError(450, b"Daily sending quota exceeded"), "server"),
+        (smtplib.SMTPSenderRefused(421, b"4.7.0 rate limited", "a@b.c"), "server"),
+        (smtplib.SMTPAuthenticationError(454, b"Too many login attempts"), "server"),
+        # A permanent answer about something other than the day.
+        (smtplib.SMTPDataError(554, b"5.7.1 Sender reputation limit"), "server"),
+        (smtplib.SMTPDataError(552, b"5.3.4 Message size exceeds limit"), "server"),
+        (smtplib.SMTPDataError(552, b"5.2.2 Mailbox over quota"), "server"),
+        # A refused recipient never marks the day.
         (RECIPIENT, "recipient"),
         (
             smtplib.SMTPRecipientsRefused(
@@ -119,7 +123,24 @@ def _failover(test_engine, primary, fallback, clock=None, daily_limit=0):
             ),
             "recipient",
         ),
-        (smtplib.SMTPDataError(552, b"5.3.4 Message size exceeds limit"), "server"),
+        (
+            smtplib.SMTPRecipientsRefused(
+                {"ana@example.com": (552, b"5.2.2 User is over quota")}
+            ),
+            "recipient",
+        ),
+        (
+            smtplib.SMTPRecipientsRefused(
+                {"ana@example.com": (550, b"Daily sending quota exceeded")}
+            ),
+            "recipient",
+        ),
+        (
+            smtplib.SMTPRecipientsRefused(
+                {"ana@example.com": (452, b"Too many emails sent today")}
+            ),
+            "server",
+        ),
         (smtplib.SMTPServerDisconnected("Connection unexpectedly closed"), "server"),
         (smtplib.SMTPAuthenticationError(535, b"Invalid credentials"), "server"),
         (smtplib.SMTPDataError(451, b"4.3.0 Local error in processing"), "server"),
@@ -417,7 +438,66 @@ def test_without_a_second_server_the_transport_is_the_plain_smtp(monkeypatch):
 
 def test_production_refuses_an_unencrypted_second_server():
     with pytest.raises(ValidationError, match="SMTP2_SECURITY"):
-        make_prod(SMTP2_HOST="smtp.two.example", SMTP2_SECURITY="none")
+        make_prod(
+            SMTP2_HOST="smtp.two.example",
+            SMTP2_SECURITY="none",
+            SMTP2_USER="u",
+            SMTP2_PASSWORD="p",
+        )
+
+
+def test_a_full_mailbox_does_not_take_the_primary_out_for_the_day(db, test_engine):
+    full = smtplib.SMTPRecipientsRefused(
+        {"ana@example.com": (552, b"5.2.2 Mailbox over quota")}
+    )
+    primary, fallback = Transport(_delivery_error(full)), Transport()
+    sender = _failover(test_engine, primary, fallback)
+
+    with pytest.raises(EmailDeliveryError):
+        sender.send_html("ana@example.com", "s", "<p/>")
+    primary.error = None
+    sender.send_html("rui@example.com", "s", "<p/>")
+
+    assert fallback.sent == []
+    assert [to for to, _ in primary.sent] == ["rui@example.com"]
+    assert usage_on(db, NOW.date())["primary_exhausted_today"] is False
+
+
+def test_a_temporary_rate_limit_sends_that_email_only_by_the_fallback(db, test_engine):
+    rate = smtplib.SMTPSenderRefused(421, b"4.7.0 rate limited", "a@b.c")
+    primary, fallback = Transport(_delivery_error(rate)), Transport()
+    sender = _failover(test_engine, primary, fallback)
+
+    sender.send_html("a@example.com", "s", "<p/>")
+    primary.error = None
+    sender.send_html("b@example.com", "s", "<p/>")
+
+    assert [to for to, _ in fallback.sent] == ["a@example.com"]
+    assert [to for to, _ in primary.sent] == ["b@example.com"]
+    assert usage_on(db, NOW.date())["primary_exhausted_today"] is False
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [{}, {"SMTP2_USER": "u"}, {"SMTP2_PASSWORD": "p"}],
+)
+def test_production_refuses_a_second_server_without_credentials(credentials):
+    with pytest.raises(ValidationError, match="SMTP2_USER and SMTP2_PASSWORD"):
+        make_prod(SMTP2_HOST="smtp.two.example", **credentials)
+
+
+def test_production_accepts_a_second_server_with_credentials():
+    settings_ = make_prod(
+        SMTP2_HOST="smtp.two.example", SMTP2_USER="u", SMTP2_PASSWORD="p"
+    )
+
+    assert settings_.SMTP2_HOST == "smtp.two.example"
+
+
+def test_development_accepts_a_second_server_without_credentials():
+    from tests.test_config import make
+
+    assert make(SMTP2_HOST="localhost", SMTP2_SECURITY="none").SMTP2_USER == ""
 
 
 def test_the_daily_limit_cannot_be_negative():

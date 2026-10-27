@@ -105,6 +105,32 @@ def test_simulator_confirms_before_it_expires_when_the_delay_is_shorter():
     )
 
 
+def test_simulator_never_confirms_the_unpaid_phone_it_only_expires():
+    """The end-to-end test and the frontend need an expired payment from a server
+    that confirms the others."""
+    clock = Clock()
+    gateway = SimulatedMBWayGateway(
+        confirm_after_seconds=5, expire_after_seconds=240, now=clock
+    )
+    payment = gateway.create_payment(
+        reference="ENEI-0000000001",
+        amount_cents=5000,
+        phone=SimulatedMBWayGateway.UNPAID_PHONE,
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+    )
+
+    def status() -> TransactionStatus:
+        return gateway.get_status(
+            reference="ENEI-0000000001", provider_reference=payment.provider_reference
+        )
+
+    clock.advance(239)
+    assert status() is TransactionStatus.PENDING
+    clock.advance(1)
+    assert status() is TransactionStatus.EXPIRED
+
+
 def test_simulated_mode_builds_a_simulator_that_expires_with_the_payment_window(
     monkeypatch,
 ):
