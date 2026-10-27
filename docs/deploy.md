@@ -413,15 +413,19 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 Os planos gratuitos (o do Resend incluído) enviam algumas centenas de emails por dia, menos do que o primeiro dia de
 vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que só envia quando o primeiro não consegue:
 
-- **Quota do primeiro esgotada:** quando o primeiro recusa por limite (respostas com `quota`, `limit`, `exceeded`,
-  `too many`, `5.4.5`...) ou chega a `SMTP_DAILY_LIMIT` envios no dia, **todos os emails seguem pelo segundo até à
-  meia-noite UTC** (1 h da manhã em Portugal no verão, meia-noite no inverno). No dia UTC seguinte volta ao primeiro.
+- **Quota do primeiro esgotada:** quando o primeiro dá uma recusa **permanente (5xx)** que fala da quota do dia
+  (`quota`, `daily`, `per day`, `5.4.5`), ou chega a `SMTP_DAILY_LIMIT` envios no dia, **todos os emails seguem pelo
+  segundo até à meia-noite UTC** (1 h da manhã em Portugal no verão, meia-noite no inverno). No dia UTC seguinte volta ao primeiro.
   Põe em `SMTP_DAILY_LIMIT` o limite diário do plano do primeiro, para passar ao segundo antes de o fornecedor
-  começar a recusar; com `0` (por omissão) só a recusa do fornecedor faz a troca.
-- **Falha do servidor** (não responde, *timeout*, login recusado, outro erro): **só esse email** segue pelo segundo; o
-  seguinte volta a tentar o primeiro.
-- **Destinatário recusado** (`550 User unknown`, endereço inválido): **nunca** vai para o segundo, que o recusaria
-  igual e gastava-lhe a quota. O email fica na fila e é repetido como antes.
+  começar a recusar; com `0` (por omissão) só a recusa do fornecedor faz a troca. **Define-o em produção:** a deteção
+  pela resposta depende do texto de cada fornecedor.
+- **Falha do servidor** (não responde, *timeout*, login recusado, outro erro) e **qualquer recusa temporária (4xx)**,
+  mesmo de limite (`421 rate limited`, `454 too many login attempts`): **só esse email** segue pelo segundo; o seguinte
+  volta a tentar o primeiro. O mesmo para recusas permanentes que não são do dia (`554 sender reputation limit`,
+  `552 message size`, `552 mailbox over quota`).
+- **Destinatário recusado** de forma permanente (`550 User unknown`, endereço inválido, caixa cheia): **nunca** vai
+  para o segundo, que o recusaria igual e gastava-lhe a quota, e **nunca** marca o dia, seja qual for o texto. O email
+  fica na fila e é repetido como antes. Uma recusa temporária (4xx) do destinatário conta como falha do servidor.
 - Se os dois falharem, o email fica na fila e é repetido com a espera habitual.
 - A contagem de cada dia está na tabela `email_transport_usage`, partilhada por todos os *workers*: dois processos
   nunca passam juntos o `SMTP_DAILY_LIMIT`. As contagens apagam-se ao fim de 30 dias, no comando diário da limpeza.
@@ -432,7 +436,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - O email do bilhete sai **igual** pelos dois servidores (o mesmo `multipart/related` com o QR). Só muda o remetente
   se definires `SMTP2_EMAIL_SENDER`: vazio usa o `EMAIL_SENDER`, que tem de estar verificado nos dois fornecedores.
 - Variáveis: `SMTP2_HOST`, `SMTP2_PORT` (587), `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_SECURITY` (`auto`; `none` é
-  recusado em produção), `SMTP2_EMAIL_SENDER` e `SMTP_DAILY_LIMIT` (0). O `SMTP_TIMEOUT_SECONDS` vale para os dois.
+  recusado em produção; em produção, com `SMTP2_HOST`, o arranque falha sem `SMTP2_USER` e `SMTP2_PASSWORD`), `SMTP2_EMAIL_SENDER` e `SMTP_DAILY_LIMIT` (0). O `SMTP_TIMEOUT_SECONDS` vale para os dois.
 - Ao fazer `alembic downgrade` desta migration apaga-se a tabela das contagens: nesse dia o primeiro volta a ser
   tentado até recusar outra vez.
 
