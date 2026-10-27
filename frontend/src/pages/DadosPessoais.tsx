@@ -9,16 +9,19 @@ import SecondaryButton from "../components/SecundaryButton";
 import { http } from "../utils/http";
 import { nameErrors, profileSaveError } from "../utils/profileName";
 import { useAuth } from "../utils/useAuth";
+import { CONTACT_PHONE_MESSAGE, isContactPhone, normalizeContactPhone } from "../utils/contactPhone";
 
 /**
  * Dados pessoais: usa o mesmo layout (hero + barra lateral) da visão geral.
- * O backend só deixa mudar o nome (`PUT /api/users/me`; a instituição e o curso são listas fechadas e o
- * email não se altera), por isso só o nome é editável: o resto mostra-se, não se finge guardar.
+ * O backend só deixa mudar o nome (`PUT /api/users/me`; o email não se altera), por isso só o nome é editável:
+ * o email mostra-se, não se finge guardar. A instituição e o curso deixaram de se mostrar.
  */
 export default function DadosPessoais() {
   const { user: me, refresh } = useAuth();
 
   const [name, setName] = useState(me?.name ?? "");
+  const [phone, setPhone] = useState(me?.phone ?? "");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -30,6 +33,7 @@ export default function DadosPessoais() {
     if (saving) return;
     setSaveStatus(null);
     setSaveError(null);
+    setPhoneError(null);
 
     // As mesmas regras do servidor: um nome inválido nem chega a ser enviado.
     const errors = nameErrors(name);
@@ -40,9 +44,17 @@ export default function DadosPessoais() {
     }
     const trimmed = name.trim();
 
+    const phoneText = phone.trim();
+    if (phoneText && !isContactPhone(phoneText)) {
+      setPhoneError(CONTACT_PHONE_MESSAGE);
+      return;
+    }
+    const contact = phoneText ? normalizeContactPhone(phoneText) : null;
+
     setSaving(true);
     try {
-      await http("/users/me", { method: "PUT", body: { name: trimmed } });
+      await http("/users/me", { method: "PUT", body: { name: trimmed, phone: contact } });
+      setPhone(contact ?? "");
       await refresh();
       setSaveStatus("Dados atualizados.");
     } catch (err) {
@@ -69,8 +81,6 @@ export default function DadosPessoais() {
         name: me.name,
         email: me.email,
         is_verified: me.is_verified,
-        institution: me.institution ?? null,
-        course: me.course ?? null,
       },
     };
 
@@ -129,17 +139,32 @@ export default function DadosPessoais() {
             required
           />
 
+          <Field
+            label="Contacto"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setPhoneError(null);
+              setSaveStatus(null);
+              setSaveError(null);
+            }}
+            autoComplete="tel"
+            placeholder="912 345 678"
+            error={phoneError ? [phoneError] : undefined}
+          />
+          <p className="-mt-2 m-0 text-[12px] text-cinza-texto">
+            Opcional. Para a organização falar contigo sobre a tua participação.
+          </p>
+
           <Field label="Email" name="email" type="email" value={me?.email ?? ""} readOnly />
           <p className="-mt-2 m-0 text-[12px] text-cinza-texto">
             {me?.is_verified === false
               ? "O endereço de email aguarda verificação. Não se pode alterar."
               : "O endereço de email está verificado. Não se pode alterar."}
           </p>
-
-          <div className="grid gap-[18px] min-[621px]:grid-cols-2">
-            <Field label="Instituição" name="institution" type="text" value={me?.institution ?? "—"} readOnly />
-            <Field label="Curso" name="course" type="text" value={me?.course ?? "—"} readOnly />
-          </div>
 
           {saveError && (
             <p role="alert" className="m-0 text-[13px] text-coral-vivo">

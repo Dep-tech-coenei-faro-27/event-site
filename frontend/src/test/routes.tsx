@@ -12,8 +12,6 @@ export const USER = {
   email: "francisco@example.com",
   role: "user",
   is_verified: true,
-  course: "Engenharia Informática",
-  institution: null,
   qr_code: null,
   ticket: null,
   pending_payment: null,

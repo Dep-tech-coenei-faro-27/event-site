@@ -6,8 +6,8 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   is_verified: boolean;
-  course: string | null;
-  institution?: string | null;
+  /** Contacto opcional da conta (Dados pessoais). */
+  phone?: string | null;
   qr_code: string | null;
   /** O bilhete emitido (de GET /users/me); `null` enquanto não há compra confirmada. */
   ticket?: { reference: string; tier: string; tier_name: string; holder_name: string; paid_at: string | null } | null;

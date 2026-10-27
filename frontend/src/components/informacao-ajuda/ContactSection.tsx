@@ -16,14 +16,14 @@ export default function ContactSection() {
             </a>
           </div>
         </div>
-        <aside className="support-panel">
+        <div className="support-panel">
           <h3>Canais de apoio</h3>
           <ul className="feature-list">
             <li>geral@eneiconf.pt</li>
             <li>Faro, Algarve</li>
             <li>Resposta em horário útil</li>
           </ul>
-        </aside>
+        </div>
       </div>
     </section>
   );
