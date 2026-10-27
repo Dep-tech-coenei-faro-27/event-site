@@ -126,6 +126,11 @@ describe("checkout", () => {
     expect(sessionStorage.getItem("enei.payment.reference")).toBe("ENEI-ABC");
   });
 
+  it("a ajuda do NIF diz que a fatura é manual e chega até 20 dias úteis depois da compra", async () => {
+    renderAt();
+    expect(await screen.findByText(/a fatura é emitida manualmente e enviada por email até 20 dias úteis após a compra/i)).toBeInTheDocument();
+  });
+
   it("o NIF é opcional: sem NIF o pedido não o leva", async () => {
     mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
     renderAt();
