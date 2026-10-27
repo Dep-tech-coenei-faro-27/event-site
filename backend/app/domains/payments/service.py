@@ -140,23 +140,43 @@ def generate_reference(db: Session) -> str:
     raise RuntimeError("could not generate a unique payment reference")
 
 
-def _reserved_quantity(db: Session, tier: TicketTierPrice) -> int:
-    """Seats taken: paid ones, and the ones reserved for a payment that is waiting.
+def _taken_seats(db: Session) -> int:
+    """Seats taken, in every modality together: paid ones, and the ones reserved for a
+    payment that is waiting.
 
     A waiting payment keeps its seat for as long as it is ``pending``, however long
     that takes: the seat is released only when the provider says the payment is over
-    (paid payments stay counted, failed and expired ones are not). That is what
-    makes it impossible to sell a seat that someone is about to pay for.
+    (paid payments stay counted, failed, expired and refunded ones are not). That is
+    what makes it impossible to sell a seat that someone is about to pay for.
     """
     holds = db.scalar(
         select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
-            Transaction.ticket_tier_id == tier.id,
             Transaction.status.in_(
                 (TransactionStatus.CONFIRMED, TransactionStatus.PENDING)
             ),
         )
     )
     return int(holds or 0)
+
+
+def _seats_left(db: Session) -> int:
+    """What is left of ``TICKET_STOCK_LIMIT``: one limit for all the modalities."""
+    return settings.TICKET_STOCK_LIMIT - _taken_seats(db)
+
+
+def _lock_stock(db: Session) -> list[TicketTierPrice]:
+    """Lock every modality row, always in the same order, and return them.
+
+    The limit is shared by all the modalities, so the check and the reservation of a
+    seat must be one step for the whole stock, not for one modality: two buyers of
+    different modalities would otherwise both see the last seat. Every caller locks
+    all the rows in ascending ``id``, so none of them can deadlock with another.
+    """
+    return list(
+        db.scalars(
+            select(TicketTierPrice).order_by(TicketTierPrice.id).with_for_update()
+        )
+    )
 
 
 def _refuse_if_user_already_buying(db: Session, user: User) -> None:
@@ -210,25 +230,19 @@ ABANDONED_CHECKS_PER_REQUEST = 10
 TICKET_EMAIL_SWEEP_DAYS = 3
 
 
-def _free_abandoned_seats(
-    db: Session, tier_name: TicketTier, gateway: MBWayGateway
-) -> None:
+def _free_abandoned_seats(db: Session, gateway: MBWayGateway) -> None:
     """Before refusing a sale for lack of stock, settle the payments nobody follows.
 
     A waiting payment holds its seat until the provider ends it. One that was
     abandoned (the person closed the page) is only settled when someone asks the
-    provider, so when the modality looks full we ask about the oldest overdue ones
+    provider, so when the stock looks full we ask about the oldest overdue ones
     first. Done outside any lock, a few at a time.
     """
-    tier = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier_name))
-    if tier is None or tier.inventory_limit is None:
-        return
-    if tier.inventory_limit - _reserved_quantity(db, tier) >= 1:
+    if _seats_left(db) >= 1:
         return
     overdue = db.scalars(
         select(Transaction)
         .where(
-            Transaction.ticket_tier_id == tier.id,
             Transaction.status == TransactionStatus.PENDING,
             Transaction.expires_at <= datetime.now(UTC),
         )
@@ -266,21 +280,19 @@ def initiate_payment(
     ).all()
     for old in stale:
         _sync_provider_status(db, old, gateway)
-    _free_abandoned_seats(db, payload.ticket_tier, gateway)
+    _free_abandoned_seats(db, gateway)
 
     # One ticket per person. The user row is locked first so two simultaneous requests
     # from the same person cannot both pass the check below; the order (user, then
-    # tier) is the same everywhere, so it cannot deadlock.
+    # the modality rows) is the same everywhere, so it cannot deadlock.
     db.scalar(select(User.id).where(User.id == user.id).with_for_update())
     _refuse_if_user_already_buying(db, user)
 
-    # Lock the tier row so that the stock check and the reservation are a single
-    # atomic step. Without it, two concurrent buyers of a limited tier can both read
-    # the same remaining quantity and oversell the tier.
-    tier = db.scalar(
-        select(TicketTierPrice)
-        .where(TicketTierPrice.tier == payload.ticket_tier)
-        .with_for_update()
+    # Lock every modality row so that the stock check and the reservation are a single
+    # atomic step. Without it, two concurrent buyers (of the same modality or not) can
+    # both read the same remaining seats and sell the stock twice.
+    tier = next(
+        (row for row in _lock_stock(db) if row.tier == payload.ticket_tier), None
     )
     if tier is None:
         db.rollback()
@@ -299,11 +311,11 @@ def initiate_payment(
         )
 
     now = datetime.now(UTC)
-    if tier.inventory_limit is not None:
-        remaining = tier.inventory_limit - _reserved_quantity(db, tier)
-        if remaining < payload.quantity:
-            db.rollback()
-            raise TicketSoldOutError("This ticket tier is sold out")
+    if _seats_left(db) < payload.quantity:
+        db.rollback()
+        raise TicketSoldOutError(
+            "This ticket tier is sold out"
+        )  # text kept: the site reads it
 
     amount_cents = tier.price_cents * payload.quantity
     transaction = Transaction(
@@ -364,19 +376,13 @@ def _has_room(db: Session, transaction: Transaction) -> bool:
     A waiting payment always has its seat, so this is only asked for one that was
     marked ``failed`` or ``expired`` and is then paid after all (the provider
     answered in the meantime, or its creation reported an error that was not one).
-    The seat was released, so the stock is checked again with the modality row
+    The seat was released, so the stock is checked again with every modality row
     locked, like ``initiate_payment`` does: we never sell what we do not have.
     """
     if transaction.status is TransactionStatus.PENDING:
         return True
-    tier = db.scalar(
-        select(TicketTierPrice)
-        .where(TicketTierPrice.id == transaction.ticket_tier_id)
-        .with_for_update()
-    )
-    if tier is None or tier.inventory_limit is None:
-        return True
-    return tier.inventory_limit - _reserved_quantity(db, tier) >= transaction.quantity
+    _lock_stock(db)
+    return _seats_left(db) >= transaction.quantity
 
 
 def _record_refund_due(
@@ -1088,18 +1094,17 @@ def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
     """The modalities with their price and whether each can be bought right now.
 
     ``sale_open`` is false while payments are off or the modality has no price.
-    ``available`` is also false when every seat is taken or reserved for a payment
-    that is waiting. Read-only: it does not ask the provider about anything.
+    ``available`` is also false when every seat of the shared stock is taken or
+    reserved for a payment that is waiting. Read-only: it does not ask the provider
+    about anything.
     """
     order = {tier: index for index, tier in enumerate(TicketTier)}
     rows = sorted(db.scalars(select(TicketTierPrice)), key=lambda r: order[r.tier])
     payments_on = settings.PAYMENTS_MODE != "off"
+    has_room = _seats_left(db) >= 1
     result = []
     for row in rows:
         sale_open = payments_on and row.price_cents is not None
-        has_room = row.inventory_limit is None or (
-            row.inventory_limit - _reserved_quantity(db, row) >= 1
-        )
         result.append(
             TicketTierRead(
                 tier=row.tier,

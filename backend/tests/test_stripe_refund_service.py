@@ -300,7 +300,7 @@ def test_the_seat_of_a_payment_nobody_follows_is_freed_for_the_next_buyer(
     auth_client, email_sender, db_session, shop, stripe
 ):
     _, tiers = shop
-    tiers[GERAL].inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     db_session.commit()
     make_payment(db_session, shop, "ENEI-0000000001", overdue_by=500)
     other = authenticate(auth_client, email_sender, db_session, email="bia@example.com")
@@ -320,7 +320,7 @@ def test_a_full_modality_with_a_fresh_waiting_payment_stays_sold_out(
     auth_client, email_sender, db_session, shop, stripe
 ):
     _, tiers = shop
-    tiers[GERAL].inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     db_session.commit()
     make_payment(db_session, shop, "ENEI-0000000001", overdue_by=10)
     other = authenticate(auth_client, email_sender, db_session, email="bia@example.com")

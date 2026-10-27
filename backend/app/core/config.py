@@ -112,6 +112,11 @@ class Settings(BaseSettings):
     # the snapshot that ships with the code.
     STUDENT_TRUST_ANCHORS_FILE: Path | None = None
 
+    # Seats for sale on the site, ONE number for every modality together (there is no
+    # stock per modality). Tickets of the organisation and of guests are not sold here
+    # and do not count. Paid payments and the ones still waiting take a seat.
+    TICKET_STOCK_LIMIT: int = Field(default=600, ge=0)
+
     # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
     # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
     # the ticket office is still closed and /payment/initiate answers 503.

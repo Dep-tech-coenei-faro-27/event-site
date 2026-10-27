@@ -111,15 +111,12 @@ class World:
     def session(self) -> Session:
         return Session(bind=self.engine)
 
-    def seed(self, *, limit: int | None = None, tier: TicketTier = GERAL) -> None:
+    def seed(self, *, limit: int | None = None) -> None:
+        """Seed the modalities; ``limit`` is the stock of the whole shop."""
         with self.session() as db:
             seed_ticket_tiers(db)
-            if limit is not None:
-                row = db.scalar(
-                    select(TicketTierPrice).where(TicketTierPrice.tier == tier)
-                )
-                row.inventory_limit = limit
-                db.commit()
+        if limit is not None:
+            settings.TICKET_STOCK_LIMIT = limit
 
     def user(
         self,
