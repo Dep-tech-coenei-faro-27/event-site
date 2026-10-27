@@ -1,0 +1,65 @@
+/// <reference types="node" />
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { cleanup } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { renderRoute } from "../test/routes";
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+// As páginas que o público vê sem iniciar sessão.
+const PUBLIC_PAGES = [
+  "/", "/sobre", "/agenda", "/equipa", "/bilhetes", "/informacao-ajuda",
+  "/acessibilidade", "/termos", "/privacidade", "/conta", "/conta/criar", "/conta/recuperar",
+];
+
+// Texto de marcador de posição que nunca deve chegar ao público.
+const PLACEHOLDERS: [string, RegExp][] = [
+  ["Lorem ipsum", /lorem ipsum/i],
+  ["TBD", /\bTBD\b/],
+  ["[…] ou [...]", /\[\s*(…|\.\.\.)\s*\]/],
+  ["«exemplo» (texto de exemplo)", /\btexto de exemplo\b|\bnome exemplo\b|\bexemplo de texto\b/i],
+  ["«por anunciar» / «a anunciar»", /\b(por|a) anunciar\b/i],
+  ["«a confirmar»", /\ba confirmar\b/i],
+  ["«Nome · Organização»", /nome\s*·\s*organiza/i],
+];
+
+describe("conteúdo provisório", () => {
+  it.each(PUBLIC_PAGES)("%s não mostra texto de marcador de posição", async (path) => {
+    const { container } = await renderRoute(path);
+    const text = container.textContent ?? "";
+    const found = PLACEHOLDERS.filter(([, re]) => re.test(text)).map(([name]) => name);
+    expect(found, path).toEqual([]);
+  });
+});
+
+describe("ligações externas", () => {
+  it.each(PUBLIC_PAGES)("%s: as ligações para fora ou que abrem noutro separador levam rel=\"noopener noreferrer\"", async (path) => {
+    const { container } = await renderRoute(path);
+    const external = [...container.querySelectorAll<HTMLAnchorElement>("a")].filter(
+      (a) => a.target === "_blank" || /^https?:\/\//.test(a.getAttribute("href") ?? ""),
+    );
+    external.forEach((a) => {
+      const rel = (a.getAttribute("rel") ?? "").split(/\s+/);
+      expect(rel, a.outerHTML).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+    });
+  });
+});
+
+describe("peso das imagens", () => {
+  // O padrão de azulejo (827 kB) é o maior; nada mais pesado do que isto entra sem se discutir.
+  const MAX_BYTES = 900_000;
+  const root = join(import.meta.dirname, "..", "assets");
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
+
+  it("nenhum ficheiro de src/assets passa dos 900 kB", () => {
+    const tooBig = files(root)
+      .map((f) => [f.slice(root.length + 1), statSync(f).size] as const)
+      .filter(([, size]) => size > MAX_BYTES);
+    expect(tooBig).toEqual([]);
+  });
+});
