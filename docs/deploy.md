@@ -197,6 +197,21 @@ Funciona com um `refund_due` e com um pagamento `confirmed` (o bilhete **desse**
 
 O reembolso fica registado no Stripe (painel, em *Payments*, no pagamento) e nos logs do backend (`Payment ENEI-... refunded (… cents, refund …)`); a base só guarda o estado `refunded`. No MB WAY o id do reembolso começa por `pyr_` (não por `re_`) e o estado é `pending` durante alguns segundos antes de `succeeded`; o comando aceita os dois.
 
+### Reembolso feito no painel do Stripe
+
+Quem reembolsa um pagamento no painel do Stripe (por exemplo, o tesoureiro) não precisa de fazer mais nada: o Stripe envia `charge.refunded` ao webhook e o site cancela o bilhete desse pagamento, liberta o lugar e passa o pagamento a `refunded`. **Para isso o endpoint do webhook tem de ter o evento `charge.refunded` ligado** (Developers, Webhooks, o endpoint, «Select events»); sem ele o reembolso fica feito no Stripe e o bilhete continua válido no site. Só conta o reembolso **total**; um parcial fica no log (`was partly refunded at Stripe`) e o bilhete não se toca. Verifica-se vendo no log `Payment ENEI-… was refunded at Stripe`.
+
+### Retirar um bilhete sem reembolsar
+
+Depois de o pagamento concluído e o bilhete dado **não há reembolso**. Se alguém pede por email e se acorda devolver uma parte, o dinheiro devolve-se à mão no painel do Stripe e o bilhete retira-se com:
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.cancel_ticket ENEI-XXXXXXXXXX --dry-run   # só diz o que faria
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.cancel_ticket ENEI-XXXXXXXXXX             # cancela
+```
+
+Cancela o bilhete **deste** pagamento, liberta o lugar (a pessoa pode voltar a comprar) e passa o pagamento a `refunded`. **Nunca chama o Stripe**: o dinheiro trata-se à parte. Um bilhete de outro pagamento da mesma pessoa nunca é tocado, e repetir o comando é seguro (diz `ticket already cancelled`). Recusa uma referência desconhecida e um pagamento sem bilhete (`pending`, `failed`, `expired`, `refund_due`). Só imprime a referência. Não é o comando para um erro nosso: nesse caso é o `refund` (valor total).
+
 ### Reembolso automático dos `refund_due`
 
 Um `refund_due` é um erro nosso (a pessoa pagou e não há bilhete para dar), por isso o reembolso é sempre o total e não precisa de ninguém a decidir. Para não ficar à espera de alguém reparar no log, o servidor corre `refund --due` de 5 em 5 minutos. Com o cron do sistema (o mesmo da limpeza diária), uma linha no `crontab -e` do utilizador `debian`:
@@ -205,7 +220,7 @@ Um `refund_due` é um erro nosso (a pessoa pagou e não há bilhete para dar), p
 */5 * * * * cd /home/debian/enei/event-site && flock -n /tmp/enei-refund.lock docker compose --env-file backend/.env --env-file tunnel.env exec -T backend /app/.venv/bin/python -m app.domains.payments.refund --due --quiet >> /home/debian/enei/refund.log 2>&1
 ```
 
-- **`--due` só toca nos `refund_due`.** Um bilhete pago nunca é reembolsado por aqui: cancelar um bilhete, ou um pedido de reembolso de uma pessoa, continua a ser manual (`refund ENEI-XXXXXXXXXX`).
+- **`--due` só toca nos `refund_due`.** Um bilhete pago nunca é reembolsado por aqui. **Política (26/10): depois de o pagamento concluído e o bilhete dado, o reembolso não é permitido.** Um pedido de uma pessoa chega por email, trata-se à mão e só pode ser **parcial** (reembolso no painel do Stripe), e depois retira-se o bilhete à pessoa também à mão (painel de administração ou no servidor). O comando `refund ENEI-XXXXXXXXXX` reembolsa o valor **total** e serve para os nossos erros, não para pedidos de pessoas.
 - **`--quiet`** não escreve nada quando não há nada à espera e põe a hora (UTC) em cada linha: o `refund.log` só cresce quando alguém é reembolsado ou quando uma tentativa falha. O `flock -n` impede que duas corridas se sobreponham.
 - **Se uma tentativa falhar** (o Stripe em baixo, ou um pagamento que não passa as verificações), a linha `ENEI-…: NOT refunded: …` fica no `refund.log` e repete-se na corrida seguinte, até resolver. Convém olhar para o `refund.log` todos os dias: `grep 'NOT refunded' /home/debian/enei/refund.log | tail`. Um `refund_due` que falhe sempre precisa de uma pessoa a ver porquê.
 - **Para confirmar que funciona:** `crontab -l`, `systemctl is-active cron`, e corre o comando uma vez à mão (sem `--quiet` imprime `Nothing waiting for a refund.`). Se houver um `refund_due`, a corrida seguinte escreve `…Z ENEI-…: refunded (…)` e a transação passa a `refunded`.
