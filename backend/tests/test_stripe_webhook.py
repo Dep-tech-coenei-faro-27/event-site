@@ -126,7 +126,9 @@ class FakeStripeGateway:
     def __init__(self):
         self.provider_reference = INTENT
 
-    def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
         return MBWayPayment(provider_reference=self.provider_reference)
 
     def get_status(self, *, reference, provider_reference) -> TransactionStatus:

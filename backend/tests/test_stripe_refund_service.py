@@ -29,6 +29,7 @@ from app.domains.payments.service import (
     confirm_transaction,
     get_transaction,
     initiate_payment,
+    payment_description,
     refund_payment,
     refundable_references,
 )
@@ -62,7 +63,7 @@ class StripeLike:
             raise self.find_error
         return self.found
 
-    def create_payment(self, *, reference, amount_cents, phone, email):
+    def create_payment(self, *, reference, amount_cents, phone, email, description):
         self.created += 1
         return MBWayPayment(provider_reference=f"pi_new{self.created}")
 
@@ -75,12 +76,13 @@ class StripeLike:
             raise self.cancel_error
         return self.cancel_outcome
 
-    def refund(self, *, reference, provider_reference, amount_cents):
+    def refund(self, *, reference, provider_reference, amount_cents, description):
         self.refund_calls.append(
             {
                 "reference": reference,
                 "provider_reference": provider_reference,
                 "amount_cents": amount_cents,
+                "description": description,
             }
         )
         if self.refund_error is not None:
@@ -128,12 +130,13 @@ def make_payment(
     provider_reference=INTENT,
     user=None,
     amount_cents=2500,
+    tier=GERAL,
 ):
     user_, tiers = shop
     transaction = Transaction(
         reference=reference,
         user_id=(user or user_).id,
-        ticket_tier_id=tiers[GERAL].id,
+        ticket_tier_id=tiers[tier].id,
         amount_cents=amount_cents,
         quantity=1,
         status=status,
@@ -486,8 +489,27 @@ def test_a_refund_due_is_refunded_through_the_provider(db_session, shop, stripe)
             "reference": "ENEI-0000000002",
             "provider_reference": INTENT,
             "amount_cents": 2500,
+            "description": "ENEI - Passe geral",
         }
     ]
+
+
+@pytest.mark.parametrize("tier", list(TicketTier))
+def test_the_refund_says_which_event_and_product_it_is_for(
+    db_session, shop, stripe, tier
+):
+    """Same text as the payment: ``ENEI - <product name>`` for every modality."""
+    transaction = make_payment(
+        db_session,
+        shop,
+        "ENEI-0000000002",
+        status=TransactionStatus.REFUND_DUE,
+        tier=tier,
+    )
+
+    refund_payment(db_session, transaction.reference, stripe)
+
+    assert stripe.refund_calls[0]["description"] == payment_description(tier)
 
 
 def test_a_refund_due_never_touches_the_ticket_of_another_payment(
@@ -787,13 +809,14 @@ def test_a_failure_is_reported_exits_with_an_error_and_goes_on_with_the_rest(
     )
     original = stripe.refund
 
-    def flaky(*, reference, provider_reference, amount_cents):
+    def flaky(*, reference, provider_reference, amount_cents, description):
         if reference == "ENEI-0000000010":
             raise PaymentGatewayError("stripe unreachable")
         return original(
             reference=reference,
             provider_reference=provider_reference,
             amount_cents=amount_cents,
+            description=description,
         )
 
     stripe.refund = flaky

@@ -49,13 +49,16 @@ class FakeGateway:
         self.create_error: Exception | None = None
         self.status_error: Exception | None = None
 
-    def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
         self.create_calls.append(
             {
                 "reference": reference,
                 "amount_cents": amount_cents,
                 "phone": phone,
                 "email": email,
+                "description": description,
             }
         )
         if self.create_error is not None:
@@ -125,6 +128,33 @@ def test_initiate_uses_the_server_side_price(
     assert response.status_code == 201
     assert response.json()["amount_cents"] == 5000
     assert gateway.create_calls[0]["amount_cents"] == 5000
+
+
+def test_the_provider_is_told_which_event_and_product_the_payment_is_for(
+    auth_client, email_sender, db_session, gateway
+):
+    """The Stripe account is shared: each charge says ``ENEI - <product name>``."""
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={"ticket_tier": TicketTier.GERAL.value, "phone": "912345678"},
+    )
+
+    assert response.status_code == 201
+    assert gateway.create_calls[0]["description"] == "ENEI - Passe geral"
+
+
+@pytest.mark.parametrize("tier", list(TicketTier))
+def test_every_modality_has_its_own_payment_description(tier):
+    from app.domains.payments.service import payment_description
+    from app.domains.payments.tiers import TIER_SPECS
+
+    assert payment_description(tier) == f"ENEI - {TIER_SPECS[tier].name}"
+    assert len({payment_description(other) for other in TicketTier}) == len(
+        list(TicketTier)
+    )
 
 
 def test_a_non_student_can_buy_the_general_pass_with_meals(
@@ -1106,6 +1136,7 @@ def test_simulated_gateway_never_returns_confirmed():
         amount_cents=5000,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
     assert result.status is TransactionStatus.PENDING
     assert result.provider_reference
@@ -1136,6 +1167,7 @@ def test_if_then_pay_gateway_sends_the_documented_payload():
         amount_cents=1050,
         phone="912345678",
         email="ana@example.com",
+        description="ENEI - Passe geral",
     )
 
     url, payload, _ = posted[0]

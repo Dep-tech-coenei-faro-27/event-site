@@ -239,6 +239,15 @@ def _free_abandoned_seats(
         _sync_provider_status(db, old, gateway)
 
 
+def payment_description(tier: TicketTier) -> str:
+    """What the provider shows for the payment: ``ENEI - <product name>``.
+
+    The Stripe account is shared with other events, so every charge has to say
+    which event and which product it is for.
+    """
+    return f"ENEI - {TIER_SPECS[tier].name}"
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -322,6 +331,7 @@ def initiate_payment(
             amount_cents=amount_cents,
             phone=payload.phone,
             email=payload.email or user.email,
+            description=payment_description(payload.ticket_tier),
         )
     except PaymentGatewayError:
         _settle_pending(db, transaction, TransactionStatus.FAILED)
@@ -811,6 +821,7 @@ def refund_payment(db: Session, reference: str, gateway: MBWayGateway) -> Transa
         )
     provider_reference = transaction.provider_reference
     amount_cents = transaction.amount_cents
+    description = payment_description(ticket_tier_of(db, transaction))
     if (
         transaction.provider != gateway.name
         or not provider_reference
@@ -828,6 +839,7 @@ def refund_payment(db: Session, reference: str, gateway: MBWayGateway) -> Transa
             reference=reference,
             provider_reference=provider_reference,
             amount_cents=amount_cents,
+            description=description,
         )
     except AlreadyRefundedError:
         refund_id = "already refunded at the provider"

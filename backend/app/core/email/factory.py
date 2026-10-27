@@ -3,6 +3,7 @@ from functools import lru_cache
 from app.core.config import settings
 from app.core.email.base import EmailSender
 from app.core.email.console import ConsoleEmailSender
+from app.core.email.failover import FailoverEmailSender
 from app.core.email.outbox import OutboxEmailSender, OutboxWorker
 from app.core.email.smtp import SmtpEmailSender
 from app.db.session import SessionLocal
@@ -11,7 +12,7 @@ from app.db.session import SessionLocal
 def build_transport() -> EmailSender:
     if not settings.SMTP_HOST:
         return ConsoleEmailSender()
-    return SmtpEmailSender(
+    primary = SmtpEmailSender(
         host=settings.SMTP_HOST,
         port=settings.SMTP_PORT,
         username=settings.SMTP_USER,
@@ -19,6 +20,22 @@ def build_transport() -> EmailSender:
         from_email=settings.EMAIL_SENDER,
         timeout=float(settings.SMTP_TIMEOUT_SECONDS),
         security=None if settings.SMTP_SECURITY == "auto" else settings.SMTP_SECURITY,
+    )
+    if not settings.SMTP2_HOST:
+        return primary
+    fallback = SmtpEmailSender(
+        host=settings.SMTP2_HOST,
+        port=settings.SMTP2_PORT,
+        username=settings.SMTP2_USER,
+        password=settings.SMTP2_PASSWORD,
+        from_email=settings.SMTP2_EMAIL_SENDER or settings.EMAIL_SENDER,
+        timeout=float(settings.SMTP_TIMEOUT_SECONDS),
+        security=(
+            None if settings.SMTP2_SECURITY == "auto" else settings.SMTP2_SECURITY
+        ),
+    )
+    return FailoverEmailSender(
+        primary, fallback, SessionLocal, daily_limit=settings.SMTP_DAILY_LIMIT
     )
 
 

@@ -42,6 +42,11 @@ TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/event_s
 O CI executa a suite contra PostgreSQL (ver `.github/workflows/ci-backend.yml`), o que
 garante compatibilidade com a base em produção.
 
+O CI também corre o fluxo completo (registo, verificação, login, compra nas cinco
+modalidades com o gateway simulado, QR e email do bilhete) contra o servidor a sério,
+numa base criada pelas migrations e sem mandar emails. Como funciona e como correr
+localmente está em [`docs/testes-e2e.md`](../docs/testes-e2e.md).
+
 ## Docker
 
 A API e o PostgreSQL correm com o Docker Compose, a partir da raiz do repositório (o README da raiz tem os detalhes):
@@ -95,7 +100,7 @@ Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_li
 | --- | --- | --- |
 | `POST /auth/login` | 5 por minuto por email e IP | `RATE_LIMIT_LOGIN_PER_MINUTE` |
 | | 20 por minuto por email (de qualquer IP) | `RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE` |
-| | 30 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
+| | 60 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
 | `POST /auth/register` | 2 por minuto por IP | `RATE_LIMIT_REGISTER_PER_MINUTE` |
 | `POST /auth/resend-verification-email` e `POST /auth/forgot-password` | 1 por minuto por email | `RATE_LIMIT_EMAIL_PER_MINUTE` |
 | | 5 por hora por email | `RATE_LIMIT_EMAIL_PER_HOUR` |
@@ -161,7 +166,7 @@ A bilheteira tem cinco modalidades (`acesso`, `refeicoes`, `completo`, `geral`, 
 - **Preço do servidor:** `POST /api/payment/initiate` ignora qualquer preço enviado pelo cliente e usa o da base de dados, multiplicado pela quantidade.
 - **Stock atómico:** a verificação de disponibilidade e a reserva do lugar acontecem na mesma transação, com a linha do bilhete bloqueada (`SELECT ... FOR UPDATE`), por isso dois pedidos em simultâneo não podem vender mais do que o `inventory_limit`.
 - **Estudante:** quem se regista com um email cujo domínio está em `STUDENT_EMAIL_DOMAINS` fica com `student_verification_status: "verified"` automaticamente; os outros ficam `none` e não podem comprar bilhetes de estudante (recebem `403`), a não ser que enviem o comprovativo de matrícula (secção seguinte). O estado (`none`, `submitted`, `verified`, `rejected`) é exposto em `GET /api/auth/me` e `GET /api/users/me`.
-- **MB WAY:** o modo é `PAYMENTS_MODE` (`off` por omissão, `simulated` ou `live`). Em `off` a bilheteira responde `503`; em `simulated` o gateway responde sempre `pending`, sem contactar nada; em `live` fala com a ifthenpay (`MBWAY_KEY` e `MBWAY_BASE_URL` em `https`, obrigatórios). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar. Com `simulated`, `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0 faz o gateway simulado confirmar o pagamento ao fim desses segundos, para testar a confirmação sem ifthenpay. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
+- **MB WAY:** o modo é `PAYMENTS_MODE` (`off` por omissão, `simulated` ou `live`). Em `off` a bilheteira responde `503`; em `simulated` o gateway responde sempre `pending`, sem contactar nada; em `live` fala com a ifthenpay (`MBWAY_KEY` e `MBWAY_BASE_URL` em `https`, obrigatórios). Os pagamentos pendentes duram `MBWAY_PAYMENT_TIMEOUT_SECONDS` (4 minutos por omissão) e depois expiram, libertando o lugar. Com `simulated`, `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` > 0 faz o gateway simulado confirmar o pagamento ao fim desses segundos, para testar a confirmação sem ifthenpay. Um pagamento com o telemóvel `910000000` nunca é confirmado pelo simulador: só expira. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.
 - **Callback do pagamento:** em `live` a ifthenpay confirma o pagamento chamando `GET /api/payment/callback` com a chave anti-phishing (`MBWAY_CALLBACK_KEY`, pelo menos 32 caracteres) e a referência. O endpoint é público, limita os pedidos por IP, compara a chave em tempo constante, valida o valor e é idempotente; só confirma transações `pending` (uma `failed` ou `expired` responde `200` mas fica intocada e com um aviso nos logs). A mesma função de confirmação é usada pelo *polling* (`GET /api/payment/transactions/{reference}`), por isso o bilhete com o QR assinado é emitido quer o pagamento chegue pelo callback quer pela consulta. Sem a chave configurada (ou em `live` sem `MBWAY_CALLBACK_KEY`) o callback é recusado com `403`. A chave é removida dos logs de acesso do uvicorn.
 - **Email do bilhete:** quando o pagamento passa a confirmado, o email com o QR vai para a fila durável (`email_outbox`, `dedupe_key` `ticket:<id>`), nas cinco modalidades e nunca para um pagamento `refund_due`. É um `multipart/alternative`: texto simples (guardado em `text_body`, com os mesmos dados) e HTML com o QR inline (`cid:ticket-qr`). `text_body`, `html_body` e `inline_images` são apagados depois do envio e quando uma linha falhada é limpa. Se pôr o email na fila falhar, o bilhete já está emitido e o varrimento diário (`make cleanup-unverified`, `queue_missing_ticket_emails`) volta a pô-lo, sem duplicar. O desenho (o de `ui-ux/ticket-email/`, PR #287; estes dois ficheiros são cópias, 600 px, sem `rgba` nem imagem de fundo, QR de 240 px) está em `app/core/email/ticket_email.html` e `.txt`, com os marcadores `[FIRST_NAME]`, `[ATTENDEE_NAME]`, `[TICKET_TYPE]`, `[TICKET_REFERENCE]`, `[EVENT_DATES]`, `[EVENT_LOCATION]` e `[TICKET_URL]`; o renderizador escapa os valores e falha se um marcador ficar por substituir. O link do botão é `FRONTEND_URL` + `/perfil` (com ou sem barra final) e o HTML tem de ficar abaixo de 102 KB (o Gmail corta acima disso).
 - O contrato detalhado está em [`docs/api-payments.md`](../docs/api-payments.md).

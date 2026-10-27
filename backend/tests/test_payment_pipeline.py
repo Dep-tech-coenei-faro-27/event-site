@@ -72,7 +72,9 @@ class Provider:
         self.fail_status_unrecognised = False
         self.latency = 0.0
 
-    def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
         with self._lock:
             self.create_calls += 1
             if self.fail_create:

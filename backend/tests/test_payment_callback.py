@@ -35,7 +35,9 @@ class FakeGateway:
         self.status = TransactionStatus.PENDING
         self.provider_reference = "TX-1"
 
-    def create_payment(self, *, reference, amount_cents, phone, email) -> MBWayPayment:
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
         return MBWayPayment(provider_reference=self.provider_reference)
 
     def get_status(self, *, reference, provider_reference) -> TransactionStatus:

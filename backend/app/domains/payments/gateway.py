@@ -56,6 +56,7 @@ class MBWayGateway(Protocol):
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment: ...
 
     def get_status(
@@ -70,7 +71,12 @@ class RefundingGateway(Protocol):
     name: str
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Refund the whole payment and return the provider's refund id."""
         ...
@@ -195,6 +201,7 @@ class IfThenPayMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         payload = {
             "mbWayKey": self.mbway_key,
@@ -375,6 +382,7 @@ class StripeMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         form = {
             "amount": str(amount_cents),
@@ -383,6 +391,7 @@ class StripeMBWayGateway:
             "payment_method_data[type]": "mb_way",
             "payment_method_data[billing_details][phone]": f"+351{phone}",
             "confirm": "true",
+            "description": description,
             "metadata[reference]": reference,
         }
         # The same reference always means the same PaymentIntent: a repeated request
@@ -453,7 +462,12 @@ class StripeMBWayGateway:
         return matches[0] if matches else None
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Give back the whole payment through ``POST /refunds``.
 
@@ -476,6 +490,9 @@ class StripeMBWayGateway:
             "payment_intent": str(provider_reference),
             "amount": str(amount_cents),
             "reason": "requested_by_customer",
+            # A Stripe refund has no ``description`` field (only metadata and a fixed
+            # ``reason``): the metadata is what the dashboard shows on the refund.
+            "metadata[description]": description,
             "metadata[reference]": reference,
         }
         headers = self._headers({"Idempotency-Key": f"enei-refund-{reference}"})
@@ -545,10 +562,16 @@ class SimulatedMBWayGateway:
     payment and a payment that never ends would hold it for ever. The confirming
     mode is only allowed with ``PAYMENTS_MODE=simulated``: ``live`` and ``off``
     refuse to start with it enabled.
+
+    A payment to ``UNPAID_PHONE`` is never approved, even in the confirming mode: it
+    only expires. It lets the expired payment (and the seat it frees) be tried, by
+    the frontend and by the end-to-end test, against a server that confirms.
     """
 
     name = "simulated"
+    UNPAID_PHONE = "910000000"
     _REFERENCE_PREFIX = "SIM"
+    _UNPAID_PREFIX = "SIMUNPAID"
 
     def __init__(
         self,
@@ -568,17 +591,28 @@ class SimulatedMBWayGateway:
         amount_cents: int,
         phone: str,
         email: str,
+        description: str,
     ) -> MBWayPayment:
         # The creation instant travels inside the provider reference so the gateway
         # stays stateless and ``get_status`` can measure the elapsed time.
         created_at = int(self._now())
+        prefix = (
+            self._UNPAID_PREFIX
+            if phone == self.UNPAID_PHONE
+            else self._REFERENCE_PREFIX
+        )
         return MBWayPayment(
-            provider_reference=f"{self._REFERENCE_PREFIX}-{created_at}-{reference}",
+            provider_reference=f"{prefix}-{created_at}-{reference}",
             status=TransactionStatus.PENDING,
         )
 
     def refund(
-        self, *, reference: str, provider_reference: str | None, amount_cents: int
+        self,
+        *,
+        reference: str,
+        provider_reference: str | None,
+        amount_cents: int,
+        description: str,
     ) -> str:
         """Nothing moves: lets the refund flow be tried locally."""
         return f"SIMREFUND-{reference}"
@@ -587,7 +621,10 @@ class SimulatedMBWayGateway:
         if not provider_reference:
             return None
         parts = provider_reference.split("-", 2)
-        if len(parts) != 3 or parts[0] != self._REFERENCE_PREFIX:
+        if len(parts) != 3 or parts[0] not in (
+            self._REFERENCE_PREFIX,
+            self._UNPAID_PREFIX,
+        ):
             return None
         if not parts[1].isdigit():
             return None
@@ -602,6 +639,8 @@ class SimulatedMBWayGateway:
         elapsed = self._now() - created_at
         expires = self.expire_after_seconds
         confirms = self.confirm_after_seconds
+        if provider_reference.startswith(f"{self._UNPAID_PREFIX}-"):
+            confirms = 0  # the person never approves it
         if (
             confirms > 0
             and elapsed >= confirms
