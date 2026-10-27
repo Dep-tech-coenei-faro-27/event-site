@@ -8,10 +8,10 @@ export default function ContactSection() {
           <h2>Ainda tens dúvidas?</h2>
           <p className="lead">A nossa equipa ajuda-te a encontrar a informação certa.</p>
           <div className="actions">
-            <a className="btn btn--secondary" href="mailto:geral@enei.pt">
+            <a className="btn btn--secondary" href="mailto:geral@eneiconf.pt">
               Enviar email
             </a>
-            <a className="btn btn--primary" href="mailto:geral@enei.pt">
+            <a className="btn btn--primary" href="mailto:geral@eneiconf.pt">
               Contactar
             </a>
           </div>
@@ -19,7 +19,7 @@ export default function ContactSection() {
         <aside className="support-panel">
           <h3>Canais de apoio</h3>
           <ul className="feature-list">
-            <li>geral@enei.pt</li>
+            <li>geral@eneiconf.pt</li>
             <li>Faro, Algarve</li>
             <li>Resposta em horário útil</li>
           </ul>

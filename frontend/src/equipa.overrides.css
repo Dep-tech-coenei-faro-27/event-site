@@ -1,0 +1,15 @@
+/*
+ * Ajustes à mão sobre o `equipa.css` (gerado: não se edita). Seis pessoas por linha em ecrã largo
+ * (pedido da direção); 4 a partir de 900 px, 3 a partir de 700 px e 2 abaixo, como no protótipo.
+ */
+@media (min-width: 1100px) {
+  html body[data-page="equipa"][data-page] main .team-members {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+@media (min-width: 701px) and (max-width: 899px) {
+  html body[data-page="equipa"][data-page] main .team-members {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

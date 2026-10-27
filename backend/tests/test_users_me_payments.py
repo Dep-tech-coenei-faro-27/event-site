@@ -121,8 +121,7 @@ def test_the_existing_fields_are_unchanged(world):
         "role",
         "is_verified",
         "student_verification_status",
-        "institution",
-        "course",
+        "phone",
         "qr_code",
     ):
         assert field in body

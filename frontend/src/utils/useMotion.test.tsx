@@ -278,7 +278,7 @@ describe("useMotion nas restantes páginas (pela estrutura, sem classes do prot�
 
   it("anima o bloco de título e cada item das grelhas e das listas, mas não as grelhas em si", () => {
     stubEnvironment(false);
-    mountAt("/parcerias");
+    mountAt("/sobre");
     expect(document.querySelector(".heading")).toHaveAttribute("data-motion-item");
     document.querySelectorAll("article, p").forEach((el) => expect(el).toHaveAttribute("data-motion-item"));
     expect(document.querySelector(".grid")).not.toHaveAttribute("data-motion-item");

@@ -60,7 +60,7 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".footer-main > *", "up"],
 ];
 
-// Restantes páginas (Sobre, Agenda, Equipa, Parcerias, Informação e Ajuda, Bilhetes, legais, conta...).
+// Restantes páginas (Sobre, Agenda, Equipa, Informação e Ajuda, Bilhetes, legais, conta...).
 // O React já as tinha em Tailwind, sem as classes do protótipo, por isso a camada de animações apanha-as
 // pela estrutura e **não é preciso mexer nos ficheiros das páginas**: cada secção tem um contentor com
 // um bloco de título e depois o conteúdo. O bloco de título e cada item de uma grelha ou de uma lista
