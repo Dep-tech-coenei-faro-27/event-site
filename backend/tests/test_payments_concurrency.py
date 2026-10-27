@@ -501,3 +501,36 @@ def test_two_late_payments_for_the_last_seat_sell_it_once(db_session, test_engin
         TransactionStatus.CONFIRMED,
         TransactionStatus.REFUND_DUE,
     ]
+
+
+class ConnectionCheckingGateway:
+    """Notes whether the session still holds a database connection during the call."""
+
+    name = "checking"
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+        self.in_transaction: bool | None = None
+
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description
+    ) -> MBWayPayment:
+        self.in_transaction = self.session.in_transaction()
+        return MBWayPayment(provider_reference="CHECK-1")
+
+    def get_status(self, *, reference, provider_reference) -> TransactionStatus:
+        return TransactionStatus.PENDING
+
+
+def test_no_connection_is_held_while_the_provider_answers(db_session):
+    """A slow provider (9 s) made every request hold a connection while waiting, and
+    the pool ran out (measured in scripts/loadtest)."""
+    db_session.expire_on_commit = False  # like SessionLocal
+    seed_ticket_tiers(db_session)
+    user = _make_user(db_session, "ana@example.com")
+    gateway = ConnectionCheckingGateway(db_session)
+
+    transaction, _ = initiate_payment(db_session, user, _payload(), gateway)
+
+    assert gateway.in_transaction is False
+    assert transaction.provider_reference == "CHECK-1"

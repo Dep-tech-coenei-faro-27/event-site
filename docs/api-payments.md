@@ -28,7 +28,7 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 
 ### `GET /api/payment/tiers`
 
-**Público** (sem sessão): as modalidades, com o preço e se cada uma se pode comprar agora. É o que o checkout e a página de Bilhetes usam para mostrar preços e «esgotado». Limite de 60 pedidos por minuto por IP (`RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE`); `Cache-Control: no-store`.
+**Público** (sem sessão): as modalidades, com o preço e se cada uma se pode comprar agora. É o que o checkout e a página de Bilhetes usam para mostrar preços e «esgotado». Limite de 600 pedidos por minuto por IP (`RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE`: toda a gente de um campus atrás do mesmo IP abre esta página à mesma hora); `Cache-Control: no-store`.
 
 ```json
 [
@@ -120,7 +120,7 @@ O estado do pagamento **em tempo real**, por Server-Sent Events (`text/event-str
 
 O evento só **avisa** (`status`, sem dados pessoais): o frontend faz então uma consulta normal (`GET /payment/transactions/{reference}`) e trata o resultado como sempre, incluindo conferir a conta nos `failed` e `expired`. Se o fluxo falhar, o frontend volta a consultar de 2 em 2 segundos, por isso nunca depende dele.
 
-**Como funciona no servidor.** Quem muda um pagamento (a confirmação, o callback, a libertação de um lugar, o cancelamento) avisa as ligações abertas desse pagamento. Como o backend corre **um só processo**, o registo das ligações está em memória; com mais de um processo seria preciso `LISTEN/NOTIFY` ou Redis. Uma ligação em espera **não ocupa nenhuma ligação à base de dados**. Um laço em segundo plano (`PAYMENT_EVENTS_RECONCILE_SECONDS`, 5 s) pergunta ao fornecedor pelos pagamentos que alguém está a ver, no máximo de 5 em 5 segundos por pagamento (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`) e 4 de cada vez, para um fornecedor lento não ocupar as threads todas. O nginx trata este caminho à parte (`proxy_events.conf`: sem retenção nem compressão e com 120 s de espera).
+**Como funciona no servidor.** Quem muda um pagamento (a confirmação, o callback, a libertação de um lugar, o cancelamento) avisa as ligações abertas desse pagamento. Como o backend corre **um só processo**, o registo das ligações está em memória; com mais de um processo seria preciso `LISTEN/NOTIFY` ou Redis. Uma ligação em espera **não ocupa nenhuma ligação à base de dados**. Um laço em segundo plano (`PAYMENT_EVENTS_RECONCILE_SECONDS`, 5 s) pergunta ao fornecedor pelos pagamentos que alguém está a ver, no máximo de 5 em 5 segundos por pagamento (`PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`) e 4 de cada vez, para um fornecedor lento não ocupar as threads todas. `POST /initiate` corre em threads próprias (`PAYMENT_INITIATE_THREADS`) e nenhum pedido segura uma ligação à base de dados enquanto o fornecedor responde: medido com o fornecedor a 9 s por chamada, o resto da API continua a responder (`scripts/loadtest/RESULTADOS.md`). O nginx trata este caminho à parte (`proxy_events.conf`: sem retenção nem compressão e com 120 s de espera).
 
 ### `POST /api/payment/stripe/webhook`
 
@@ -255,9 +255,11 @@ make set-price tier=geral price=3500
 | `STRIPE_CANCEL_GRACE_SECONDS` | `120` | só Stripe: quanto tempo depois do prazo um pagamento ainda à espera é cancelado no Stripe (`POST /v1/payment_intents/{id}/cancel`), o que liberta o lugar e impede uma aprovação tardia. Se a pessoa o aprovar nesse instante, fica `confirmed`. Tem de ficar acima da janela real de aprovação do MB WAY |
 | `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS` | `5` | no máximo uma pergunta ao MB WAY por pagamento neste intervalo (0 = sempre). A memória é por processo; o backend corre um |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
+| `PAYMENTS_SIMULATED_LATENCY_SECONDS` | `0` | só para o teste de carga: o gateway simulado demora estes segundos a responder; acima de `MBWAY_TIMEOUT_SECONDS` dá erro de gateway ao fim do timeout, como o cliente real. Só é permitido com `PAYMENTS_MODE=simulated`. |
+| `PAYMENT_INITIATE_THREADS` | `40` | threads que iniciam pagamentos, à parte das 40 que respondem aos outros pedidos: um fornecedor lento só atrasa as compras (ver `scripts/loadtest/RESULTADOS.md`). |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |
-| `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `60` | consultas de `GET /tiers` por minuto por IP |
+| `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `600` | consultas de `GET /tiers` por minuto por IP |
 
 Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 

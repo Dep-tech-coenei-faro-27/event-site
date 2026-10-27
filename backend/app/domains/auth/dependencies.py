@@ -68,6 +68,10 @@ def get_current_session(request: Request, db: Session = Depends(get_db)) -> Auth
     if not user.is_active:
         raise unauthorized("Inactive user")
 
+    # End the read so the connection goes back to the pool: this runs in a thread of
+    # its own and the endpoint then waits for another one. Holding the connection
+    # while waiting stalls the API when every thread is busy (a slow provider).
+    db.commit()
     return AuthSession(user=user, payload=payload)
 
 

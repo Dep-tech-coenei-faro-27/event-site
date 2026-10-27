@@ -324,6 +324,9 @@ def initiate_payment(
     # network call.
     db.commit()
     db.refresh(transaction)
+    # The refresh opened a new read: end it so no connection waits on the provider
+    # (with a slow one every request held its connection and the pool ran out).
+    db.commit()
 
     try:
         payment = gateway.create_payment(

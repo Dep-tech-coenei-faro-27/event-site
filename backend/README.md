@@ -95,7 +95,7 @@ Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_li
 | --- | --- | --- |
 | `POST /auth/login` | 5 por minuto por email e IP | `RATE_LIMIT_LOGIN_PER_MINUTE` |
 | | 20 por minuto por email (de qualquer IP) | `RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE` |
-| | 60 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
+| | 300 por minuto por IP | `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` |
 | `POST /auth/register` | 2 por minuto por IP | `RATE_LIMIT_REGISTER_PER_MINUTE` |
 | `POST /auth/resend-verification-email` e `POST /auth/forgot-password` | 1 por minuto por email | `RATE_LIMIT_EMAIL_PER_MINUTE` |
 | | 5 por hora por email | `RATE_LIMIT_EMAIL_PER_HOUR` |
@@ -104,7 +104,7 @@ Os endpoints sensíveis têm limites guardados na base de dados (tabela `rate_li
 | `POST /auth/verify-email` e `POST /auth/reset-password` | 20 por minuto por IP | `RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE` |
 | `POST /payment/initiate` | 10 por minuto por utilizador | `RATE_LIMIT_PAYMENT_PER_MINUTE` |
 | `GET /payment/transactions/{reference}` e o seu fluxo `/events` | 120 por minuto por utilizador (partilhado) | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` |
-| `GET /payment/tiers` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` |
+| `GET /payment/tiers` | 600 por minuto por IP | `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` |
 | `GET /payment/callback` | 60 por minuto por IP | `RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE` |
 
 O limite de login conta o par email e IP, por isso alguém que falhe a password de outra pessoa não a bloqueia: só se bloqueia a si próprio.

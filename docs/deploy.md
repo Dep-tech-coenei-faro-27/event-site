@@ -466,9 +466,15 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
-- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
-  é de 60 por minuto (cada tentativa gasta cerca de 0,3 s de CPU de `bcrypt`: não subir muito); se for preciso, sobe
-  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
+- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. Os limites por IP
+  foram fixados com o teste de carga (`scripts/loadtest/RESULTADOS.md`): 300 logins por minuto (cada um gasta cerca de
+  0,2 s de CPU de `bcrypt`) e 600 leituras de `/api/payment/tiers`, para 300 pessoas atrás do mesmo IP entrarem no
+  mesmo minuto. O registo continua a 2 por minuto por IP: numa sessão de inscrições em sala, sobe
+  `RATE_LIMIT_REGISTER_PER_MINUTE` nesse dia.
+- [ ] Teste de carga repetido numa VPS de staging com base própria (nunca na produção, que partilha a base com o
+  staging): `scripts/loadtest/README.md`. Os números de referência foram medidos num portátil e não na VPS.
+- [ ] Um só processo do uvicorn (o `CMD` do `Dockerfile`): o registo do SSE e a reconciliação estão em memória. Mais
+  processos só depois de passar o SSE para `LISTEN/NOTIFY`.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 
 ## Reverter um deploy

@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 
+from anyio import CapacityLimiter, to_thread
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
@@ -45,6 +46,16 @@ logger = logging.getLogger(__name__)
 
 PAYMENT_INITIATE_FAILED_MESSAGE = "Payment could not be initiated. Please try again."
 
+_initiate_threads: CapacityLimiter | None = None
+
+
+def initiate_threads() -> CapacityLimiter:
+    """The threads that start payments, apart from the server's shared ones."""
+    global _initiate_threads
+    if _initiate_threads is None:
+        _initiate_threads = CapacityLimiter(settings.PAYMENT_INITIATE_THREADS)
+    return _initiate_threads
+
 
 @router.get(
     "/tiers", response_model=list[TicketTierRead], status_code=status.HTTP_200_OK
@@ -68,11 +79,24 @@ def read_tiers(
     response_model=TransactionRead,
     status_code=status.HTTP_201_CREATED,
 )
-def initiate(
+async def initiate(
     payload: PaymentInitiateRequest,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db),
     gateway: MBWayGateway = Depends(get_mbway_gateway),
+) -> TransactionRead:
+    """Start an MB WAY payment. Runs in the payment threads: the call to the provider
+    can take seconds, and must not hold a thread every other request needs."""
+    return await to_thread.run_sync(
+        _initiate, payload, current_user, db, gateway, limiter=initiate_threads()
+    )
+
+
+def _initiate(
+    payload: PaymentInitiateRequest,
+    current_user: User,
+    db: Session,
+    gateway: MBWayGateway,
 ) -> TransactionRead:
     rule = RateLimit("payment", settings.RATE_LIMIT_PAYMENT_PER_MINUTE, 60)
     enforce_rate_limit(db, (rule,), str(current_user.id))

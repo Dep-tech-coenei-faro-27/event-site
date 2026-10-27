@@ -555,6 +555,10 @@ class SimulatedMBWayGateway:
     payment and a payment that never ends would hold it for ever. The confirming
     mode is only allowed with ``PAYMENTS_MODE=simulated``: ``live`` and ``off``
     refuse to start with it enabled.
+
+    With a positive ``latency_seconds`` every call to the provider waits that long,
+    for load tests. A latency over ``timeout_seconds`` ends like the real client: a
+    gateway error once the timeout has passed.
     """
 
     name = "simulated"
@@ -565,11 +569,25 @@ class SimulatedMBWayGateway:
         *,
         confirm_after_seconds: int = 0,
         expire_after_seconds: int = 0,
+        latency_seconds: float = 0,
+        timeout_seconds: float = 0,
         now: Callable[[], float] = time.time,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.confirm_after_seconds = confirm_after_seconds
         self.expire_after_seconds = expire_after_seconds
+        self.latency_seconds = latency_seconds
+        self.timeout_seconds = timeout_seconds
         self._now = now
+        self._sleep = sleep
+
+    def _wait_for_provider(self) -> None:
+        if self.latency_seconds <= 0:
+            return
+        if 0 < self.timeout_seconds < self.latency_seconds:
+            self._sleep(self.timeout_seconds)
+            raise PaymentGatewayError("gateway unreachable: timed out")
+        self._sleep(self.latency_seconds)
 
     def create_payment(
         self,
@@ -580,6 +598,7 @@ class SimulatedMBWayGateway:
         email: str,
         description: str,
     ) -> MBWayPayment:
+        self._wait_for_provider()
         # The creation instant travels inside the provider reference so the gateway
         # stays stateless and ``get_status`` can measure the elapsed time.
         created_at = int(self._now())
@@ -612,6 +631,7 @@ class SimulatedMBWayGateway:
     def get_status(
         self, *, reference: str, provider_reference: str | None
     ) -> TransactionStatus:
+        self._wait_for_provider()
         created_at = self._created_at(provider_reference)
         if created_at is None:
             return TransactionStatus.PENDING
@@ -653,4 +673,6 @@ def get_mbway_gateway() -> MBWayGateway:
     return SimulatedMBWayGateway(
         confirm_after_seconds=settings.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS,
         expire_after_seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS,
+        latency_seconds=settings.PAYMENTS_SIMULATED_LATENCY_SECONDS,
+        timeout_seconds=settings.MBWAY_TIMEOUT_SECONDS,
     )

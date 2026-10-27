@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.core.config import Settings, settings
 from app.core.qr import verify_qr_payload
 from app.domains.payments.gateway import (
+    PaymentGatewayError,
     SimulatedMBWayGateway,
     get_mbway_gateway,
 )
@@ -285,4 +286,70 @@ def test_confirming_simulator_requires_simulated_mode(mode):
     with pytest.raises(
         ValidationError, match="PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS"
     ):
+        Settings(_env_file=None, **DEV, **overrides)
+
+
+def _create(gateway: SimulatedMBWayGateway):
+    return gateway.create_payment(
+        reference="ENEI-ABCDEFGHIJ",
+        amount_cents=5000,
+        phone="912345678",
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+    )
+
+
+def test_simulator_answers_after_the_configured_latency():
+    waits: list[float] = []
+    gateway = SimulatedMBWayGateway(
+        latency_seconds=9, timeout_seconds=10, now=Clock(), sleep=waits.append
+    )
+
+    payment = _create(gateway)
+    gateway.get_status(
+        reference="ENEI-ABCDEFGHIJ", provider_reference=payment.provider_reference
+    )
+
+    assert waits == [9, 9]
+
+
+def test_simulator_times_out_like_the_real_client_when_slower_than_the_timeout():
+    waits: list[float] = []
+    gateway = SimulatedMBWayGateway(
+        latency_seconds=30, timeout_seconds=10, now=Clock(), sleep=waits.append
+    )
+
+    with pytest.raises(PaymentGatewayError):
+        _create(gateway)
+    assert waits == [10]
+
+
+def test_simulator_without_latency_never_waits():
+    waits: list[float] = []
+    gateway = SimulatedMBWayGateway(now=Clock(), sleep=waits.append)
+
+    _create(gateway)
+
+    assert waits == []
+
+
+def test_simulated_mode_builds_the_simulator_with_the_latency(monkeypatch):
+    monkeypatch.setattr(settings, "PAYMENTS_MODE", "simulated")
+    monkeypatch.setattr(settings, "PAYMENTS_SIMULATED_LATENCY_SECONDS", 9)
+
+    gateway = get_mbway_gateway()
+
+    assert gateway.latency_seconds == 9
+    assert gateway.timeout_seconds == settings.MBWAY_TIMEOUT_SECONDS
+
+
+@pytest.mark.parametrize("mode", ["off", "live"])
+def test_simulated_latency_requires_simulated_mode(mode):
+    overrides = {"PAYMENTS_MODE": mode, "PAYMENTS_SIMULATED_LATENCY_SECONDS": 1}
+    if mode == "live":
+        overrides["PAYMENTS_PROVIDER"] = "ifthenpay"
+        overrides["MBWAY_KEY"] = "MBW-123456"
+        overrides["MBWAY_CALLBACK_KEY"] = "c" * 40
+
+    with pytest.raises(ValidationError, match="PAYMENTS_SIMULATED_LATENCY_SECONDS"):
         Settings(_env_file=None, **DEV, **overrides)
