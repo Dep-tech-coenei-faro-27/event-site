@@ -8,7 +8,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const at = (element: React.ReactElement, path = "/") =>
+const at = (element: React.ReactElement, path = "/?dia=quinta") =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <main>{element}</main>
@@ -16,14 +16,14 @@ const at = (element: React.ReactElement, path = "/") =>
   );
 
 describe("Agenda lê da fonte de dados", () => {
-  const tag = { label: "Palestra", tone: "cyan" as const };
+  const tag = { kind: "Palestra", category: "palestras" as const };
 
   it("desenha cada item com hora, local e orador, e não desenha os que têm visible:false", () => {
     at(
       <Agenda
         items={[
-          { id: "qui-1000-abertura", start: "2027-04-01T10:00", title: "Abertura", tag, location: "Auditório 1", speaker: { name: "Ana Silva", company: "Empresa X" } },
-          { id: "qui-1100-escondida", start: "2027-04-01T11:00", title: "Sessão escondida", tag, visible: false },
+          { id: "qui-1000-abertura", start: "2027-04-01T10:00", title: "Abertura", ...tag, location: "Auditório 1", speaker: { name: "Ana Silva", company: "Empresa X" } },
+          { id: "qui-1100-escondida", start: "2027-04-01T11:00", title: "Sessão escondida", ...tag, visible: false },
         ]}
       />,
     );

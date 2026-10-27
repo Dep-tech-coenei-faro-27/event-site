@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
-import { AGENDA, AGENDA_DAYS, AGENDA_TIMEZONE, AGENDA_UTC_OFFSET, itemsOfDay, timeOf, type AgendaItem } from "./agenda";
+import { AGENDA, AGENDA_DAYS, AGENDA_TIMEZONE, AGENDA_UTC_OFFSET, cardOf, endOf, itemsOfDay, matchesFilter, pendingLocation, pendingSpeaker, timeOf, timeRange, type AgendaItem } from "./agenda";
 
 // Os ficheiros de `assets/speakers/` (o nome do ficheiro é o que o item guarda em `speaker.photo`).
 const speakerFiles = Object.keys(import.meta.glob("../assets/speakers/*.{webp,jpg,jpeg,png,svg}")).map((p) => p.split("/").pop());
@@ -20,8 +20,8 @@ describe("dados da agenda (esquema)", () => {
     for (const item of AGENDA) {
       expect(item.id, item.title).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
       expect(item.title.trim(), item.id).not.toBe("");
-      expect(item.tag.label.trim(), item.id).not.toBe("");
-      expect(["sand", "cyan", "teal", "coral", "periwinkle"], item.id).toContain(item.tag.tone);
+      expect(item.kind.trim(), item.id).not.toBe("");
+      expect(["encontro", "palestras", "workshops"], item.id).toContain(item.category);
     }
   });
 
@@ -64,13 +64,74 @@ describe("dados da agenda (esquema)", () => {
 
   it("`itemsOfDay` esconde os itens com visible:false e mantém a ordem; `timeOf` dá HH:MM", () => {
     const items: AgendaItem[] = [
-      { id: "b", start: "2027-04-01T18:00", title: "B", tag: { label: "x", tone: "cyan" } },
-      { id: "a", start: "2027-04-01T14:00", title: "A", tag: { label: "x", tone: "cyan" } },
-      { id: "h", start: "2027-04-01T15:00", title: "H", tag: { label: "x", tone: "cyan" }, visible: false },
-      { id: "o", start: "2027-04-02T10:00", title: "O", tag: { label: "x", tone: "cyan" } },
+      { id: "b", start: "2027-04-01T18:00", title: "B", kind: "x", category: "encontro" },
+      { id: "a", start: "2027-04-01T14:00", title: "A", kind: "x", category: "encontro" },
+      { id: "h", start: "2027-04-01T15:00", title: "H", kind: "x", category: "encontro", visible: false },
+      { id: "o", start: "2027-04-02T10:00", title: "O", kind: "x", category: "encontro" },
     ];
     const result = itemsOfDay(items, AGENDA_DAYS[0]);
     expect(result.map((i) => i.id)).toEqual(["a", "b"]);
     expect(timeOf(result[0])).toBe("14:00");
+  });
+
+  it("cada dia tem o texto dos botões: etiqueta, número e nome por extenso", () => {
+    for (const day of AGENDA_DAYS) {
+      expect(day.short, day.key).toBe(`${Number(day.date.slice(8, 10))} Abr`);
+      expect(day.tab, day.key).toBe(day.tab.toUpperCase());
+      expect(day.label, day.key).toMatch(new RegExp(`, ${Number(day.date.slice(8, 10))} abril$`));
+    }
+  });
+
+  it("a hora de fim, quando existe, é do mesmo dia e depois do início; só o último item de cada dia pode não ter fim", () => {
+    for (const item of AGENDA) {
+      if (!item.end) continue;
+      expect(START.test(item.end), item.id).toBe(true);
+      expect(item.end.slice(0, 10), item.id).toBe(item.start.slice(0, 10));
+      expect(item.end > item.start, `${item.id}: o fim tem de ser depois do início`).toBe(true);
+    }
+    for (const day of AGENDA_DAYS) {
+      const ofDay = itemsOfDay(AGENDA, day);
+      expect(ofDay.slice(0, -1).every((i) => i.end), `${day.key}: só o último item do dia pode estar sem fim`).toBe(true);
+    }
+  });
+
+  it("`timeRange` dá «11:00 – 12:00», ou só a hora de início sem fim", () => {
+    const base = { id: "x", title: "X", kind: "k", category: "encontro" as const };
+    expect(timeRange({ ...base, start: "2027-04-02T11:00", end: "2027-04-02T12:00" })).toBe("11:00 – 12:00");
+    expect(timeRange({ ...base, start: "2027-04-02T11:00" })).toBe("11:00");
+    expect(endOf({ ...base, start: "2027-04-02T11:00" })).toBeNull();
+  });
+
+  it("todos os itens do primeiro dia são azuis (`tone: 'azul'`) e nenhum dos outros dias tem cor própria", () => {
+    const [first, ...others] = AGENDA_DAYS;
+    for (const item of itemsOfDay(AGENDA, first)) expect(item.tone, item.id).toBe("azul");
+    for (const day of others) for (const item of itemsOfDay(AGENDA, day)) expect(item.tone, item.id).toBeUndefined();
+  });
+
+  it("só os momentos (`encontro`) são cartões de momento; palestras e workshops levam retrato", () => {
+    for (const item of AGENDA) expect(cardOf(item), item.id).toBe(item.category === "encontro" ? "moment" : "speaker");
+  });
+
+  it("o texto «por confirmar» depende do tipo de sessão, e `announce` e `location` mandam quando existem", () => {
+    const base = { id: "x", start: "2027-04-02T10:00", title: "X", kind: "Palestra" };
+    expect(pendingLocation({ ...base, category: "workshops" })).toBe("Salas a confirmar");
+    expect(pendingLocation({ ...base, category: "palestras" })).toBe("Auditório a confirmar");
+    expect(pendingLocation({ ...base, category: "palestras", kind: "Tertúlia" })).toBe("Local a confirmar");
+    expect(pendingLocation({ ...base, category: "encontro" })).toBe("Local a confirmar");
+    expect(pendingSpeaker({ ...base, category: "workshops" })).toBe("Oradores e facilitadores a anunciar");
+    expect(pendingSpeaker({ ...base, category: "palestras", kind: "Tertúlia" })).toBe("Convidados a anunciar");
+    expect(pendingSpeaker({ ...base, category: "palestras" })).toBe("Orador a anunciar");
+    expect(pendingSpeaker({ ...base, category: "palestras", announce: "Keynote surpresa" })).toBe("Keynote surpresa");
+  });
+
+  it("o filtro «Palestras» inclui os workshops; «Workshops» só os workshops; «Guardados» só os guardados", () => {
+    const mk = (id: string, category: AgendaItem["category"]): AgendaItem => ({ id, start: "2027-04-02T10:00", title: id, kind: "k", category });
+    const [m, p, w] = [mk("m", "encontro"), mk("p", "palestras"), mk("w", "workshops")];
+    const saved = new Set(["m"]);
+    const of = (f: Parameters<typeof matchesFilter>[1]) => [m, p, w].filter((i) => matchesFilter(i, f, saved)).map((i) => i.id);
+    expect(of("all")).toEqual(["m", "p", "w"]);
+    expect(of("palestras")).toEqual(["p", "w"]);
+    expect(of("workshops")).toEqual(["w"]);
+    expect(of("saved")).toEqual(["m"]);
   });
 });
