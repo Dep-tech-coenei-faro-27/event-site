@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 const auth: AuthContextValue = {
-  user: { id: 1, name: 'Ana Silva', email: 'ana@exemplo.pt', role: 'user', is_verified: true, course: null, qr_code: null },
+  user: { id: 1, name: 'Ana Silva', email: 'ana@exemplo.pt', role: 'user', is_verified: true, qr_code: null },
   loading: false,
   error: null,
   refresh: async () => {},

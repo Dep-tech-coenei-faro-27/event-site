@@ -65,7 +65,7 @@ e é o passo 2 acima que o apanha.
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`; o SMTP de reserva (opcional)
   `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
-- **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
+- **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `STRIPE_ALLOW_TEST_KEY` (só no staging), `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 60).
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
@@ -97,6 +97,7 @@ de erro diz qual.
 | `SMTP_SECURITY`                                                                       | `auto`                            | `auto` usa TLS direto na porta 465 e STARTTLS nas outras. Também aceita `starttls` e `ssl`. `none` só serve para o Mailpit local e é recusado em produção.                          |
 | `SMTP_TIMEOUT_SECONDS`                                                                | `5`                               | Tempo máximo de espera pelo servidor SMTP.                                                                                                                                          |
 | `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`      | vazios (sem reserva)              | Segundo SMTP, só usado quando o primeiro esgota a quota ou falha (ver «SMTP de reserva»).                                                                                           |
+| `TICKET_STOCK_LIMIT`                                                                  | `600`                             | Bilhetes à venda no site, um número só para todas as modalidades (não conta os da organização nem dos convidados). `0` fecha a venda.                                              |
 | `SMTP_DAILY_LIMIT`                                                                    | `0`                               | Envios por dia UTC do primeiro SMTP antes de passar ao segundo. `0`: só a recusa do fornecedor conta.                                                                               |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`             | `60`, `10080`                     | Duração da sessão: 60 minutos, ou 7 dias com "lembrar-me".                                                                                                                          |
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
@@ -108,7 +109,8 @@ de erro diz qual.
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
 | `PAYMENTS_PROVIDER` | `stripe` | `stripe` ou `ifthenpay`: o gateway usado em `PAYMENTS_MODE=live`. |
 | `STRIPE_WEBHOOK_SECRET` | obrigatório em `live` com `stripe` | Segredo de assinatura do webhook do Stripe (`whsec_...`), que o painel mostra quando se regista `https://<domínio>/api/payment/stripe/webhook`. Secret do GitHub. |
-| `STRIPE_SECRET_KEY` | obrigatório em `live` com `stripe` | Chave secreta do Stripe (`sk_...`; `sk_test_` no sandbox). Secret do GitHub; o backend não arranca em `live` com `stripe` sem ela. |
+| `STRIPE_SECRET_KEY` | obrigatório em `live` com `stripe` | Chave secreta do Stripe (`sk_...`; `sk_test_` no sandbox). Secret do GitHub; o backend não arranca em `live` com `stripe` sem ela. Em `ENVIRONMENT=prod` **recusa uma chave de teste** (ver `STRIPE_ALLOW_TEST_KEY`). |
+| `STRIPE_ALLOW_TEST_KEY` | `false` | Só no **staging**: `true` deixa o backend arrancar em `prod` com uma chave `sk_test_`. É uma Variable do GitHub (o CD só a escreve quando existe). **Apaga-a no dia de passar à chave real:** com o sandbox o MB WAY aprova qualquer número de telemóvel, por isso um servidor de produção que ficasse com a chave de teste dava bilhetes sem cobrar a ninguém. Com ela ligada o arranque deixa um aviso no log. |
 | `MBWAY_CALLBACK_KEY`                                                                  | obrigatório em `live`             | Chave anti-phishing do backoffice da ifthenpay. O backend recusa o callback sem ela e não arranca em `live` sem a ter.                                                              |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | O gateway simulado confirma o pagamento ao fim destes segundos. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.                        |
 
@@ -161,12 +163,11 @@ mudam-se em runtime:
 
 ```bash
 $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price geral 3500
-$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500 --stock 150
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500
 ```
 
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
-- `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
-  ilimitado).
+- **Não há stock por modalidade.** Os bilhetes à venda no site são **um número só para todas as modalidades**: a Variable `TICKET_STOCK_LIMIT` (600 por omissão; os bilhetes da organização e dos convidados não contam). Um pagamento confirmado ou à espera ocupa um lugar; um falhado, expirado ou reembolsado liberta-o. Quando o total chega ao limite, **todas** as modalidades ficam esgotadas. Para o mudar: `gh variable set TICKET_STOCK_LIMIT --body 550` e correr o CD (o backend lê-o no arranque).
 - Em `live`, no backoffice da ifthenpay configure o URL de callback como
   `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
   endpoint (GET) para confirmar o pagamento e emitir o bilhete; a chave nunca fica nos logs (o nginx mascara a query
@@ -179,6 +180,14 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
 Em produção, `PAYMENTS_MODE=live` sem `MBWAY_KEY` (em falta, vazia ou só com espaços em branco) faz o backend recusar arrancar.
+
+## Verificar a conta do Stripe
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.stripe_check
+```
+
+Só lê, não altera nada no Stripe e não imprime segredos. Mostra se a chave é de **teste ou real**, a conta a que pertence (id e nome), se o **MB WAY está ativo** nessa conta, e se existe um endpoint de webhook **ativo para este site** (`FRONTEND_URL` + `/api/payment/stripe/webhook`), com os três eventos e no mesmo modo que a chave. Sai com erro se algo estiver mal; quando falta o endpoint diz para onde apontam os que a conta tem. Corre-o depois de mudar as chaves ou o webhook, e antes de abrir as vendas. **Não consegue** dizer se `STRIPE_WEBHOOK_SECRET` é o segredo desse endpoint (o Stripe só o mostra uma vez): isso vê-se no primeiro pagamento, com `POST /api/payment/stripe/webhook … 200` no log do `backend`. Uma conta partilhada com outro site (por exemplo o sandbox do NEEI) recebe os eventos dos dois nos dois endpoints; os pagamentos que não têm a nossa referência são ignorados com `200`.
 
 ## Pagamentos a reembolsar
 
@@ -487,6 +496,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Base de dados sem porta pública (só `127.0.0.1`).
 - [ ] Limpeza diária no cron e confirmada.
 - [ ] Reembolso automático dos `refund_due` no cron (de 5 em 5 minutos) e confirmado; alguém olha para o `refund.log`.
+- [ ] **Chave real do Stripe** (`sk_live_…`) e `STRIPE_ALLOW_TEST_KEY` apagada; `stripe_check` sem problemas; o log do arranque diz «Stripe payments run with a live key».
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.

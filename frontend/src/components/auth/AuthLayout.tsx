@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import "../../conta.css";
+import "../../conta.overrides.css";
 import { useBodyPage } from "../../utils/useBodyPage";
 
 type Props = {
@@ -23,7 +24,7 @@ export default function AuthLayout({ eyebrow, title, lead, points, wide = false,
     <div className="auth-page">
       <section className="auth-section">
         <div className="container auth-shell">
-          <aside className="auth-aside">
+          <div className="auth-aside">
             <div>
               <p className="eyebrow">&lt;{eyebrow} /&gt;</p>
               <h1>{title}</h1>
@@ -37,7 +38,7 @@ export default function AuthLayout({ eyebrow, title, lead, points, wide = false,
                 </div>
               ))}
             </div>
-          </aside>
+          </div>
           <div className={`auth-card${wide ? " auth-card--wide" : ""}`}>{children}</div>
         </div>
       </section>

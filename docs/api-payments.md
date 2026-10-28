@@ -68,7 +68,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |
-| `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
+| `409` | bilhetes esgotados, em **todas** as modalidades, porque o stock é um só (`This ticket tier is sold out`, texto mantido), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
 | `422` | corpo inválido (telemóvel, NIF, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
@@ -228,12 +228,12 @@ O preço de cada modalidade vive na tabela `ticket_tiers`. Enquanto `price_cents
 ```bash
 # dentro de backend/ (usa a DATABASE_URL/.env do ambiente)
 python -m app.domains.payments.set_price geral 3500
-python -m app.domains.payments.set_price acesso 2500 --stock 150
+python -m app.domains.payments.set_price acesso 2500
 # ou
 make set-price tier=geral price=3500
 ```
 
-`--stock` é opcional: define o limite de inventário (omisso = ilimitado); sem ele, o stock atual mantém-se.
+Não há stock por modalidade: os bilhetes à venda são um número só para todas, `TICKET_STOCK_LIMIT` (600 por omissão).
 
 ## Configuração (backend)
 
@@ -281,7 +281,7 @@ Os textos de `detail` estão em inglês e são para os logs e para distinguir ca
 | --- | --- | --- | --- |
 | `401` | sem sessão ou sessão expirada | «A tua sessão terminou. Entra outra vez para continuar.» | Levar ao login e voltar ao checkout |
 | `403` com `Please verify your email address to continue.` | email por verificar | «Confirma o teu email para poderes comprar.» | Oferecer reenviar o email de verificação |
-| `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é para estudantes com a conta verificada.» | Sugerir o passe geral ou o contacto da organização |
+| `403` com `Student verification is required to buy this ticket` | modalidade de estudante sem verificação | «Esta modalidade é só para estudantes com a conta verificada. Envia o comprovativo de matrícula ou escolhe outra modalidade.» | Ligação ao comprovativo no perfil (`/perfil#comprovativo`) e o contacto da organização (`geral@enei.pt`) |
 | `409` com `This ticket tier is sold out` | modalidade esgotada | «Esta modalidade esgotou.» | Voltar à escolha de modalidade |
 | `409` com `You already have a ticket or a payment in progress` | já tem bilhete ou pagamento em curso | «Já tens um bilhete ou um pagamento em curso.» (**não** dizer «esgotado») | Se `/users/me` tem `qr_code`, mostrar o bilhete; senão, ir para o ecrã de espera com a referência guardada |
 | `422` | telemóvel, NIF, modalidade ou quantidade inválidos | Erro junto ao campo (o telemóvel ou o NIF; `loc` diz qual) | Deixar corrigir e reenviar |

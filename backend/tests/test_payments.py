@@ -523,7 +523,7 @@ def test_initiate_respects_inventory_limit(
     user = authenticate(auth_client, email_sender, db_session)
     tickets = seed_ticket_tiers(db_session)
     ticket = tickets[TicketTier.GERAL]
-    ticket.inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     db_session.add(
         Transaction(
             reference="ENEI-0000000001",
@@ -720,8 +720,8 @@ def test_a_waiting_payment_keeps_its_seat_after_its_deadline_until_the_provider_
 ):
     """Like a shop: what is reserved for a waiting payment is not sold to anyone."""
     authenticate(auth_client, email_sender, db_session)
-    tiers = seed_ticket_tiers(db_session)
-    tiers[TicketTier.GERAL].inventory_limit = 1
+    seed_ticket_tiers(db_session)
+    settings.TICKET_STOCK_LIMIT = 1
     db_session.commit()
     reference = auth_client.post(INITIATE_URL, json=INITIATE).json()["reference"]
     _let_the_deadline_pass(db_session, reference)
@@ -755,7 +755,7 @@ def test_a_sale_with_stock_left_does_not_ask_the_provider_about_other_payments(
 ):
     user = authenticate(auth_client, email_sender, db_session)
     tiers = seed_ticket_tiers(db_session)
-    tiers[TicketTier.GERAL].inventory_limit = 5
+    settings.TICKET_STOCK_LIMIT = 5
     other = User(
         name="Rui Costa",
         email="rui@example.com",

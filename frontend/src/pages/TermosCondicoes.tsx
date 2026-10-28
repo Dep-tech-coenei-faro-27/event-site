@@ -26,9 +26,14 @@ const sections: LegalSection[] = [
     {
         title: 'Pagamentos',
         content: (
+            <>
             <p>
                 O pagamento é iniciado através do método apresentado no checkout. A inscrição apenas fica confirmada depois de o pagamento ser validado. Em caso de recusa, expiração ou falha, não é efetuada uma cobrança confirmada e podes repetir o processo.
             </p>
+            <p>
+                A fatura é emitida manualmente pela AAUalg, a entidade vendedora, e enviada para o email da tua conta até 20 dias úteis após a compra. Se a quiseres com número de contribuinte, indica o NIF (campo opcional) no checkout.
+            </p>
+            </>
         ),
     },
     {

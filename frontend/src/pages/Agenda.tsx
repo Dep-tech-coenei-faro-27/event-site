@@ -1,276 +1,355 @@
-import { useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import portraitPlaceholder from "../assets/portrait-placeholder.svg";
+import "../agenda-base.css";
 import "../agenda.css";
 import { useBodyPage } from "../utils/useBodyPage";
 import { usePageMeta } from "../utils/usePageMeta";
+import {
+  AGENDA,
+  AGENDA_DAYS,
+  AGENDA_UTC_OFFSET,
+  cardOf,
+  endOf,
+  itemsOfDay,
+  matchesFilter,
+  pendingLocation,
+  pendingSpeaker,
+  timeOf,
+  type AgendaDay,
+  type AgendaItem,
+} from "../content/agenda";
 
-const DAYS = ["quinta", "sexta", "sabado", "domingo"] as const;
-type Day = (typeof DAYS)[number];
+type Filter = "all" | "palestras" | "workshops" | "saved";
 
-/** `ui-ux/agenda/index.html` no React. CSS gerado em `agenda.css` (ver `scripts/ui-port/genpage.py`). */
-export default function Agenda() {
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Tudo" },
+  { key: "palestras", label: "Palestras" },
+  { key: "workshops", label: "Workshops" },
+  { key: "saved", label: "Guardados" },
+];
+
+export const SAVED_KEY = "enei-agenda-saved";
+const DEFAULT_DAY: AgendaDay["key"] = "sexta";
+
+const speakerPhotos = import.meta.glob("../assets/speakers/*", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
+
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+/** Tudo o que o cartão mostra, para a pesquisa. */
+function searchableText(item: AgendaItem): string {
+  const who = item.speaker ? [item.speaker.name, item.speaker.company ?? ""] : [pendingSpeaker(item), "Perfil e organização em breve"];
+  return [timeOf(item), endOf(item) ?? "", item.kind, item.title, item.location ?? pendingLocation(item), ...(cardOf(item) === "speaker" ? who : [])].join(" ");
+}
+
+function readSaved(items: AgendaItem[]): Set<string> {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]");
+    if (Array.isArray(stored)) return new Set(stored.filter((id): id is string => typeof id === "string" && items.some((item) => item.id === id)));
+  } catch {
+    // A agenda continua a funcionar sem armazenamento.
+  }
+  return new Set();
+}
+
+/** `?dia=sexta` no endereço; sem ele (ou com um valor que não existe) abre a sexta-feira, o primeiro dia completo. */
+function dayFromQuery(value: string | null): AgendaDay["key"] {
+  return AGENDA_DAYS.find((day) => day.key === value)?.key ?? DEFAULT_DAY;
+}
+
+function Portrait({ item }: { item: AgendaItem }) {
+  const photo = item.speaker?.photo ? speakerPhotos[`../assets/speakers/${item.speaker.photo}`] : undefined;
+  return (
+    <img
+      src={photo ?? portraitPlaceholder}
+      alt={photo ? (item.speaker?.photoAlt ?? "") : "Retrato do orador por anunciar"}
+      width={168}
+      height={188}
+      loading="lazy"
+    />
+  );
+}
+
+interface CardProps {
+  item: AgendaItem;
+  saved: boolean;
+  action: ReactNode;
+  onSave: (id: string) => void;
+}
+
+function SessionCard({ item, saved, action, onSave }: CardProps) {
+  const kind = cardOf(item);
+  const end = endOf(item);
+  return (
+    <li id={item.id} className={`ag-card ag-card--${item.category}${item.tone ? ` ag-card--${item.tone}` : ""}`} data-session={item.id} data-category={item.category}>
+      <div className={`ag-card__media${kind === "speaker" ? "" : " ag-card__media--moment"}`} aria-hidden={kind === "speaker" ? undefined : true}>
+        {kind === "speaker" && <Portrait item={item} />}
+      </div>
+      <div className="ag-card__body">
+        <div className="ag-card__meta">
+          <span className="ag-card__time">
+            <time dateTime={`${item.start}${AGENDA_UTC_OFFSET}`}>{timeOf(item)}</time>
+            {end && item.end && (
+              <>
+                {" – "}
+                <time dateTime={`${item.end}${AGENDA_UTC_OFFSET}`}>{end}</time>
+              </>
+            )}
+          </span>
+          <span className="ag-card__sep" aria-hidden="true"></span>
+          <span className="ag-card__kind">{item.kind}</span>
+          <button
+            className="ag-save"
+            type="button"
+            aria-label={`${saved ? "Remover dos guardados" : "Guardar sessão"}: ${item.title}`}
+            aria-pressed={saved}
+            onClick={() => onSave(item.id)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6 4h12v17l-6-4-6 4Z" />
+            </svg>
+          </button>
+        </div>
+        <h3>{item.title}</h3>
+        {kind === "speaker" && (
+          <p className={`ag-card__who${item.speaker ? "" : " ag-card__who--pending"}`}>
+            <strong>{item.speaker ? item.speaker.name : pendingSpeaker(item)}</strong>
+            <span> · {item.speaker ? (item.speaker.company ?? "") : "Perfil e organização em breve"}</span>
+          </p>
+        )}
+        <div className="ag-card__foot">
+          <p className="ag-card__where">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
+              <circle cx="12" cy="10" r="2" />
+            </svg>
+            {item.location ?? pendingLocation(item)}
+          </p>
+          {action && (
+            <div className="ag-card__action" data-slot="action">
+              {action}
+            </div>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+interface AgendaProps {
+  items?: AgendaItem[];
+  /**
+   * O espaço da ação no canto de cada cartão (inscrição, compra…). Devolve o botão desse item, ou nada. Sem isto, o
+   * cartão não mostra nenhum botão e o espaço fica reservado, para todos terem a mesma altura.
+   */
+  renderAction?: (item: AgendaItem) => ReactNode;
+}
+
+/** A Agenda: proposta B2 (cartões horizontais), escolhida a 26/10/2026. CSS em `agenda.css` e `agenda-base.css`. */
+export default function Agenda({ items = AGENDA, renderAction }: AgendaProps) {
   useBodyPage("agenda");
-  const [day, setDay] = useState<Day>("quinta");
+  usePageMeta("Agenda · ENEI 2027", "Programa, atividades e experiências do ENEI 2027.");
 
-  // Setas, Início e Fim passam de um dia ao outro, como num separador acessível.
-  const onTabKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const index = DAYS.indexOf(day);
-    const next =
-      event.key === "ArrowRight" ? (index + 1) % DAYS.length
-      : event.key === "ArrowLeft" ? (index + DAYS.length - 1) % DAYS.length
-      : event.key === "Home" ? 0
-      : event.key === "End" ? DAYS.length - 1
-      : -1;
-    if (next < 0) return;
-    event.preventDefault();
-    setDay(DAYS[next]);
-    document.getElementById(`tab-${DAYS[next]}`)?.focus();
+  const [params, setParams] = useSearchParams();
+  const day = dayFromQuery(params.get("dia"));
+  const [filter, setFilter] = useState<Filter>("all");
+  const [query, setQuery] = useState("");
+  const [saved, setSaved] = useState<Set<string>>(() => readSaved(items));
+  const [toast, setToast] = useState<string | null>(null);
+
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const toastTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
+  const notify = useCallback((message: string) => {
+    window.clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2300);
+  }, []);
+
+  const selectDay = (key: AgendaDay["key"], focus = false) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("dia", key);
+        return next;
+      },
+      { replace: true },
+    );
+    if (focus) tabRefs.current[key]?.focus();
   };
 
-  usePageMeta('Agenda · ENEI 2027', 'Programa, atividades e experiências do ENEI 2027.');
+  const onTabKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const count = AGENDA_DAYS.length;
+    const next =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? (index + 1) % count
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? (index - 1 + count) % count
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? count - 1
+              : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    selectDay(AGENDA_DAYS[next].key, true);
+  };
+
+  const toggleSaved = (id: string) => {
+    const wasSaved = saved.has(id);
+    const next = new Set(saved);
+    if (wasSaved) next.delete(id);
+    else next.add(id);
+    setSaved(next);
+    try {
+      localStorage.setItem(SAVED_KEY, JSON.stringify([...next]));
+    } catch {
+      // Só nesta visita, se o armazenamento não estiver disponível.
+    }
+    notify(wasSaved ? "Sessão removida dos guardados." : "Sessão guardada neste dispositivo.");
+    // Com o filtro «Guardados», o cartão desaparece ao remover: o foco passa para o filtro.
+    if (wasSaved && filter === "saved") window.setTimeout(() => filterRefs.current.saved?.focus(), 0);
+  };
+
+  const q = normalize(query.trim());
+  const current = AGENDA_DAYS.find((d) => d.key === day) ?? AGENDA_DAYS[1];
+  const cards = itemsOfDay(items, current)
+    .filter((item) => matchesFilter(item, filter, saved) && normalize(searchableText(item)).includes(q))
+    .map((item) => ({ item, action: renderAction?.(item) ?? null }));
+  const count = cards.length;
+  const savedCount = items.filter((item) => saved.has(item.id)).length;
+
+  const resetFilters = () => {
+    setFilter("all");
+    setQuery("");
+    filterRefs.current.all?.focus();
+  };
 
   return (
     <>
-
-      <header className="page-hero center">
-      <div className="container">
-      <p className="eyebrow">&lt;PROGRAMA /&gt;</p>
-      <h1>Quatro dias para experimentar.</h1>
-      <p className="lead">
-      Consulta o programa dia a dia e prepara a tua passagem pelo ENEI
-      2027.
-      </p>
-      <div className="date-pill" style={{ margin: "26px auto 0" }}>
-      1–4 abril 2027 · Campus das Gambelas
-      </div>
-      </div>
+      <header className="page-hero agenda-hero center">
+        <div className="container">
+          <p className="eyebrow">&lt;AGENDA /&gt;</p>
+          <h1>Encontra a tua próxima ideia.</h1>
+          <p className="lead">Palestras, workshops e encontros que dão forma ao ENEI 2027. Escolhe o teu dia e faz o teu percurso.</p>
+          <div className="date-pill">1–4 abril 2027 · Faro</div>
+        </div>
       </header>
-      <section className="section section--surface agenda-schedule-section">
-      <div className="container">
-      <div className="section-heading">
-      <div>
-      <p className="eyebrow">&lt;AGENDA POR DIA /&gt;</p>
-      <h2>Quatro dias, um programa completo.</h2>
-      </div>
-      <p className="lead">
-      Consulta os principais momentos de cada dia do ENEI 2027.
-      </p>
-      </div>
-      <div className="tabs agenda-day-tabs" role="tablist" aria-label="Dias do programa">
-      <button className="tab agenda-day-tab" id="tab-quinta" type="button" role="tab" aria-selected={day === "quinta"} aria-controls="agenda-quinta" tabIndex={day === "quinta" ? 0 : -1} onClick={() => setDay("quinta")} onKeyDown={onTabKey}>
-      <span>Quinta</span><strong>1 Abr</strong>
-      </button>
-      <button className="tab agenda-day-tab" id="tab-sexta" type="button" role="tab" aria-selected={day === "sexta"} aria-controls="agenda-sexta" tabIndex={day === "sexta" ? 0 : -1} onClick={() => setDay("sexta")} onKeyDown={onTabKey}>
-      <span>Sexta</span><strong>2 Abr</strong>
-      </button>
-      <button className="tab agenda-day-tab" id="tab-sabado" type="button" role="tab" aria-selected={day === "sabado"} aria-controls="agenda-sabado" tabIndex={day === "sabado" ? 0 : -1} onClick={() => setDay("sabado")} onKeyDown={onTabKey}>
-      <span>Sábado</span><strong>3 Abr</strong>
-      </button>
-      <button className="tab agenda-day-tab" id="tab-domingo" type="button" role="tab" aria-selected={day === "domingo"} aria-controls="agenda-domingo" tabIndex={day === "domingo" ? 0 : -1} onClick={() => setDay("domingo")} onKeyDown={onTabKey}>
-      <span>Domingo</span><strong>4 Abr</strong>
-      </button>
-      </div>
-      <div className={day === "quinta" ? "schedule" : "schedule hidden"} id="agenda-quinta" role="tabpanel" aria-labelledby="tab-quinta">
-      <p className="schedule-day-label">Quinta-feira · 1 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T14:00">14:00</time>
-      <div><h3>Check-ins</h3></div>
-      <span className="tag tag--sand">Check-in</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T18:00">18:00</time>
-      <div><h3>Sessão de boas-vindas</h3></div>
-      <span className="tag tag--cyan">Boas-vindas</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-01T20:00">20:00</time>
-      <div><h3>Jantar e arraial académico</h3></div>
-      <span className="tag tag--teal">Jantar</span>
-      </article>
-      </div>
-      <div className={day === "sexta" ? "schedule" : "schedule hidden"} id="agenda-sexta" role="tabpanel" aria-labelledby="tab-sexta">
-      <p className="schedule-day-label">Sexta-feira · 2 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T10:00">10:00</time>
-      <div><h3>Palestra e workshops #1, #2 e #3</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T11:00">11:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T14:00">14:00</time>
-      <div><h3>Palestra e workshops #4, #5 e #6</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T15:00">15:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T16:30">16:30</time>
-      <div><h3>Coffee break</h3></div>
-      <span className="tag tag--sand">Networking</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T17:00">17:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T18:00">18:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T20:00">20:00</time>
-      <div><h3>Jantar</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-02T22:00">22:00</time>
-      <div><h3>Atividades noturnas</h3></div>
-      <span className="tag tag--periwinkle">Noite</span>
-      </article>
-      </div>
-      <div className={day === "sabado" ? "schedule" : "schedule hidden"} id="agenda-sabado" role="tabpanel" aria-labelledby="tab-sabado">
-      <p className="schedule-day-label">Sábado · 3 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T10:00">10:00</time>
-      <div><h3>Palestra e workshops #10, #11 e #12</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T11:00">11:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T14:00">14:00</time>
-      <div><h3>Palestra e workshops #13, #14 e #15</h3></div>
-      <span className="tag tag--coral">Palestra / workshop</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T15:00">15:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T16:30">16:30</time>
-      <div><h3>Coffee break</h3></div>
-      <span className="tag tag--sand">Networking</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T17:00">17:00</time>
-      <div><h3>Palestra</h3></div>
-      <span className="tag tag--cyan">Palestra</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T18:00">18:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T20:00">20:00</time>
-      <div><h3>Jantar</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-03T22:00">22:00</time>
-      <div><h3>Atividades noturnas</h3></div>
-      <span className="tag tag--periwinkle">Noite</span>
-      </article>
-      </div>
-      <div className={day === "domingo" ? "schedule" : "schedule hidden"} id="agenda-domingo" role="tabpanel" aria-labelledby="tab-domingo">
-      <p className="schedule-day-label">Domingo · 4 abril</p>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T10:00">10:00</time>
-      <div><h3>Nascer do sol na praia</h3></div>
-      <span className="tag tag--sand">Social</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T12:00">12:00</time>
-      <div><h3>Almoço</h3></div>
-      <span className="tag tag--teal">Refeição</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T14:00">14:00</time>
-      <div><h3>Tertúlia</h3></div>
-      <span className="tag tag--periwinkle">Tertúlia</span>
-      </article>
-      <article className="schedule-item">
-      <time dateTime="2027-04-04T16:00">16:00</time>
-      <div><h3>Sessão de encerramento</h3></div>
-      <span className="tag tag--cyan">Encerramento</span>
-      </article>
-      </div>
-      </div>
-      </section>
-      <section className="section section--panel">
-      <div className="container split">
-      <div>
-      <p className="eyebrow">&lt;PLATAFORMA /&gt;</p>
-      <h2>O evento continua no teu telemóvel.</h2>
-      <p className="lead">
-      A experiência digital recompensa a descoberta do recinto, a
-      interação com oradores e a visita às bancas dos parceiros.
-      </p>
-      </div>
-      <div className="platform-flow">
-      <article className="platform-flow__item">
-      <div className="icon icon--sand" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <circle cx="12" cy="9" r="6" />
-      <path d="m8.5 14-1 7 4.5-2 4.5 2-1-7M9.5 9l1.5 1.5 3-3" />
-      </svg>
-      </div>
-      <h3>Badges</h3>
-      <p>Conquistas associadas à participação e exploração.</p>
-      </article>
-      <article className="platform-flow__item">
-      <div className="icon icon--teal" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M4 18 10 12l4 4 6-8" />
-      <path d="M15 8h5v5" />
-      </svg>
-      </div>
-      <h3>Progressão</h3>
-      <p>Moedas virtuais e recompensas por envolvimento.</p>
-      </article>
-      <article className="platform-flow__item">
-      <div className="icon icon--periwinkle" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M20 14v2M14 20h2M18 18h2v2" />
-      </svg>
-      </div>
-      <h3>Ativações</h3>
-      <p>Pontos de interação distribuídos pelo evento.</p>
-      </article>
-      <article className="platform-flow__item">
-      <div className="icon icon--coral" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" focusable="false">
-      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z" />
-      </svg>
-      </div>
-      <h3>Comunidade</h3>
-      <p>Novas formas de ligar participantes, oradores e empresas.</p>
-      </article>
-      </div>
-      </div>
+
+      <section className="ag-programme" id="programa" aria-label="Programa por dia">
+        <div className="container">
+          <p className="eyebrow">&lt;AGENDA POR DIA /&gt;</p>
+          <h2>Quatro dias, um programa completo.</h2>
+          <p className="lead">Escolhe o dia e filtra por tipo de sessão.</p>
+
+          <div role="tablist" aria-label="Dias do programa" className="ag-days">
+            {AGENDA_DAYS.map((d, index) => (
+              <button
+                key={d.key}
+                ref={(el) => {
+                  tabRefs.current[d.key] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`ag-tab-${d.key}`}
+                className="ag-day"
+                aria-selected={d.key === day}
+                aria-controls="ag-panel"
+                tabIndex={d.key === day ? 0 : -1}
+                onClick={() => selectDay(d.key)}
+                onKeyDown={(event) => onTabKey(event, index)}
+              >
+                <small>{d.tab}</small>
+                <strong>{d.short}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div className="ag-toolbar">
+            <div className="ag-filters" role="group" aria-label="Filtrar sessões">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  ref={(el) => {
+                    filterRefs.current[f.key] = el;
+                  }}
+                  type="button"
+                  data-ag-filter={f.key}
+                  aria-pressed={filter === f.key}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                  {f.key === "saved" && (
+                    <>
+                      {" "}
+                      <span data-saved-count>{savedCount}</span>
+                    </>
+                  )}
+                </button>
+              ))}
+            </div>
+            <label className="ag-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10" cy="10" r="6" />
+                <path d="m15 15 6 6" />
+              </svg>
+              <span className="sr-only">Pesquisar sessões</span>
+              <input type="search" placeholder="Procurar sessão…" aria-label="Pesquisar sessões" value={query} onChange={(event) => setQuery(event.target.value)} />
+            </label>
+          </div>
+
+          <p className="ag-results" data-ag-result aria-live="polite">
+            {current.label} · {count} {count === 1 ? "sessão" : "sessões"}
+          </p>
+
+          <div role="tabpanel" id="ag-panel" aria-labelledby={`ag-tab-${current.key}`}>
+            <ul className={`ag-list${cards.some((c) => c.action) ? " ag-list--actions" : ""}`}>
+              {cards.map(({ item, action }) => (
+                <SessionCard key={item.id} item={item} saved={saved.has(item.id)} action={action} onSave={toggleSaved} />
+              ))}
+            </ul>
+          </div>
+
+          <div className="ag-empty" hidden={count > 0}>
+            <h3>A próxima descoberta está noutro filtro.</h3>
+            <p>Não há sessões para esta seleção neste dia.</p>
+            <button type="button" data-ag-reset onClick={resetFilters}>
+              Ver todas as sessões
+            </button>
+          </div>
+
+          <p className="ag-footnote">Os horários, locais e participantes podem sofrer alterações. Os perfis dos oradores serão publicados após confirmação.</p>
+        </div>
       </section>
 
+      <section className="ag-closing" aria-labelledby="ag-closing-title">
+        <div className="container">
+          <div className="cta">
+            <p className="eyebrow">&lt;VEM FAZER PARTE /&gt;</p>
+            <h2 id="ag-closing-title">O melhor do ENEI? Estares lá.</h2>
+            <p>Já encontraste a tua próxima sessão. Agora vem conhecer as pessoas, partilhar ideias e viver os quatro dias.</p>
+            <div className="actions">
+              <Link to="/bilhetes" className="btn btn--dark">
+                Descobrir os bilhetes
+              </Link>
+              <Link to="/informacao-ajuda" className="btn btn--secondary">
+                Tenho uma dúvida
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className={`ag-toast${toast ? " is-visible" : ""}`} role="status" aria-live="polite">
+        {toast}
+      </div>
     </>
   );
 }

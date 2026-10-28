@@ -1,0 +1,242 @@
+/*
+ * Páginas `agenda` no desenho novo (ui-ux). Gerado por `scripts/ui-port/genpage.py` a partir do
+ * `core.css` e `motion.css` do protótipo, limitado a `body[data-page="agenda"]` (cada página define esse atributo com
+ * `useBodyPage("agenda")`). Não editar à mão: os ajustes vão no fim, em «Ajustes», ou noutro ficheiro.
+ */
+
+body[data-page="agenda"] main {
+  padding-top: 64px; /* a barra de topo é fixa (64 px no telemóvel, 76 px a partir de 768 px) */
+  overflow-x: clip;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  body[data-page="agenda"] main {
+    padding-top: 76px;
+  }
+}
+body[data-page="agenda"] main p {
+  margin: 1em 0;
+}
+/* O protótipo não usa o reset do Tailwind: as listas e as definições têm o aspeto por omissão do browser
+   (as regras com classe, mais específicas, sobrepõem-se). */
+body[data-page="agenda"] main ul,
+body[data-page="agenda"] main ol {
+  list-style: revert;
+  margin: 1em 0;
+  padding-inline-start: 40px;
+}
+body[data-page="agenda"] main ul ul,
+body[data-page="agenda"] main ol ol,
+body[data-page="agenda"] main ul ol,
+body[data-page="agenda"] main ol ul {
+  margin: 0;
+}
+body[data-page="agenda"] main dl {
+  margin: 1em 0;
+}
+body[data-page="agenda"] main dd {
+  margin-inline-start: 40px;
+}
+body[data-page="agenda"] main h1,
+body[data-page="agenda"] main h2,
+body[data-page="agenda"] main h3 {
+  font-family: Poppins, sans-serif;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  margin: 0;
+}
+body[data-page="agenda"] main h1 {
+  font-weight: 700; /* o Tailwind faz os títulos herdarem o peso do texto; o protótipo usa negrito */
+}
+body[data-page="agenda"] main h2 {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+}
+body[data-page="agenda"] main h3 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+body[data-page="agenda"] main .eyebrow {
+  margin: 0 0 14px;
+  color: var(--accent-strong);
+  font:
+    700 11px/1.4 Montserrat,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+body[data-page="agenda"] main .lead {
+  max-width: 720px;
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 20px);
+}
+body[data-page="agenda"] main .center {
+  text-align: center;
+}
+body[data-page="agenda"] main .center .lead {
+  margin-inline: auto;
+}
+body[data-page="agenda"] main .cta .btn--dark {
+  background: var(--panel);
+}
+body[data-page="agenda"] main .cta .btn--dark:hover {
+  background: var(--panel-strong);
+}
+body[data-page="agenda"] main .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+body[data-page="agenda"] main .date-pill {
+  width: -moz-fit-content;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line-accent);
+  background: rgba(0, 170, 255, 0.12);
+  color: #d7e3f4;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font:
+    600 11px/1.2 Montserrat,
+    sans-serif;
+  letter-spacing: 0.04em;
+}
+body[data-page="agenda"] main .page-hero {
+  padding: clamp(84px, 10vw, 140px) 0 clamp(70px, 8vw, 110px);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(0, 170, 255, 0.18),
+      transparent 45%
+    ),
+    var(--bg);
+}
+body[data-page="agenda"] main .page-hero::after {
+  content: none;
+}
+body[data-page="agenda"] main .page-hero .container {
+  position: relative;
+  z-index: 1;
+}
+body[data-page="agenda"] main .page-hero h1 {
+  font-size: clamp(38px, 6vw, 68px);
+  max-width: 900px;
+}
+body[data-page="agenda"] main .cta {
+  padding: clamp(44px, 7vw, 80px);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(125deg, #006fa6, #00aaff 58%, #00c5ff);
+  color: white;
+}
+body[data-page="agenda"] main .cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #ffffff;
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top /
+    140px 140px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px
+    repeat;
+  opacity: 0.075;
+}
+body[data-page="agenda"] main .cta > * {
+  position: relative;
+  z-index: 2;
+}
+body[data-page="agenda"] main .cta p {
+  max-width: 650px;
+  color: rgba(255, 255, 255, 0.84);
+}
+body[data-page="agenda"] main .cta .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.68);
+  background: rgba(3, 16, 31, 0.72);
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+body[data-page="agenda"] main .cta .btn--secondary:hover {
+  border-color: #ffffff;
+  background: rgba(3, 16, 31, 0.9);
+}
+html body[data-page="agenda"][data-page] main .page-hero {
+  background:
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(var(--accent-rgb), 0.2),
+      transparent 36%
+    ),
+    var(--bg);
+}
+html body[data-page="agenda"][data-page] main .page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000000 45%,
+    transparent
+  );
+  mask-image: linear-gradient(90deg, transparent, #000000 45%, transparent);
+}
+html body[data-page="agenda"][data-page] main .page-hero {
+  min-height: 560px;
+  display: grid;
+  align-items: center;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(5, 13, 33, 0.9),
+      rgba(5, 13, 33, 0.68) 50%,
+      rgba(5, 13, 33, 0.84)
+    ),
+    url("./assets/agenda-auditorio.webp") center 52% / cover no-repeat;
+}
+html body[data-page="agenda"][data-page] main .page-hero .container {
+  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.48);
+}
+html body[data-page="agenda"][data-page] main .page-hero .lead {
+  color: rgba(255, 255, 255, 0.78);
+}
+html body[data-page="agenda"][data-page] main .page-hero .date-pill {
+  border-color: rgba(var(--accent-rgb), 0.62);
+  background: rgba(5, 13, 33, 0.72);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+html body[data-page="agenda"][data-page] main .page-hero h1 {
+  max-width: 850px;
+  margin-inline: auto;
+  text-transform: uppercase;
+  font-size: clamp(42px, 7vw, 78px);
+}
+@media (max-width: 620px) {
+  body[data-page="agenda"] main .cta {
+    margin-inline: -4px;
+    padding: 34px 24px;
+  }
+  html body[data-page="agenda"][data-page] main .page-hero {
+    min-height: 440px;
+  }
+}
+body[data-page="agenda"] main .date-pill {
+  border-radius: 2px;
+}

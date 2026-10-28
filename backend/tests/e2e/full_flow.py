@@ -32,7 +32,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from urllib import error, request
 
 from sqlalchemy import func, select
@@ -53,8 +53,10 @@ from app.domains.payments.models import (
     Transaction,
     TransactionStatus,
 )
+from app.domains.payments.service import generate_reference
 from app.domains.payments.set_price import set_price
 from app.domains.tickets.models import Ticket
+from app.domains.users.models import User
 
 BASE_URL = os.environ.get("E2E_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 MAX_SECONDS = 120
@@ -200,13 +202,11 @@ def ticket_of(reference: str) -> Ticket | None:
         )
 
 
-def seats_taken(tier: TicketTier) -> int:
+def seats_taken() -> int:
+    """The seats taken, all modalities together (the stock is one)."""
     with SessionLocal() as db:
         return db.scalar(
-            select(func.coalesce(func.sum(Transaction.quantity), 0))
-            .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
-            .where(
-                TicketTierPrice.tier == tier,
+            select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
                 Transaction.status.in_(
                     (TransactionStatus.CONFIRMED, TransactionStatus.PENDING)
                 ),
@@ -214,11 +214,45 @@ def seats_taken(tier: TicketTier) -> int:
         )
 
 
-def set_stock(tier: TicketTier, stock: int | None) -> None:
+def fill_stock_leaving(
+    seats_left: int, tier: TicketTier, owner: "Person"
+) -> int | None:
+    """Take every seat but ``seats_left`` with one filler payment; return its id.
+
+    The server reads TICKET_STOCK_LIMIT from its own environment, so the test cannot
+    lower it; it fills the stock instead. ``release_filler`` gives the seats back.
+    """
+    missing = settings.TICKET_STOCK_LIMIT - seats_left - seats_taken()
+    check(missing >= 0, "the stock has room for the test", f"missing={missing}")
+    if missing == 0:
+        return None
     with SessionLocal() as db:
-        set_price(db, tier, PRICES[tier])
-        row = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier))
-        row.inventory_limit = stock
+        user = db.scalar(select(User).where(User.email == owner.email))
+        price = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier))
+        now = datetime.now(UTC)
+        filler = Transaction(
+            reference=generate_reference(db),
+            user_id=user.id,
+            ticket_tier_id=price.id,
+            amount_cents=PRICES[tier],
+            quantity=missing,
+            status=TransactionStatus.CONFIRMED,
+            phone="910000001",
+            provider="simulated",
+            expires_at=now + timedelta(hours=1),
+            confirmed_at=now,
+        )
+        db.add(filler)
+        db.commit()
+        return filler.id
+
+
+def release_filler(filler_id: int | None) -> None:
+    if filler_id is None:
+        return
+    with SessionLocal() as db:
+        row = db.get(Transaction, filler_id)
+        row.status = TransactionStatus.REFUNDED
         db.commit()
 
 
@@ -260,8 +294,9 @@ def preflight() -> None:
 
 
 def open_ticket_office() -> None:
-    for tier in TicketTier:
-        set_stock(tier, None)
+    with SessionLocal() as db:
+        for tier in TicketTier:
+            set_price(db, tier, PRICES[tier])
     tiers = expect(call("GET", "/api/payment/tiers"), 200, "list the modalities").body
     check(
         all(row["sale_open"] and row["available"] for row in tiers),
@@ -407,7 +442,16 @@ def expired_payment_frees_the_seat() -> None:
     for person in (late, waiting, last):
         sign_up(person)
 
-    set_stock(tier, seats_taken(tier) + 1)
+    filler = fill_stock_leaving(1, tier, late)
+    try:
+        _last_seat(tier, late, waiting, last)
+    finally:
+        release_filler(filler)
+
+
+def _last_seat(
+    tier: TicketTier, late: "Person", waiting: "Person", last: "Person"
+) -> None:
     check(tier_available(tier), "one seat left")
     held = expect(
         late.buy(tier, phone=SimulatedMBWayGateway.UNPAID_PHONE),
@@ -436,7 +480,6 @@ def expired_payment_frees_the_seat() -> None:
     check(status == "confirmed", "the freed seat was sold", status)
     check(not tier_available(tier), "the modality is sold out")
     expect(last.buy(tier), 409, "buy a sold-out modality")
-    set_stock(tier, None)
 
 
 def simultaneous_purchases() -> None:

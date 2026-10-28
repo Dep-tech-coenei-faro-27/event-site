@@ -1,5 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+
+/** Os separadores da área pessoal (a moldura mantém-se montada entre eles). */
+const ACCOUNT_TABS = ['/perfil', '/conta/dados', '/conta/seguranca'];
 
 /**
  * Cada mudança de rota volta ao topo; com `#âncora` desce à secção.
@@ -8,9 +11,15 @@ import { useLocation } from 'react-router-dom';
  */
 export default function ScrollToTop() {
   const { pathname, hash } = useLocation();
+  const previousPath = useRef<string | null>(null);
 
   useEffect(() => {
+    const previous = previousPath.current;
+    previousPath.current = pathname;
+
     if (!hash) {
+      // Mudar de separador na área pessoal só troca o conteúdo: a página fica onde estava.
+      if (previous !== null && previous !== pathname && ACCOUNT_TABS.includes(previous) && ACCOUNT_TABS.includes(pathname)) return;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return;
     }

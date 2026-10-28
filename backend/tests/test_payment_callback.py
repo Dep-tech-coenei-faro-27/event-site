@@ -275,7 +275,7 @@ def _sell_out_the_modality(db_session, payment: dict) -> None:
         select(Transaction).where(Transaction.reference == payment["reference"])
     )
     tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
-    tier.inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     other = User(name="Rui Costa", email="rui@example.com", password_hash="x")
     db_session.add(other)
     db_session.flush()
@@ -330,8 +330,7 @@ def test_a_payment_still_waiting_past_its_deadline_is_sold_even_at_the_limit(
         select(Transaction).where(Transaction.reference == payment["reference"])
     )
     transaction.expires_at = datetime.now(UTC) - timedelta(minutes=1)
-    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
-    tier.inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     db_session.commit()
 
     assert pay(auth_client, payment["reference"]).status_code == 200
@@ -348,8 +347,7 @@ def test_a_payment_inside_its_window_always_keeps_its_seat(
     transaction = db_session.scalar(
         select(Transaction).where(Transaction.reference == payment["reference"])
     )
-    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
-    tier.inventory_limit = 1  # this very payment holds the last seat
+    settings.TICKET_STOCK_LIMIT = 1  # this very payment holds the last seat
     db_session.commit()
 
     assert pay(auth_client, payment["reference"]).status_code == 200
@@ -367,8 +365,7 @@ def test_a_late_payment_is_sold_while_there_is_still_stock(
         select(Transaction).where(Transaction.reference == payment["reference"])
     )
     transaction.status = TransactionStatus.EXPIRED
-    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
-    tier.inventory_limit = 5
+    settings.TICKET_STOCK_LIMIT = 5
     db_session.commit()
 
     assert pay(auth_client, payment["reference"]).status_code == 200
@@ -390,8 +387,7 @@ def test_a_refund_due_payment_stays_that_way_when_the_callback_is_repeated(
     _sell_out_the_modality(db_session, payment)
     pay(auth_client, payment["reference"])
 
-    tier = db_session.get(TicketTierPrice, transaction.ticket_tier_id)
-    tier.inventory_limit = None  # stock came back, the decision was already taken
+    settings.TICKET_STOCK_LIMIT = 600  # stock came back, the decision was already taken
     db_session.commit()
     assert pay(auth_client, payment["reference"]).status_code == 200
 

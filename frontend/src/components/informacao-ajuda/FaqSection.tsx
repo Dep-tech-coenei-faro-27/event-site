@@ -44,13 +44,13 @@ export default function FaqSection({ query, category, onCategoryChange }: Props)
             ))}
           </select>
         </label>
-        <aside className="faq-nav" aria-label="Categorias de ajuda">
+        <div className="faq-nav" role="group" aria-label="Categorias de ajuda">
           {CATEGORIES.map((c) => (
             <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => onCategoryChange(c.id)}>
               {c.label}
             </button>
           ))}
-        </aside>
+        </div>
         <div className="faq-list">
           {items.map((item, index) => (
             // A chave inclui a categoria e a pesquisa: o primeiro item abre sempre por omissão, como no protótipo.

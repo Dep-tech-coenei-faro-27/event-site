@@ -12,6 +12,7 @@ import CheckoutAccountGate from "./CheckoutAccountGate";
 import PageStatus from "../../components/PageStatus";
 import { loadErrorMessage } from "../../utils/loadError";
 import { cleanNif, nifError } from "../../utils/nif";
+import { ORGANIZATION_EMAIL, studentStatus, type StudentStatus } from "../../utils/studentProof";
 import { formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 /**
@@ -92,7 +93,8 @@ function CheckoutForm() {
     setAttempt((n) => n + 1);
   };
 
-  const verifiedStudent = account?.student_verification_status === "verified";
+  const student = studentStatus(account?.student_verification_status);
+  const verifiedStudent = student === "verified";
   const isOpen = (tier: Tier) => tier.available && (!tier.is_student || verifiedStudent);
 
   // A modalidade escolhida por omissão: a pedida no endereço, se estiver aberta; senão a primeira aberta.
@@ -229,7 +231,7 @@ function CheckoutForm() {
                         <span className="checkout-ticket-option__copy">
                           <small>{tier.is_student ? "ESTUDANTE" : "NÃO ESTUDANTE"}</small>
                           <strong>{tier.name}</strong>
-                          <span>{tierNote(tier, verifiedStudent)}</span>
+                          <span>{tierNote(tier, student)}</span>
                         </span>
                         <span className="checkout-ticket-option__price">{formatPrice(tier.price_cents, tier.currency)}</span>
                       </label>
@@ -237,6 +239,7 @@ function CheckoutForm() {
                   })}
                 </fieldset>
               )}
+              {tiers?.some((tier) => tier.is_student) && !verifiedStudent && <StudentHint status={student} />}
             </section>
 
             <section className="checkout-panel" aria-labelledby="payment-heading">
@@ -302,7 +305,7 @@ function CheckoutForm() {
                 <small id="nif-help" role={nifTouched && nifMessage ? "alert" : undefined}>
                   {nifTouched && nifMessage
                     ? nifMessage
-                    : "Preenche só se quiseres a fatura com o teu número de contribuinte."}
+                    : "Preenche só se quiseres a fatura com o teu número de contribuinte. A fatura é emitida manualmente e enviada por email até 20 dias úteis após a compra."}
                 </small>
               </label>
 
@@ -377,11 +380,33 @@ function CheckoutForm() {
 }
 
 /** A linha por baixo do nome: o que falta para a modalidade estar aberta, ou o que ela é. */
-function tierNote(tier: Tier, verifiedStudent: boolean): string {
+function tierNote(tier: Tier, student: StudentStatus): string {
   if (tier.price_cents === null || !tier.sale_open) return "A bilheteira ainda não abriu.";
   if (!tier.available) return "Esgotado.";
-  if (tier.is_student && !verifiedStudent) return "Disponível quando a tua conta de estudante estiver verificada.";
+  if (tier.is_student && student === "submitted") return "Disponível quando o teu comprovativo for aprovado.";
+  if (tier.is_student && student === "rejected") return "O teu comprovativo foi recusado.";
+  if (tier.is_student && student !== "verified") return "Disponível quando a tua conta de estudante estiver verificada.";
   return tier.is_student ? "Modalidade para estudantes." : "Modalidade geral.";
+}
+
+/** Porque é que as modalidades de estudante estão fechadas e onde se resolve (o comprovativo, no perfil). */
+function StudentHint({ status }: { status: StudentStatus }) {
+  const text =
+    status === "submitted"
+      ? "O teu comprovativo de estudante está em revisão. As modalidades de estudante abrem quando for aprovado."
+      : status === "rejected"
+        ? "O teu comprovativo de estudante foi recusado. Vê o motivo e envia outro na tua conta."
+        : "Não tens email de aluno? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
+  return (
+    <p style={{ margin: "12px 0 0", fontSize: 13 }}>
+      {text}{" "}
+      {status !== "submitted" && (
+        <Link className="auth-legal-link" to="/perfil#comprovativo">
+          {status === "rejected" ? "Ver o comprovativo" : "Enviar comprovativo"}
+        </Link>
+      )}
+    </p>
+  );
 }
 
 /** O que correu mal ao iniciar o pagamento e o que fazer a seguir (os textos vêm de `errors.ts`). */
@@ -401,6 +426,17 @@ function FailureNotice({ failure }: { failure: InitiateFailure }) {
           <Link className="auth-legal-link" to="/conta/verificar">
             Reenviar o email de verificação
           </Link>
+        </p>
+      )}
+      {failure.action === "send-student-proof" && (
+        <p style={{ margin: "8px 0 0" }}>
+          <Link className="auth-legal-link" to="/perfil#comprovativo">
+            Enviar comprovativo de estudante
+          </Link>
+          {" · "}Dúvidas?{" "}
+          <a className="auth-legal-link" href={`mailto:${ORGANIZATION_EMAIL}`}>
+            {ORGANIZATION_EMAIL}
+          </a>
         </p>
       )}
       {failure.action === "view-account" && (

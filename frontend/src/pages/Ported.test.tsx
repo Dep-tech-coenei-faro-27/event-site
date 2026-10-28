@@ -80,23 +80,24 @@ describe("Equipa", () => {
 });
 
 describe("Agenda", () => {
-  it("os dias são separadores: só o dia escolhido está visível e as setas passam de um ao outro", () => {
+  it("os dias são separadores: abre na sexta, o painel mostra só o dia escolhido e as setas passam de um ao outro", () => {
     const { container } = at(<Agenda />);
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(4);
-    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
-    expect(container.querySelector("#agenda-quinta")).not.toHaveClass("hidden");
-    expect(container.querySelector("#agenda-sexta")).toHaveClass("hidden");
-
-    fireEvent.click(tabs[1]);
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
-    expect(tabs[0]).toHaveAttribute("aria-selected", "false");
-    expect(container.querySelector("#agenda-quinta")).toHaveClass("hidden");
-    expect(container.querySelector("#agenda-sexta")).not.toHaveClass("hidden");
+    const panel = () => container.querySelector("#ag-panel")!;
+    expect(panel().querySelector("#sex-1100-palestra")).not.toBeNull();
+    expect(panel().querySelector("#qui-1400-check-ins")).toBeNull();
 
-    fireEvent.keyDown(tabs[1], { key: "ArrowRight" });
-    expect(tabs[2]).toHaveAttribute("aria-selected", "true");
-    fireEvent.keyDown(tabs[2], { key: "End" });
+    fireEvent.click(tabs[0]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+    expect(panel().querySelector("#qui-1400-check-ins")).not.toBeNull();
+    expect(panel().querySelector("#sex-1100-palestra")).toBeNull();
+
+    fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
+    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(tabs[1], { key: "End" });
     expect(tabs[3]).toHaveAttribute("aria-selected", "true");
     fireEvent.keyDown(tabs[3], { key: "ArrowRight" });
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
