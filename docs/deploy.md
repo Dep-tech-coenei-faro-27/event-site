@@ -65,7 +65,8 @@ e é o passo 2 acima que o apanha.
   `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`; o SMTP de reserva (opcional)
   `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
-- **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
+- **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `STRIPE_ALLOW_TEST_KEY` (só no staging), `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
+- **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 60).
 - **Alertas:** os Secrets `ALERT_DISCORD_WEBHOOK` e `WATCHDOG_URL` e a Variable `ALERT_EMAIL_TO`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
@@ -97,17 +98,20 @@ de erro diz qual.
 | `SMTP_SECURITY`                                                                       | `auto`                            | `auto` usa TLS direto na porta 465 e STARTTLS nas outras. Também aceita `starttls` e `ssl`. `none` só serve para o Mailpit local e é recusado em produção.                          |
 | `SMTP_TIMEOUT_SECONDS`                                                                | `5`                               | Tempo máximo de espera pelo servidor SMTP.                                                                                                                                          |
 | `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`      | vazios (sem reserva)              | Segundo SMTP, só usado quando o primeiro esgota a quota ou falha (ver «SMTP de reserva»).                                                                                           |
+| `TICKET_STOCK_LIMIT`                                                                  | `600`                             | Bilhetes à venda no site, um número só para todas as modalidades (não conta os da organização nem dos convidados). `0` fecha a venda.                                              |
 | `SMTP_DAILY_LIMIT`                                                                    | `0`                               | Envios por dia UTC do primeiro SMTP antes de passar ao segundo. `0`: só a recusa do fornecedor conta.                                                                               |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`             | `60`, `10080`                     | Duração da sessão: 60 minutos, ou 7 dias com "lembrar-me".                                                                                                                          |
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
 | `FORWARDED_ALLOW_IPS`                                                                 | `172.16.0.0/12` (valor da imagem) | Ver "IP dos visitantes".                                                                                                                                                            |
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
+| `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE`                                                  | `60`                              | Inícios de sessão por minuto por IP. Vem da Variable do mesmo nome, que o CD só escreve no `.env` se existir (ver «Antes do evento»). |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
 | `PAYMENTS_PROVIDER` | `stripe` | `stripe` ou `ifthenpay`: o gateway usado em `PAYMENTS_MODE=live`. |
 | `STRIPE_WEBHOOK_SECRET` | obrigatório em `live` com `stripe` | Segredo de assinatura do webhook do Stripe (`whsec_...`), que o painel mostra quando se regista `https://<domínio>/api/payment/stripe/webhook`. Secret do GitHub. |
-| `STRIPE_SECRET_KEY` | obrigatório em `live` com `stripe` | Chave secreta do Stripe (`sk_...`; `sk_test_` no sandbox). Secret do GitHub; o backend não arranca em `live` com `stripe` sem ela. |
+| `STRIPE_SECRET_KEY` | obrigatório em `live` com `stripe` | Chave secreta do Stripe (`sk_...`; `sk_test_` no sandbox). Secret do GitHub; o backend não arranca em `live` com `stripe` sem ela. Em `ENVIRONMENT=prod` **recusa uma chave de teste** (ver `STRIPE_ALLOW_TEST_KEY`). |
+| `STRIPE_ALLOW_TEST_KEY` | `false` | Só no **staging**: `true` deixa o backend arrancar em `prod` com uma chave `sk_test_`. É uma Variable do GitHub (o CD só a escreve quando existe). **Apaga-a no dia de passar à chave real:** com o sandbox o MB WAY aprova qualquer número de telemóvel, por isso um servidor de produção que ficasse com a chave de teste dava bilhetes sem cobrar a ninguém. Com ela ligada o arranque deixa um aviso no log. |
 | `MBWAY_CALLBACK_KEY`                                                                  | obrigatório em `live`             | Chave anti-phishing do backoffice da ifthenpay. O backend recusa o callback sem ela e não arranca em `live` sem a ter.                                                              |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`                                             | `0`                               | O gateway simulado confirma o pagamento ao fim destes segundos. Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar.                        |
 
@@ -145,7 +149,12 @@ COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
 $COMPOSE ps                       # estado dos contentores
 $COMPOSE logs --tail 50 backend   # logs do backend
 $COMPOSE restart backend          # reiniciar (as migrations voltam a correr, sem efeito)
+$COMPOSE logs backend 2>&1 | grep auth_event=login_failed | tail   # inícios de sessão falhados
 ```
+
+Os eventos de autenticação (`auth_event=login_succeeded`, `login_failed`, `password_changed`) trazem só o id da conta
+e um hash do IP, nunca o email nem a password (ver «Registo de eventos» em `docs/api-auth.md`). Muitos `login_failed`
+com o mesmo `ip_hash` e contas diferentes é alguém a tentar palavras-passe.
 
 ## Abrir a bilheteira
 
@@ -155,12 +164,11 @@ mudam-se em runtime:
 
 ```bash
 $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price geral 3500
-$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500 --stock 150
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500
 ```
 
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
-- `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
-  ilimitado).
+- **Não há stock por modalidade.** Os bilhetes à venda no site são **um número só para todas as modalidades**: a Variable `TICKET_STOCK_LIMIT` (600 por omissão; os bilhetes da organização e dos convidados não contam). Um pagamento confirmado ou à espera ocupa um lugar; um falhado, expirado ou reembolsado liberta-o. Quando o total chega ao limite, **todas** as modalidades ficam esgotadas. Para o mudar: `gh variable set TICKET_STOCK_LIMIT --body 550` e correr o CD (o backend lê-o no arranque).
 - Em `live`, no backoffice da ifthenpay configure o URL de callback como
   `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
   endpoint (GET) para confirmar o pagamento e emitir o bilhete; a chave nunca fica nos logs (o nginx mascara a query
@@ -173,6 +181,14 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
   Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar com ele ligado.
 
 Em produção, `PAYMENTS_MODE=live` sem `MBWAY_KEY` (em falta, vazia ou só com espaços em branco) faz o backend recusar arrancar.
+
+## Verificar a conta do Stripe
+
+```bash
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.stripe_check
+```
+
+Só lê, não altera nada no Stripe e não imprime segredos. Mostra se a chave é de **teste ou real**, a conta a que pertence (id e nome), se o **MB WAY está ativo** nessa conta, e se existe um endpoint de webhook **ativo para este site** (`FRONTEND_URL` + `/api/payment/stripe/webhook`), com os três eventos e no mesmo modo que a chave. Sai com erro se algo estiver mal; quando falta o endpoint diz para onde apontam os que a conta tem. Corre-o depois de mudar as chaves ou o webhook, e antes de abrir as vendas. **Não consegue** dizer se `STRIPE_WEBHOOK_SECRET` é o segredo desse endpoint (o Stripe só o mostra uma vez): isso vê-se no primeiro pagamento, com `POST /api/payment/stripe/webhook … 200` no log do `backend`. Uma conta partilhada com outro site (por exemplo o sandbox do NEEI) recebe os eventos dos dois nos dois endpoints; os pagamentos que não têm a nossa referência são ignorados com `200`.
 
 ## Pagamentos a reembolsar
 
@@ -414,15 +430,19 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
 Os planos gratuitos (o do Resend incluído) enviam algumas centenas de emails por dia, menos do que o primeiro dia de
 vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que só envia quando o primeiro não consegue:
 
-- **Quota do primeiro esgotada:** quando o primeiro recusa por limite (respostas com `quota`, `limit`, `exceeded`,
-  `too many`, `5.4.5`...) ou chega a `SMTP_DAILY_LIMIT` envios no dia, **todos os emails seguem pelo segundo até à
-  meia-noite UTC** (1 h da manhã em Portugal no verão, meia-noite no inverno). No dia UTC seguinte volta ao primeiro.
+- **Quota do primeiro esgotada:** quando o primeiro dá uma recusa **permanente (5xx)** que fala da quota do dia
+  (`quota`, `daily`, `per day`, `5.4.5`), ou chega a `SMTP_DAILY_LIMIT` envios no dia, **todos os emails seguem pelo
+  segundo até à meia-noite UTC** (1 h da manhã em Portugal no verão, meia-noite no inverno). No dia UTC seguinte volta ao primeiro.
   Põe em `SMTP_DAILY_LIMIT` o limite diário do plano do primeiro, para passar ao segundo antes de o fornecedor
-  começar a recusar; com `0` (por omissão) só a recusa do fornecedor faz a troca.
-- **Falha do servidor** (não responde, *timeout*, login recusado, outro erro): **só esse email** segue pelo segundo; o
-  seguinte volta a tentar o primeiro.
-- **Destinatário recusado** (`550 User unknown`, endereço inválido): **nunca** vai para o segundo, que o recusaria
-  igual e gastava-lhe a quota. O email fica na fila e é repetido como antes.
+  começar a recusar; com `0` (por omissão) só a recusa do fornecedor faz a troca. **Define-o em produção:** a deteção
+  pela resposta depende do texto de cada fornecedor.
+- **Falha do servidor** (não responde, *timeout*, login recusado, outro erro) e **qualquer recusa temporária (4xx)**,
+  mesmo de limite (`421 rate limited`, `454 too many login attempts`): **só esse email** segue pelo segundo; o seguinte
+  volta a tentar o primeiro. O mesmo para recusas permanentes que não são do dia (`554 sender reputation limit`,
+  `552 message size`, `552 mailbox over quota`).
+- **Destinatário recusado** de forma permanente (`550 User unknown`, endereço inválido, caixa cheia): **nunca** vai
+  para o segundo, que o recusaria igual e gastava-lhe a quota, e **nunca** marca o dia, seja qual for o texto. O email
+  fica na fila e é repetido como antes. Uma recusa temporária (4xx) do destinatário conta como falha do servidor.
 - Se os dois falharem, o email fica na fila e é repetido com a espera habitual.
 - A contagem de cada dia está na tabela `email_transport_usage`, partilhada por todos os *workers*: dois processos
   nunca passam juntos o `SMTP_DAILY_LIMIT`. As contagens apagam-se ao fim de 30 dias, no comando diário da limpeza.
@@ -433,7 +453,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - O email do bilhete sai **igual** pelos dois servidores (o mesmo `multipart/related` com o QR). Só muda o remetente
   se definires `SMTP2_EMAIL_SENDER`: vazio usa o `EMAIL_SENDER`, que tem de estar verificado nos dois fornecedores.
 - Variáveis: `SMTP2_HOST`, `SMTP2_PORT` (587), `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_SECURITY` (`auto`; `none` é
-  recusado em produção), `SMTP2_EMAIL_SENDER` e `SMTP_DAILY_LIMIT` (0). O `SMTP_TIMEOUT_SECONDS` vale para os dois.
+  recusado em produção; em produção, com `SMTP2_HOST`, o arranque falha sem `SMTP2_USER` e `SMTP2_PASSWORD`), `SMTP2_EMAIL_SENDER` e `SMTP_DAILY_LIMIT` (0). O `SMTP_TIMEOUT_SECONDS` vale para os dois.
 - Ao fazer `alembic downgrade` desta migration apaga-se a tabela das contagens: nesse dia o primeiro volta a ser
   tentado até recusar outra vez.
 
@@ -462,14 +482,18 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Base de dados sem porta pública (só `127.0.0.1`).
 - [ ] Limpeza diária no cron e confirmada.
 - [ ] Reembolso automático dos `refund_due` no cron (de 5 em 5 minutos) e confirmado; alguém olha para o `refund.log`.
+- [ ] **Chave real do Stripe** (`sk_live_…`) e `STRIPE_ALLOW_TEST_KEY` apagada; `stripe_check` sem problemas; o log do arranque diz «Stripe payments run with a live key».
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
-  é de 60 por minuto (cada tentativa gasta cerca de 0,3 s de CPU de `bcrypt`: não subir muito); se for preciso, sobe
-  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` e `RATE_LIMIT_REGISTER_PER_MINUTE`.
+  é de 60 por minuto, o que chega para 300 pessoas a entrar no mesmo minuto a partir de 5 IPs (cada tentativa gasta
+  cerca de 0,3 s de CPU de `bcrypt`: não subir muito). Para o mudar, cria a Variable
+  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and variables → Actions → Variables) e faz deploy; para voltar
+  ao valor do código, apaga-a. O limite por conta (5 por minuto por email e IP) não muda com isto.
+  `RATE_LIMIT_REGISTER_PER_MINUTE` só se muda no `.env` da VPS.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 
 ## Reverter um deploy

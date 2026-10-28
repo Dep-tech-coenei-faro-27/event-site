@@ -7,6 +7,13 @@ class Role(Enum):
 
 
 class PortugueseInstitution(StrEnum):
+    """Instituições de ensino superior reconhecidas.
+
+    Já não se guarda na conta da pessoa: é a lista de onde o comprovativo de
+    estudante tira o nome e as variantes para reconhecer a instituição da
+    assinatura (``app/domains/students/institutions.py``).
+    """
+
     ULISBOA = "Universidade de Lisboa"
     UPORTO = "Universidade do Porto"
     UCOIMBRA = "Universidade de Coimbra"
@@ -144,73 +151,3 @@ class PortugueseInstitution(StrEnum):
     UFP_PONTE_DE_LIMA = (
         "Universidade Fernando Pessoa (unidade de Ponte de Lima - ensino politécnico)"
     )
-
-
-class Course(StrEnum):
-    ENGENHARIA_INFORMATICA = "Engenharia Informática"
-    MEDICINA = "Medicina"
-    DIREITO = "Direito"
-    ECONOMIA = "Economia"
-    GESTAO = "Gestão"
-    DESIGN = "Design"
-
-    # Engenharias e Tecnologias
-    ENGENHARIA_ELETROTECNICA = "Engenharia Eletrotécnica e de Computadores"
-    ENGENHARIA_MECANICA = "Engenharia Mecânica"
-    ENGENHARIA_CIVIL = "Engenharia Civil"
-    ENGENHARIA_QUIMICA = "Engenharia Química"
-    ENGENHARIA_BIOMEDICA = "Engenharia Biomédica"
-    ENGENHARIA_AEROESPACIAL = "Engenharia Aeroespacial"
-    ENGENHARIA_FISICA = "Engenharia Física"
-    ENGENHARIA_AMBIENTE = "Engenharia do Ambiente"
-    ENGENHARIA_INDUSTRIAL = "Engenharia e Gestão Industrial"
-    CIENCIA_COMPUTADORES = "Ciência de Computadores"
-    CIENCIA_DADOS = "Ciência de Dados"
-
-    # Ciências da Saúde e Vida
-    ENFERMAGEM = "Enfermagem"
-    MEDICINA_DENTARIA = "Medicina Dentária"
-    MEDICINA_VETERINARIA = "Medicina Veterinária"
-    CIENCIAS_FARMACEUTICAS = "Ciências Farmacêuticas"
-    FISIOTERAPIA = "Fisioterapia"
-    NUTRICAO = "Ciências da Nutrição"
-    PSICOLOGIA = "Psicologia"
-    BIOLOGIA = "Biologia"
-    BIOQUIMICA = "Bioquímica"
-    BIOMEDICINA = "Ciências Biomédicas"
-
-    # Ciências Exatas e Naturais
-    MATEMATICA = "Matemática"
-    MATEMATICA_APLICADA = "Matemática Aplicada"
-    FISICA = "Física"
-    QUIMICA = "Química"
-    GEOLOGIA = "Geologia"
-
-    # Ciências Sociais, Negócios e Humanidades
-    CONTABILIDADE = "Contabilidade"
-    FINANCAS = "Finanças"
-    MARKETING = "Marketing"
-    RECURSOS_HUMANOS = "Gestão de Recursos Humanos"
-    ADMINISTRACAO_PUBLICA = "Administração Pública"
-    RELAGOES_INTERNACIONAIS = "Relações Internacionais"
-    CIENCIA_POLITICA = "Ciência Política"
-    COMUNICACAO_SOCIAL = "Ciências da Comunicação"
-    SOCIOLOGIA = "Sociologia"
-    SERVICO_SOCIAL = "Serviço Social"
-    HISTORIA = "História"
-    FILOSOFIA = "Filosofia"
-    LINGUAS_LITERATURAS = "Línguas e Literaturas"
-    TRADUCAO = "Tradução"
-
-    # Artes, Arquitetura e Hotelaria
-    ARQUITETURA = "Arquitetura"
-    BELAS_ARTES = "Artes Plásticas"
-    DESIGN_GRAFICO = "Design Gráfico"
-    MULTIMEDIA = "Tecnologias Multimédia"
-    CINEMA_AUDIOVISUAL = "Cinema e Artes Audiovisuais"
-    TEATRO = "Teatro e Artes Performativas"
-    MUSICA = "Música"
-    TURISMO = "Turismo"
-    GESTAO_HOTELEIRA = "Gestão Hoteleira"
-    EDUCACAO_FISICA = "Ciências do Desporto"
-    EDUCACAO_BASICA = "Educação Básica"

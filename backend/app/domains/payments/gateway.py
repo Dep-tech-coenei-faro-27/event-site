@@ -107,6 +107,19 @@ class CancellingGateway(Protocol):
         ...
 
 
+@runtime_checkable
+class AmountCheckingGateway(Protocol):
+    """A gateway that can say what was actually received for a payment."""
+
+    name: str
+
+    def paid_amount(
+        self, *, reference: str, provider_reference: str | None
+    ) -> tuple[str | None, int | None]:
+        """The currency and the amount received (in cents) for a paid payment."""
+        ...
+
+
 # ifthenpay MB WAY v2 status codes (see the official SDK's MbwayService):
 # on creation only "000" means "accepted, pending"; on a status query "000" means
 # "paid". The codes are the same shape but come from two different endpoints.
@@ -319,6 +332,13 @@ class StripeMBWayGateway:
         self.base_url = base_url.rstrip("/")
         self._http_request = http_request or self._request_json
 
+    def read(self, path: str, params: dict | None = None) -> dict:
+        """GET one endpoint of the Stripe API (read only) and return its JSON."""
+        query = f"?{parse.urlencode(params)}" if params else ""
+        return self._http_request(
+            "GET", f"{self.base_url}{path}{query}", None, self._headers()
+        )
+
     def _headers(self, extra: dict | None = None) -> dict[str, str]:
         token = base64.b64encode(f"{self.secret_key}:".encode()).decode()
         headers = {
@@ -423,6 +443,14 @@ class StripeMBWayGateway:
             # Never act on a PaymentIntent that is not this payment's.
             raise PaymentGatewayError("PaymentIntent does not belong to this payment")
         return intent
+
+    def paid_amount(
+        self, *, reference: str, provider_reference: str | None
+    ) -> tuple[str | None, int | None]:
+        """The currency and the amount Stripe received for this payment."""
+        intent = self._intent_of(reference, provider_reference)
+        received = intent.get("amount_received")
+        return intent.get("currency"), received if type(received) is int else None
 
     def find_payment(self, *, reference: str) -> str | None:
         """Find the PaymentIntent we made for this reference, by its metadata.
@@ -555,10 +583,16 @@ class SimulatedMBWayGateway:
     payment and a payment that never ends would hold it for ever. The confirming
     mode is only allowed with ``PAYMENTS_MODE=simulated``: ``live`` and ``off``
     refuse to start with it enabled.
+
+    A payment to ``UNPAID_PHONE`` is never approved, even in the confirming mode: it
+    only expires. It lets the expired payment (and the seat it frees) be tried, by
+    the frontend and by the end-to-end test, against a server that confirms.
     """
 
     name = "simulated"
+    UNPAID_PHONE = "910000000"
     _REFERENCE_PREFIX = "SIM"
+    _UNPAID_PREFIX = "SIMUNPAID"
 
     def __init__(
         self,
@@ -583,8 +617,13 @@ class SimulatedMBWayGateway:
         # The creation instant travels inside the provider reference so the gateway
         # stays stateless and ``get_status`` can measure the elapsed time.
         created_at = int(self._now())
+        prefix = (
+            self._UNPAID_PREFIX
+            if phone == self.UNPAID_PHONE
+            else self._REFERENCE_PREFIX
+        )
         return MBWayPayment(
-            provider_reference=f"{self._REFERENCE_PREFIX}-{created_at}-{reference}",
+            provider_reference=f"{prefix}-{created_at}-{reference}",
             status=TransactionStatus.PENDING,
         )
 
@@ -603,7 +642,10 @@ class SimulatedMBWayGateway:
         if not provider_reference:
             return None
         parts = provider_reference.split("-", 2)
-        if len(parts) != 3 or parts[0] != self._REFERENCE_PREFIX:
+        if len(parts) != 3 or parts[0] not in (
+            self._REFERENCE_PREFIX,
+            self._UNPAID_PREFIX,
+        ):
             return None
         if not parts[1].isdigit():
             return None
@@ -618,6 +660,8 @@ class SimulatedMBWayGateway:
         elapsed = self._now() - created_at
         expires = self.expire_after_seconds
         confirms = self.confirm_after_seconds
+        if provider_reference.startswith(f"{self._UNPAID_PREFIX}-"):
+            confirms = 0  # the person never approves it
         if (
             confirms > 0
             and elapsed >= confirms

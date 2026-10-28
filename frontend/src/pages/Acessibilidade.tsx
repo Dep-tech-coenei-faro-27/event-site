@@ -14,10 +14,21 @@ const sections: LegalSection[] = [
     {
         title: 'Leitura e contraste',
         content: (
-            <p>
-                A interface utiliza hierarquia tipográfica, contraste entre texto e fundo, estados visuais
-                consistentes e larguras de leitura controladas. A informação importante não depende apenas da cor.
-            </p>
+            <>
+                <p>
+                    O texto sobre as superfícies escuras do site cumpre o contraste mínimo de 4,5:1 (nível AA das
+                    WCAG 2.1) nos pares de cores utilizados, o que é verificado por testes automáticos. A interface
+                    usa hierarquia tipográfica, estados visuais consistentes e larguras de leitura controladas, e a
+                    informação importante não depende apenas da cor.
+                </p>
+                <p>
+                    <strong>Exceção conhecida.</strong> Nas caixas finais com fundo azul-claro em degradê (nas
+                    páginas Início e Sobre), o texto branco sobre a parte mais clara do degradê tem um contraste
+                    medido entre cerca de 1,5:1 e 3,5:1, abaixo do mínimo de 4,5:1. Os destinos dessas caixas
+                    (Bilhetes, Agenda e Informação &amp; Ajuda) estão também no menu principal. Medição feita a 25 de
+                    outubro de 2026.
+                </p>
+            </>
         ),
     },
     {
@@ -67,9 +78,9 @@ export default function Acessibilidade() {
             eyebrow="ACESSIBILIDADE"
             title="Declaração de acessibilidade"
             lead="Queremos que a informação e os principais percursos do ENEI sejam claros, navegáveis e utilizáveis por todas as pessoas."
-            version="1.0"
-            lastUpdated="8 outubro 2026"
-            lastUpdatedISO="2026-10-08"
+            version="1.1"
+            lastUpdated="25 outubro 2026"
+            lastUpdatedISO="2026-10-25"
             sections={sections}
         />
     );

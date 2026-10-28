@@ -88,6 +88,11 @@ jobs:
             if [ -n "${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" ]; then
               echo "RATE_LIMIT_PAYMENT_PER_MINUTE=${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" >> .env
             fi
+            # Inícios de sessão por minuto por IP (o recinto partilha poucos IPs); só entra
+            # quando a Variable existe: o código tem 60 por omissão.
+            if [ -n "${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" ]; then
+              echo "RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE=${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" >> .env
+            fi
             # Porta do segundo SMTP e limite diário do primeiro; só entram quando existem
             # (vazio reprova a validação e o código tem 587 e 0, sem limite).
             if [ -n "${{ secrets.SMTP2_PORT }}" ]; then
@@ -95,6 +100,11 @@ jobs:
             fi
             if [ -n "${{ vars.SMTP_DAILY_LIMIT }}" ]; then
               echo "SMTP_DAILY_LIMIT=${{ vars.SMTP_DAILY_LIMIT }}" >> .env
+            fi
+            # Bilhetes à venda no site, um número só para todas as modalidades; só entra
+            # quando a Variable existe (vazio reprova a validação e o código tem 600).
+            if [ -n "${{ vars.TICKET_STOCK_LIMIT }}" ]; then
+              echo "TICKET_STOCK_LIMIT=${{ vars.TICKET_STOCK_LIMIT }}" >> .env
             fi
             # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
             # e o default do código é "off".
@@ -104,6 +114,11 @@ jobs:
             # Gateway real (stripe ou ifthenpay); só entra quando a Variable existe: o código tem "stripe" por omissão.
             if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
               echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env
+            fi
+            # Só no staging: deixa arrancar com uma chave Stripe de teste. Sem a Variable o backend recusa
+            # sk_test_ em produção.
+            if [ -n "${{ vars.STRIPE_ALLOW_TEST_KEY }}" ]; then
+              echo "STRIPE_ALLOW_TEST_KEY=${{ vars.STRIPE_ALLOW_TEST_KEY }}" >> .env
             fi
             # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
             if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then

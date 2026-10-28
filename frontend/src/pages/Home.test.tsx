@@ -32,7 +32,7 @@ describe("página inicial", () => {
     const { container } = renderHome();
     const main = container.querySelector("main")!;
     const sections = [...main.children].filter((el) => el.tagName === "SECTION");
-    expect(sections).toHaveLength(7);
+    expect(sections).toHaveLength(8);
     expect(sections[0]).toHaveClass("hero-home");
     expect(sections.slice(1).every((s) => s.classList.contains("section"))).toBe(true);
   });
@@ -46,7 +46,7 @@ describe("página inicial", () => {
 
     expect(hrefOf("Saber mais")).toBe("/sobre");
     expect(hrefOf("Conhecer o ENEI")).toBe("/sobre");
-    expect(hrefOf(/Conhecer parcerias/)).toBe("/parcerias");
+    expect(hrefOf(/Ver parceiros/)).toBe("/#parceiros");
     expect(hrefOf(/Descobrir o ENEI/)).toBe("/sobre");
     expect(hrefOf("Ver agenda")).toBe("/agenda");
     expect(hrefOf("Descobrir Faro")).toBe("/sobre#faro");
@@ -72,7 +72,7 @@ describe("página inicial", () => {
   it("os botões do desenho novo usam a classe .btn", () => {
     const { container } = renderHome();
     const buttons = [...container.querySelectorAll("a.btn")];
-    expect(buttons).toHaveLength(7); // hero 2, «Conhecer o ENEI», «Ver agenda», «Descobrir Faro» e a caixa final 2
+    expect(buttons).toHaveLength(8); // hero 2, «Conhecer o ENEI», «Ver agenda», «Descobrir Faro», «Quero ser parceiro» e a caixa final 2
     buttons.forEach((b) => expect(b.className).toMatch(/btn--(primary|secondary|dark|outline-light)/));
   });
 
@@ -107,7 +107,7 @@ describe("página inicial", () => {
       </MemoryRouter>,
     );
     const sections = [...container.querySelectorAll("main > section")].slice(1);
-    expect(sections).toHaveLength(6);
+    expect(sections).toHaveLength(7);
     sections.forEach((section) => {
       const name = section.className;
       expect(section.querySelectorAll("[data-motion-item]").length, name).toBeGreaterThan(0);

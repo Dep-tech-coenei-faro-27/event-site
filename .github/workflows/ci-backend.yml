@@ -132,3 +132,29 @@ jobs:
           kill "$server" || true
           if [ "$status" -ne 0 ]; then cat /tmp/uvicorn.log; fi
           exit "$status"
+
+      # O fluxo completo contra o servidor a sério, na mesma base migrada (deita-se fora
+      # com o job): registo, verificação, login, compra nas cinco modalidades com o
+      # gateway simulado, QR, email do bilhete e saída, mais as falhas. Sem SMTP, os
+      # emails ficam na fila e no log, e nenhum sai. Ver docs/testes-e2e.md.
+      - name: End-to-end flow (real server, simulated payments, no email)
+        timeout-minutes: 5
+        env:
+          ENVIRONMENT: dev
+          POSTGRES_DB: event_site_migrations
+          E2E_DISPOSABLE_DB: event_site_migrations
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+          PAYMENTS_MODE: simulated
+          PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS: "60"
+          PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS: "0"
+          STUDENT_EMAIL_DOMAINS: ualg.pt
+          # Todas as contas do teste vêm do mesmo IP.
+          RATE_LIMIT_REGISTER_PER_MINUTE: "100"
+          RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: "200"
+          RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: "100"
+          SMTP_HOST: ""
+          SMTP2_HOST: ""
+          EMAIL_OUTBOX_WORKER: "0"
+          # O servidor do teste de fumo pode ainda estar a fechar na porta 8000.
+          E2E_PORT: "8001"
+        run: sh ../scripts/e2e-full-flow.sh
