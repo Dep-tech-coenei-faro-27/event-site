@@ -337,3 +337,36 @@ def test_the_factory_picks_the_gateway_from_the_provider(monkeypatch):
     assert isinstance(gateway, StripeMBWayGateway)
     assert gateway.name == "stripe"
     assert gateway.secret_key == SECRET
+
+
+def test_paid_amount_reads_the_currency_and_the_amount_received():
+    gateway, calls = build_gateway(
+        intent("succeeded", currency="eur", amount_received=2500)
+    )
+
+    assert gateway.paid_amount(reference=REFERENCE, provider_reference=INTENT) == (
+        "eur",
+        2500,
+    )
+    assert calls[0][0] == "GET"
+
+
+@pytest.mark.parametrize("received", [None, "2500", 25.0, True])
+def test_paid_amount_does_not_trust_an_amount_that_is_not_an_integer(received):
+    gateway, _ = build_gateway(
+        intent("succeeded", currency="eur", amount_received=received)
+    )
+
+    assert gateway.paid_amount(reference=REFERENCE, provider_reference=INTENT) == (
+        "eur",
+        None,
+    )
+
+
+def test_paid_amount_refuses_a_payment_intent_of_another_payment():
+    gateway, _ = build_gateway(
+        intent("succeeded", reference="ENEI-0000000099", amount_received=2500)
+    )
+
+    with pytest.raises(PaymentGatewayError):
+        gateway.paid_amount(reference=REFERENCE, provider_reference=INTENT)

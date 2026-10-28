@@ -908,3 +908,91 @@ def test_the_output_never_names_the_person(db_session, shop, stripe, command, ca
     out = capsys.readouterr().out
     assert "ana@example.com" not in out
     assert "912345678" not in out
+
+
+# --- the amount received is checked before a poll confirms ---------------------
+
+
+class StripeThatSaysWhatItReceived(StripeLike):
+    """A Stripe that also answers how much it received (like the real gateway)."""
+
+    def __init__(self, *, currency="eur", received=2500):
+        super().__init__()
+        self.currency = currency
+        self.received = received
+        self.error: Exception | None = None
+
+    def paid_amount(self, *, reference, provider_reference):
+        if self.error is not None:
+            raise self.error
+        return self.currency, self.received
+
+
+def test_a_poll_confirms_a_payment_paid_for_what_we_charged(db_session, shop):
+    stripe = StripeThatSaysWhatItReceived()
+    stripe.status = TransactionStatus.CONFIRMED
+    transaction = make_payment(db_session, shop, "ENEI-0000000001")
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.CONFIRMED
+    assert ticket_of(db_session, transaction.reference) is not None
+
+
+@pytest.mark.parametrize(
+    ("currency", "received"),
+    [("eur", 1500), ("eur", 2501), ("eur", None), ("usd", 2500), (None, 2500)],
+)
+def test_a_poll_does_not_confirm_a_payment_paid_for_another_amount(
+    db_session, shop, currency, received
+):
+    stripe = StripeThatSaysWhatItReceived(currency=currency, received=received)
+    stripe.status = TransactionStatus.CONFIRMED
+    transaction = make_payment(db_session, shop, "ENEI-0000000001")
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert ticket_of(db_session, transaction.reference) is None
+
+
+def test_a_poll_keeps_the_payment_when_the_amount_cannot_be_read(db_session, shop):
+    stripe = StripeThatSaysWhatItReceived()
+    stripe.status = TransactionStatus.CONFIRMED
+    stripe.error = PaymentGatewayError("stripe unreachable")
+    transaction = make_payment(db_session, shop, "ENEI-0000000001")
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert ticket_of(db_session, transaction.reference) is None
+    # The next look, with Stripe answering again, confirms it.
+    stripe.error = None
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+    assert result.status is TransactionStatus.CONFIRMED
+
+
+def test_the_end_of_wait_cancel_does_not_confirm_a_payment_paid_for_another_amount(
+    db_session, shop
+):
+    stripe = StripeThatSaysWhatItReceived(received=1500)
+    stripe.cancel_outcome = TransactionStatus.CONFIRMED  # approved at that very moment
+    transaction = make_payment(db_session, shop, "ENEI-0000000001", overdue_by=121)
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.PENDING
+    assert ticket_of(db_session, transaction.reference) is None
+
+
+def test_the_end_of_wait_cancel_confirms_a_payment_paid_for_what_we_charged(
+    db_session, shop
+):
+    stripe = StripeThatSaysWhatItReceived()
+    stripe.cancel_outcome = TransactionStatus.CONFIRMED
+    transaction = make_payment(db_session, shop, "ENEI-0000000001", overdue_by=121)
+
+    result = get_transaction(db_session, shop[0], transaction.reference, stripe)
+
+    assert result.status is TransactionStatus.CONFIRMED
+    assert ticket_of(db_session, transaction.reference) is not None
