@@ -87,7 +87,7 @@ def _count_transactions(test_engine, ticket_id: int) -> int:
 @requires_postgres
 def test_concurrent_initiates_do_not_oversell(db_session, test_engine):
     ticket = seed_ticket_tiers(db_session)[TicketTier.GERAL]
-    ticket.inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     user = _make_user(db_session, "ana@example.com")
     other = _make_user(db_session, "rui@example.com")
     db_session.commit()
@@ -128,7 +128,7 @@ def test_concurrent_initiates_do_not_oversell(db_session, test_engine):
 @requires_postgres
 def test_stock_check_and_reservation_are_atomic(db_session, test_engine):
     ticket = seed_ticket_tiers(db_session)[TicketTier.GERAL]
-    ticket.inventory_limit = 1
+    settings.TICKET_STOCK_LIMIT = 1
     user = _make_user(db_session, "ana@example.com")
     other = _make_user(db_session, "rui@example.com")
     db_session.commit()
@@ -470,8 +470,8 @@ def test_a_poll_does_not_overwrite_a_payment_confirmed_while_it_waited(
 @requires_postgres
 def test_two_late_payments_for_the_last_seat_sell_it_once(db_session, test_engine):
     """Both seats were released when the payments ran out; only one can be sold."""
-    tier = seed_ticket_tiers(db_session)[TicketTier.GERAL]
-    tier.inventory_limit = 1
+    seed_ticket_tiers(db_session)
+    settings.TICKET_STOCK_LIMIT = 1
     first = _make_user(db_session, "ana@example.com")
     second = _make_user(db_session, "rui@example.com")
     ids = []

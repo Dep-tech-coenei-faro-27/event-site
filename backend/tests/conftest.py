@@ -27,6 +27,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.core.email import EmailSender, get_email_sender
 from app.db import models  # noqa: F401
 from app.db.base import Base
@@ -123,3 +124,9 @@ def auth_client(db_session, email_sender):
     with TestClient(app, base_url="https://testserver") as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _restore_ticket_stock_limit(monkeypatch):
+    """A test may set ``settings.TICKET_STOCK_LIMIT`` directly: it is put back after."""
+    monkeypatch.setattr(settings, "TICKET_STOCK_LIMIT", settings.TICKET_STOCK_LIMIT)

@@ -16,6 +16,15 @@ SECRET_HINT = 'python -c "import secrets; print(secrets.token_urlsafe(48))"'
 ORIGIN_PATTERN = re.compile(r"^https?://[^/\s]+$")
 
 
+def stripe_key_mode(key: str) -> str:
+    """``test`` for a sandbox key, ``live`` for a real one, ``unknown`` otherwise."""
+    if key.startswith(("sk_test_", "rk_test_")):
+        return "test"
+    if key.startswith(("sk_live_", "rk_live_")):
+        return "live"
+    return "unknown"
+
+
 class Settings(BaseSettings):
     # Um erro de configuração nunca imprime os valores recebidos (iam parar aos logs).
     model_config = SettingsConfigDict(
@@ -118,6 +127,11 @@ class Settings(BaseSettings):
     # the snapshot that ships with the code.
     STUDENT_TRUST_ANCHORS_FILE: Path | None = None
 
+    # Seats for sale on the site, ONE number for every modality together (there is no
+    # stock per modality). Tickets of the organisation and of guests are not sold here
+    # and do not count. Paid payments and the ones still waiting take a seat.
+    TICKET_STOCK_LIMIT: int = Field(default=600, ge=0)
+
     # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
     # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
     # the ticket office is still closed and /payment/initiate answers 503.
@@ -130,6 +144,10 @@ class Settings(BaseSettings):
     # Stripe MB WAY (PaymentIntents API). A sandbox key starts with sk_test_, a real
     # one with sk_live_; a restricted key (rk_) works too.
     STRIPE_SECRET_KEY: str = ""
+    # A sandbox key (sk_test_...) in ENVIRONMENT=prod is refused unless this is on: the
+    # sandbox approves any phone number, so a production server left on a test key
+    # would hand out tickets without charging anyone. Only the staging turns it on.
+    STRIPE_ALLOW_TEST_KEY: bool = False
     STRIPE_API_VERSION: str = "2026-08-26.dahlia"
     # Signing secret of the webhook endpoint (whsec_...), shown once the endpoint is
     # registered in the Stripe dashboard (or by `stripe listen` in development).
@@ -306,6 +324,17 @@ class Settings(BaseSettings):
                     "PAYMENTS_MODE=live with PAYMENTS_PROVIDER=stripe requires "
                     "STRIPE_WEBHOOK_SECRET to be the endpoint signing secret "
                     "(whsec_...)."
+                )
+            if (
+                self.ENVIRONMENT == "prod"
+                and stripe_key_mode(self.STRIPE_SECRET_KEY) == "test"
+                and not self.STRIPE_ALLOW_TEST_KEY
+            ):
+                raise ValueError(
+                    "STRIPE_SECRET_KEY is a Stripe test key (sk_test_...) in "
+                    "production: the sandbox approves any phone number, so nobody "
+                    "would be charged. Use the live key, or set "
+                    "STRIPE_ALLOW_TEST_KEY=true on a staging server."
                 )
 
         if self.PAYMENTS_MODE == "live" and self.PAYMENTS_PROVIDER == "ifthenpay":
