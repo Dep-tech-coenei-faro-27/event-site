@@ -67,7 +67,7 @@ e é o passo 2 acima que o apanha.
   `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
 - **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `STRIPE_ALLOW_TEST_KEY` (só no staging), `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
 - **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 60).
-- **Alertas:** os Secrets `ALERT_DISCORD_WEBHOOK` e `WATCHDOG_URL` e a Variable `ALERT_EMAIL_TO`.
+- **Alertas:** o Secret `WATCHDOG_URL` e a Variable `ALERT_EMAIL_TO` (obrigatórios, com o `SMTP_PASSWORD`), e o Secret `ALERT_DISCORD_WEBHOOK` (opcional: sem ele os alertas vão só por email).
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
 Regras para criar os valores:
