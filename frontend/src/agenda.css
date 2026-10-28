@@ -444,42 +444,107 @@ body[data-page="agenda"] main .ag-closing .actions {
   body[data-page="agenda"] main .ag-search input {
     width: 100%;
   }
+  body[data-page="agenda"] main .ag-results {
+    margin: 22px 0 12px;
+    font-size: 10.5px;
+  }
+
+  /* Cartão compacto (proposta M2, escolhida a 26/10/2026): o retrato pequeno à esquerda de hora, tipo e título; por baixo, em
+     toda a largura, o orador, o local e o botão da ação. O corpo do cartão passa a `display: contents` para os seus blocos
+     entrarem na grelha do cartão. */
+  body[data-page="agenda"] main .ag-list {
+    gap: 10px;
+  }
   body[data-page="agenda"] main .ag-card {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    column-gap: 14px;
+    align-items: start;
     min-height: 0;
+    padding: 14px;
   }
   body[data-page="agenda"] main .ag-card__media {
-    width: 100%;
-    height: 128px;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 84px;
+    height: 84px;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  body[data-page="agenda"] main .ag-card__media--moment::before {
+    mask-size: 56px 56px;
+    -webkit-mask-size: 56px 56px;
   }
   body[data-page="agenda"] main .ag-card__body {
-    padding: 16px 18px 18px;
+    display: contents;
   }
-  body[data-page="agenda"] main .ag-card h3 {
-    font-size: 20px;
-  }
+  /* Primeira linha: a hora e o botão de guardar; o tipo por baixo, a toda a largura da coluna. */
   body[data-page="agenda"] main .ag-card__meta {
+    grid-column: 2;
+    grid-row: 1;
     flex-wrap: wrap;
-    gap: 4px 10px;
+    min-width: 0;
+    gap: 2px 8px;
+  }
+  body[data-page="agenda"] main .ag-card__time {
+    order: 0;
+    font-size: 14px;
   }
   body[data-page="agenda"] main .ag-card__sep {
     display: none;
   }
-  body[data-page="agenda"] main .ag-card__foot {
-    flex-wrap: wrap;
-    align-content: flex-start;
-    min-height: 0;
+  body[data-page="agenda"] main .ag-save {
+    order: 1;
+    width: 32px;
+    height: 32px;
   }
-  /* Com algum botão na lista, todos os cartões reservam o espaço dele (o botão passa para baixo do local). */
+  body[data-page="agenda"] main .ag-save svg {
+    width: 15px;
+    height: 15px;
+  }
+  body[data-page="agenda"] main .ag-card__kind {
+    order: 2;
+    flex-basis: 100%;
+    font-size: 10px;
+  }
+  body[data-page="agenda"] main .ag-card h3 {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 4px 0 0;
+    font-size: 17px;
+    letter-spacing: -0.03em;
+    line-height: 1.18;
+  }
+  body[data-page="agenda"] main .ag-card__who {
+    grid-column: 1 / -1;
+    margin-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  body[data-page="agenda"] main .ag-card__foot,
   body[data-page="agenda"] main .ag-list--actions .ag-card__foot {
-    min-height: 98px;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    min-height: 0;
+    margin-top: 8px;
+    padding-top: 0;
+  }
+  body[data-page="agenda"] main .ag-card__where {
+    font-size: 12.5px;
+  }
+  body[data-page="agenda"] main .ag-card__where svg {
+    width: 14px;
+    height: 14px;
   }
   body[data-page="agenda"] main .ag-card__action {
     width: 100%;
-    margin-left: 0;
+    margin: 10px 0 0;
   }
   body[data-page="agenda"] main .ag-card__action .ag-action {
     width: 100%;
+    height: 40px;
     justify-content: center;
   }
 }
