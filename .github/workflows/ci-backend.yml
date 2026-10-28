@@ -47,6 +47,11 @@ jobs:
         with:
           # A história toda, para comparar as migrations de um PR com o ramo de destino.
           fetch-depth: 0
+      
+      - name: Alert rules
+        run: |
+          docker run --rm -v "$PWD/monitoring:/m:ro" --entrypoint promtool prom/prometheus:v2.55.1 check rules /m/alerts.yml
+          docker run --rm -v "$PWD/monitoring:/m:ro" --entrypoint sh prom/prometheus:v2.55.1 -c 'promtool test rules /m/tests/*.yml'
 
       - name: New migrations are safe for the previous code
         if: github.event_name == 'pull_request'
