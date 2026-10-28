@@ -6,7 +6,7 @@ from urllib import error
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings, settings
+from app.core.config import Settings, settings, stripe_key_mode
 from app.domains.payments import gateway as gateway_module
 from app.domains.payments.gateway import (
     PaymentGatewayError,
@@ -305,9 +305,56 @@ def test_live_stripe_needs_a_stripe_secret_key_and_no_ifthenpay_credentials():
         with pytest.raises(ValidationError, match="STRIPE_SECRET_KEY"):
             make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key, **WEBHOOK)
 
-    for key in (SECRET, "sk_live_" + "b" * 40, "rk_live_" + "c" * 40):
+    for key in ("sk_live_" + "b" * 40, "rk_live_" + "c" * 40):
         settings_ = make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key, **WEBHOOK)
         assert settings_.PAYMENTS_MODE == "live"
+
+
+@pytest.mark.parametrize("key", [SECRET, "rk_test_" + "c" * 40])
+def test_a_sandbox_key_is_refused_in_production_unless_it_is_allowed(key):
+    with pytest.raises(ValidationError, match="test key"):
+        make(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=key, **WEBHOOK)
+    allowed = make(
+        PAYMENTS_MODE="live",
+        STRIPE_SECRET_KEY=key,
+        STRIPE_ALLOW_TEST_KEY=True,
+        **WEBHOOK,
+    )
+    assert allowed.PAYMENTS_MODE == "live"
+
+
+def test_a_sandbox_key_is_fine_outside_production_and_when_payments_are_not_live():
+    live = dict(PAYMENTS_MODE="live", STRIPE_SECRET_KEY=SECRET, **WEBHOOK)
+    assert make(ENVIRONMENT="dev", **live).PAYMENTS_MODE == "live"
+    assert make(PAYMENTS_MODE="simulated", STRIPE_SECRET_KEY=SECRET)
+
+
+def test_the_live_key_is_never_blocked_by_the_test_key_switch():
+    live = dict(
+        PAYMENTS_MODE="live", STRIPE_SECRET_KEY="sk_live_" + "b" * 40, **WEBHOOK
+    )
+    assert make(**live).PAYMENTS_MODE == "live"
+    assert make(STRIPE_ALLOW_TEST_KEY=True, **live).PAYMENTS_MODE == "live"
+
+
+def test_the_test_key_switch_is_off_by_default():
+    assert make().STRIPE_ALLOW_TEST_KEY is False
+
+
+@pytest.mark.parametrize(
+    ("key", "mode"),
+    [
+        ("sk_test_abc", "test"),
+        ("rk_test_abc", "test"),
+        ("sk_live_abc", "live"),
+        ("rk_live_abc", "live"),
+        ("", "unknown"),
+        ("pk_live_abc", "unknown"),
+        ("sk_abc", "unknown"),
+    ],
+)
+def test_the_mode_of_a_stripe_key(key, mode):
+    assert stripe_key_mode(key) == mode
 
 
 @pytest.mark.parametrize("secret", ["", "  ", "sk_test_abc", "pk_test_abc", "abc"])

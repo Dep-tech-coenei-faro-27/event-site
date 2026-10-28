@@ -319,6 +319,13 @@ class StripeMBWayGateway:
         self.base_url = base_url.rstrip("/")
         self._http_request = http_request or self._request_json
 
+    def read(self, path: str, params: dict | None = None) -> dict:
+        """GET one endpoint of the Stripe API (read only) and return its JSON."""
+        query = f"?{parse.urlencode(params)}" if params else ""
+        return self._http_request(
+            "GET", f"{self.base_url}{path}{query}", None, self._headers()
+        )
+
     def _headers(self, extra: dict | None = None) -> dict[str, str]:
         token = base64.b64encode(f"{self.secret_key}:".encode()).decode()
         headers = {
