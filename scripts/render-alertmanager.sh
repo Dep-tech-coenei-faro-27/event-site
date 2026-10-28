@@ -2,12 +2,10 @@
 # Gera o alertmanager.yml a partir do .tpl. Só leva valores que não são segredos:
 # a password do SMTP e o webhook entram por ficheiros montados (ver docker-compose.yml).
 # Uso: ALERT_EMAIL_TO=eu@exemplo.pt sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml
-# O Discord é opcional: com ALERT_DISCORD=0 o recetor «team» fica só com o email (as linhas marcadas «# discord» saem).
 set -eu
 umask 022
 env_file="$1"; out="$2"
 : "${ALERT_EMAIL_TO:?Define ALERT_EMAIL_TO}"
-ALERT_DISCORD="${ALERT_DISCORD:-1}"
 ALERT_SMTP_PORT="${ALERT_SMTP_PORT:-587}"
 ALERT_SMTP_REQUIRE_TLS="${ALERT_SMTP_REQUIRE_TLS:-true}"
 export ALERT_SMTP_PORT ALERT_SMTP_REQUIRE_TLS
@@ -25,10 +23,6 @@ done
 vars='${SMTP_HOST} ${EMAIL_SENDER} ${SMTP_USER} ${ALERT_EMAIL_TO} ${ALERT_SMTP_PORT} ${ALERT_SMTP_REQUIRE_TLS}'
 docker run --rm -i --env-file "$tmpenv" -e ALERT_EMAIL_TO -e ALERT_SMTP_PORT -e ALERT_SMTP_REQUIRE_TLS nginx:1.27-alpine envsubst "$vars" \
   < monitoring/alertmanager.yml.tpl > "$tmp"
-
-if [ "$ALERT_DISCORD" = 0 ]; then
-  sed -i '/# discord$/d' "$tmp"
-fi
 
 # Se sobrou algum ${...}, o .tpl e este script estão dessincronizados (o amtool não o apanharia).
 if grep -q '\${' "$tmp"; then

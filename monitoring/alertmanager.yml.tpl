@@ -20,8 +20,8 @@ route:
 
 receivers:
   - name: team
-    discord_configs: # discord
-      - webhook_url_file: /etc/alertmanager/discord_webhook # discord
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/discord_webhook
     email_configs:
       - to: ${ALERT_EMAIL_TO}
         send_resolved: true

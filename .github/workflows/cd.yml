@@ -137,12 +137,8 @@ jobs:
             for f in discord_webhook smtp_password watchdog_url; do
               if [ -d "/home/debian/enei/alerts/$f" ]; then rmdir "/home/debian/enei/alerts/$f"; fi
             done
-            # O Discord é opcional: sem o Secret o ficheiro fica vazio (o compose precisa que exista) e o
-            # recetor do Alertmanager fica só com o email.
             if [ -n "${{ secrets.ALERT_DISCORD_WEBHOOK }}" ]; then
               printf '%s' "${{ secrets.ALERT_DISCORD_WEBHOOK }}" > /home/debian/enei/alerts/discord_webhook
-            else
-              : > /home/debian/enei/alerts/discord_webhook
             fi
             if [ -n "${{ secrets.WATCHDOG_URL }}" ]; then
               printf '%s' "${{ secrets.WATCHDOG_URL }}" > /home/debian/enei/alerts/watchdog_url
@@ -183,9 +179,8 @@ jobs:
             fi
             # Monitorização: só liga se os segredos existirem; se existirem e algo estiver mal, pára aqui.
             MONITORING=""
-            if [ -s /home/debian/enei/alerts/smtp_password ] && [ -s /home/debian/enei/alerts/watchdog_url ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
-              ALERT_DISCORD=0; [ -s /home/debian/enei/alerts/discord_webhook ] && ALERT_DISCORD=1
-              ALERT_DISCORD="$ALERT_DISCORD" ALERT_EMAIL_TO="${{ vars.ALERT_EMAIL_TO }}" sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml \
+            if [ -s /home/debian/enei/alerts/discord_webhook ] && [ -s /home/debian/enei/alerts/smtp_password ] && [ -s /home/debian/enei/alerts/watchdog_url ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
+              ALERT_EMAIL_TO="${{ vars.ALERT_EMAIL_TO }}" sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml \
                 || { echo "Não foi possível gerar o alertmanager.yml. Nada foi parado."; exit 1; }
               docker run --rm \
                 -v "$PWD/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
@@ -200,7 +195,7 @@ jobs:
                 || { echo "Não foi possível puxar as imagens da monitorização. Nada foi parado."; exit 1; }
               MONITORING=1
             else
-              echo "AVISO: faltam segredos da monitorização (SMTP_PASSWORD, WATCHDOG_URL, ALERT_EMAIL_TO). Deploy sem monitorização."
+              echo "AVISO: faltam segredos da monitorização (ALERT_DISCORD_WEBHOOK, SMTP_PASSWORD, ALERT_EMAIL_TO). Deploy sem monitorização."
             fi
             $COMPOSE down
             $COMPOSE up -d --build
