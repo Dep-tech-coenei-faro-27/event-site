@@ -22,6 +22,7 @@ from app.core.qr import render_qr_png
 from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
     AlreadyRefundedError,
+    AmountCheckingGateway,
     CancellingGateway,
     LookupGateway,
     MBWayGateway,
@@ -660,10 +661,53 @@ def _sync_provider_status(
             _settle_pending(db, transaction, TransactionStatus.EXPIRED)
         return
     if provider_status is TransactionStatus.CONFIRMED:
-        confirm_transaction(db, transaction)
+        if _paid_as_charged(
+            gateway,
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=transaction.amount_cents,
+        ):
+            confirm_transaction(db, transaction)
         return
 
     _settle_pending(db, transaction, provider_status)
+
+
+def _paid_as_charged(
+    gateway: MBWayGateway,
+    *,
+    reference: str,
+    provider_reference: str | None,
+    amount_cents: int,
+) -> bool:
+    """Whether the provider received what we charged, before a payment is confirmed.
+
+    The Stripe webhook already refuses a payment paid for another amount or in another
+    currency; the status poll and the end-of-wait cancel must too, or the same payment
+    would be confirmed or left pending depending on which of them looked first. When
+    the amount cannot be read the payment stays as it is and the next look tries again.
+    A payment that does not match stays ``pending`` and is logged: it needs a look.
+    """
+    if not isinstance(gateway, AmountCheckingGateway):
+        return True
+    try:
+        currency, received = gateway.paid_amount(
+            reference=reference, provider_reference=provider_reference
+        )
+    except PaymentGatewayError:
+        logger.warning("Payment %s: could not read the amount received", reference)
+        return False
+    if currency == "eur" and received == amount_cents:
+        return True
+    logger.error(
+        "Stripe payment %s is paid for another amount than charged "
+        "(%r %r instead of %d EUR cents): not confirmed, needs a look",
+        reference,
+        received,
+        currency,
+        amount_cents,
+    )
+    return False
 
 
 def _recover_provider_reference(
@@ -743,7 +787,13 @@ def _cancel_if_overdue(
         )
         return False
     if outcome is TransactionStatus.CONFIRMED:
-        confirm_transaction(db, transaction)
+        if _paid_as_charged(
+            gateway,
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=transaction.amount_cents,
+        ):
+            confirm_transaction(db, transaction)
     else:
         logger.info("Stripe payment %s cancelled after its deadline", reference)
         _settle_pending(db, transaction, TransactionStatus.EXPIRED)

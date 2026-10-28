@@ -107,6 +107,19 @@ class CancellingGateway(Protocol):
         ...
 
 
+@runtime_checkable
+class AmountCheckingGateway(Protocol):
+    """A gateway that can say what was actually received for a payment."""
+
+    name: str
+
+    def paid_amount(
+        self, *, reference: str, provider_reference: str | None
+    ) -> tuple[str | None, int | None]:
+        """The currency and the amount received (in cents) for a paid payment."""
+        ...
+
+
 # ifthenpay MB WAY v2 status codes (see the official SDK's MbwayService):
 # on creation only "000" means "accepted, pending"; on a status query "000" means
 # "paid". The codes are the same shape but come from two different endpoints.
@@ -430,6 +443,14 @@ class StripeMBWayGateway:
             # Never act on a PaymentIntent that is not this payment's.
             raise PaymentGatewayError("PaymentIntent does not belong to this payment")
         return intent
+
+    def paid_amount(
+        self, *, reference: str, provider_reference: str | None
+    ) -> tuple[str | None, int | None]:
+        """The currency and the amount Stripe received for this payment."""
+        intent = self._intent_of(reference, provider_reference)
+        received = intent.get("amount_received")
+        return intent.get("currency"), received if type(received) is int else None
 
     def find_payment(self, *, reference: str) -> str | None:
         """Find the PaymentIntent we made for this reference, by its metadata.
