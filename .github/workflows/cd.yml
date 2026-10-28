@@ -195,7 +195,12 @@ jobs:
                 || { echo "Não foi possível puxar as imagens da monitorização. Nada foi parado."; exit 1; }
               MONITORING=1
             else
-              echo "AVISO: faltam segredos da monitorização (ALERT_DISCORD_WEBHOOK, SMTP_PASSWORD, ALERT_EMAIL_TO). Deploy sem monitorização."
+              MISSING=""
+              [ -s /home/debian/enei/alerts/discord_webhook ] || MISSING="$MISSING ALERT_DISCORD_WEBHOOK"
+              [ -s /home/debian/enei/alerts/smtp_password ] || MISSING="$MISSING SMTP_PASSWORD"
+              [ -s /home/debian/enei/alerts/watchdog_url ] || MISSING="$MISSING WATCHDOG_URL"
+              [ -n "${{ vars.ALERT_EMAIL_TO }}" ] || MISSING="$MISSING ALERT_EMAIL_TO"
+              echo "AVISO: faltam estes segredos da monitorização:$MISSING. Deploy sem monitorização."
             fi
             $COMPOSE down
             $COMPOSE up -d --build
