@@ -97,6 +97,7 @@ de erro diz qual.
 | `SMTP_SECURITY`                                                                       | `auto`                            | `auto` usa TLS direto na porta 465 e STARTTLS nas outras. Também aceita `starttls` e `ssl`. `none` só serve para o Mailpit local e é recusado em produção.                          |
 | `SMTP_TIMEOUT_SECONDS`                                                                | `5`                               | Tempo máximo de espera pelo servidor SMTP.                                                                                                                                          |
 | `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`      | vazios (sem reserva)              | Segundo SMTP, só usado quando o primeiro esgota a quota ou falha (ver «SMTP de reserva»).                                                                                           |
+| `TICKET_STOCK_LIMIT`                                                                  | `600`                             | Bilhetes à venda no site, um número só para todas as modalidades (não conta os da organização nem dos convidados). `0` fecha a venda.                                              |
 | `SMTP_DAILY_LIMIT`                                                                    | `0`                               | Envios por dia UTC do primeiro SMTP antes de passar ao segundo. `0`: só a recusa do fornecedor conta.                                                                               |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`, `JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES`             | `60`, `10080`                     | Duração da sessão: 60 minutos, ou 7 dias com "lembrar-me".                                                                                                                          |
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
@@ -162,12 +163,11 @@ mudam-se em runtime:
 
 ```bash
 $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price geral 3500
-$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500 --stock 150
+$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price acesso 2500
 ```
 
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
-- `--stock` é opcional: define o limite de inventário (sem ele, o stock atual mantém-se; numa modalidade nova fica
-  ilimitado).
+- **Não há stock por modalidade.** Os bilhetes à venda no site são **um número só para todas as modalidades**: a Variable `TICKET_STOCK_LIMIT` (600 por omissão; os bilhetes da organização e dos convidados não contam). Um pagamento confirmado ou à espera ocupa um lugar; um falhado, expirado ou reembolsado liberta-o. Quando o total chega ao limite, **todas** as modalidades ficam esgotadas. Para o mudar: `gh variable set TICKET_STOCK_LIMIT --body 550` e correr o CD (o backend lê-o no arranque).
 - Em `live`, no backoffice da ifthenpay configure o URL de callback como
   `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
   endpoint (GET) para confirmar o pagamento e emitir o bilhete; a chave nunca fica nos logs (o nginx mascara a query

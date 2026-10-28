@@ -91,14 +91,23 @@ def test_a_modality_with_seats_left_stays_available(world):
     assert _by_tier(world.anonymous().get(URL))["geral"]["available"] is True
 
 
-def test_other_modalities_are_not_affected_by_one_selling_out(world):
+def test_every_modality_sells_out_together_because_the_stock_is_one(world):
     world.seed(limit=1)
+    world.buy(world.user("ana"))  # takes the only seat, of the "geral" modality
+
+    rows = _by_tier(world.anonymous().get(URL))
+
+    assert all(not row["available"] for row in rows.values())
+    assert all(row["sale_open"] for row in rows.values())  # still priced and on sale
+
+
+def test_a_seat_left_in_the_shared_stock_keeps_every_modality_available(world):
+    world.seed(limit=2)
     world.buy(world.user("ana"))
 
     rows = _by_tier(world.anonymous().get(URL))
 
-    assert rows["geral"]["available"] is False
-    assert rows["acesso"]["available"] is True  # no limit set on it
+    assert all(row["available"] for row in rows.values())
 
 
 def test_the_tiers_are_rate_limited_per_ip(world, monkeypatch):

@@ -45,8 +45,8 @@ db-revision: ## Cria uma nova migration autogerada (uso: make db-revision m="des
 cleanup-unverified: ## Apaga contas não verificadas antigas (UNVERIFIED_ACCOUNT_TTL_DAYS)
 	$(PYTHON) -m app.domains.users.cleanup
 
-set-price: ## Abre a bilheteira (uso: make set-price tier=geral price=3500 [stock=100])
-	$(PYTHON) -m app.domains.payments.set_price $(tier) $(price) $(if $(stock),--stock $(stock),)
+set-price: ## Abre a bilheteira (uso: make set-price tier=geral price=3500)
+	$(PYTHON) -m app.domains.payments.set_price $(tier) $(price)
 
 deploy: ## Faz deploy da aplicação em produção
 	$(VENV)/bin/alembic upgrade head

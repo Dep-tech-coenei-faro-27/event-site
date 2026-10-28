@@ -68,7 +68,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
 | `403` | email por verificar, ou modalidade de estudante sem verificação de estudante |
-| `409` | modalidade esgotada (`This ticket tier is sold out`), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
+| `409` | bilhetes esgotados, em **todas** as modalidades, porque o stock é um só (`This ticket tier is sold out`, texto mantido), ou a pessoa já tem bilhete ou um pagamento em curso (`You already have a ticket or a payment in progress`; um bilhete por pessoa, o pagamento em curso deixa de contar quando o MB WAY o dá por terminado: pago, recusado ou expirado) |
 | `422` | corpo inválido (telemóvel, NIF, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
@@ -227,12 +227,12 @@ O preço de cada modalidade vive na tabela `ticket_tiers`. Enquanto `price_cents
 ```bash
 # dentro de backend/ (usa a DATABASE_URL/.env do ambiente)
 python -m app.domains.payments.set_price geral 3500
-python -m app.domains.payments.set_price acesso 2500 --stock 150
+python -m app.domains.payments.set_price acesso 2500
 # ou
 make set-price tier=geral price=3500
 ```
 
-`--stock` é opcional: define o limite de inventário (omisso = ilimitado); sem ele, o stock atual mantém-se.
+Não há stock por modalidade: os bilhetes à venda são um número só para todas, `TICKET_STOCK_LIMIT` (600 por omissão).
 
 ## Configuração (backend)
 

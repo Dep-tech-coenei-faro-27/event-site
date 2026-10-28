@@ -101,6 +101,11 @@ jobs:
             if [ -n "${{ vars.SMTP_DAILY_LIMIT }}" ]; then
               echo "SMTP_DAILY_LIMIT=${{ vars.SMTP_DAILY_LIMIT }}" >> .env
             fi
+            # Bilhetes à venda no site, um número só para todas as modalidades; só entra
+            # quando a Variable existe (vazio reprova a validação e o código tem 600).
+            if [ -n "${{ vars.TICKET_STOCK_LIMIT }}" ]; then
+              echo "TICKET_STOCK_LIMIT=${{ vars.TICKET_STOCK_LIMIT }}" >> .env
+            fi
             # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
             # e o default do código é "off".
             if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
