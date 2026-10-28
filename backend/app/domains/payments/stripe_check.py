@@ -5,7 +5,7 @@
 Run it after changing the keys or the webhook, and before the sales open. It answers
 what a payment cannot: which account the key belongs to, whether it is a test or a
 live key, whether MB WAY is active on it, and whether an enabled webhook endpoint
-points at *this* site with the three events we handle. It cannot tell if
+points at *this* site with the four events we handle. It cannot tell if
 ``STRIPE_WEBHOOK_SECRET`` is the secret of that endpoint (Stripe never shows it
 again): the first payment does, with a ``200`` from Stripe in the log. Nothing secret
 is printed, and nothing is changed at Stripe. Exit code 1 if anything is wrong.
@@ -24,6 +24,7 @@ EXPECTED_EVENTS = {
     "payment_intent.succeeded",
     "payment_intent.payment_failed",
     "payment_intent.canceled",
+    "charge.refunded",
 }
 
 
@@ -137,7 +138,7 @@ def run_checks(
         Line(
             not missing,
             "webhook events: "
-            + ("all three handled" if not missing else "missing " + ", ".join(missing)),
+            + ("all four handled" if not missing else "missing " + ", ".join(missing)),
         )
     )
     if mode != "unknown":

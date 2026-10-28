@@ -134,11 +134,14 @@ jobs:
             # Monitorização: segredos em ficheiros fora do repositório, que o compose monta no Alertmanager.
             # Têm de existir antes do up: o Docker cria uma PASTA onde falta um ficheiro montado.
             mkdir -p /home/debian/enei/alerts /home/debian/enei/metrics
-            for f in discord_webhook smtp_password; do
+            for f in discord_webhook smtp_password watchdog_url; do
               if [ -d "/home/debian/enei/alerts/$f" ]; then rmdir "/home/debian/enei/alerts/$f"; fi
             done
             if [ -n "${{ secrets.ALERT_DISCORD_WEBHOOK }}" ]; then
               printf '%s' "${{ secrets.ALERT_DISCORD_WEBHOOK }}" > /home/debian/enei/alerts/discord_webhook
+            fi
+            if [ -n "${{ secrets.WATCHDOG_URL }}" ]; then
+              printf '%s' "${{ secrets.WATCHDOG_URL }}" > /home/debian/enei/alerts/watchdog_url
             fi
             SMTP_PW="$(grep '^SMTP_PASSWORD=' .env | cut -d= -f2-)"
             if [ -n "$SMTP_PW" ]; then
@@ -176,13 +179,14 @@ jobs:
             fi
             # Monitorização: só liga se os segredos existirem; se existirem e algo estiver mal, pára aqui.
             MONITORING=""
-            if [ -s /home/debian/enei/alerts/discord_webhook ] && [ -s /home/debian/enei/alerts/smtp_password ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
+            if [ -s /home/debian/enei/alerts/discord_webhook ] && [ -s /home/debian/enei/alerts/smtp_password ] && [ -s /home/debian/enei/alerts/watchdog_url ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
               ALERT_EMAIL_TO="${{ vars.ALERT_EMAIL_TO }}" sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml \
                 || { echo "Não foi possível gerar o alertmanager.yml. Nada foi parado."; exit 1; }
               docker run --rm \
                 -v "$PWD/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
                 -v /home/debian/enei/alerts/discord_webhook:/etc/alertmanager/discord_webhook:ro \
                 -v /home/debian/enei/alerts/smtp_password:/etc/alertmanager/smtp_password:ro \
+                -v /home/debian/enei/alerts/watchdog_url:/etc/alertmanager/watchdog_url:ro \
                 --entrypoint amtool prom/alertmanager:v0.28.1 check-config /etc/alertmanager/alertmanager.yml \
                 || { echo "O alertmanager.yml não é válido. Nada foi parado."; exit 1; }
               COMPOSE="$COMPOSE --profile monitoring"
@@ -191,7 +195,12 @@ jobs:
                 || { echo "Não foi possível puxar as imagens da monitorização. Nada foi parado."; exit 1; }
               MONITORING=1
             else
-              echo "AVISO: faltam segredos da monitorização (ALERT_DISCORD_WEBHOOK, SMTP_PASSWORD, ALERT_EMAIL_TO). Deploy sem monitorização."
+              MISSING=""
+              [ -s /home/debian/enei/alerts/discord_webhook ] || MISSING="$MISSING ALERT_DISCORD_WEBHOOK"
+              [ -s /home/debian/enei/alerts/smtp_password ] || MISSING="$MISSING SMTP_PASSWORD"
+              [ -s /home/debian/enei/alerts/watchdog_url ] || MISSING="$MISSING WATCHDOG_URL"
+              [ -n "${{ vars.ALERT_EMAIL_TO }}" ] || MISSING="$MISSING ALERT_EMAIL_TO"
+              echo "AVISO: faltam estes segredos da monitorização:$MISSING. Deploy sem monitorização."
             fi
             $COMPOSE down
             $COMPOSE up -d --build
@@ -226,5 +235,17 @@ jobs:
             done
             $COMPOSE logs --tail 50 backend
             exit 1
+
+      - name: "Ensure monitoring metrics cron is scheduled"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site
+            sh scripts/add_cronjob.sh
+            crontab -l | grep -F 'scripts/export-metrics.sh'
 
       

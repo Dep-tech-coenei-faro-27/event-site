@@ -1,0 +1,30 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 5m
+tests:
+  - interval: 5m                       # nunca houve cópia: a métrica não existe
+    input_series:
+      - series: 'up{job="node", instance="node-exporter:9100"}'
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: BackupTooOld
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: BackupTooOld
+        exp_alerts:
+          - exp_labels: { severity: critical }
+            exp_annotations: { summary: "A última cópia para fora da VPS tem mais de 26 h (ou nunca houve)" }
+  - interval: 5m                       # cópia com carimbo 0: com 26 h ou mais está velha
+    input_series:
+      - series: 'enei_backup_last_success_timestamp_seconds{job="node", instance="node-exporter:9100"}'
+        values: '0+0x400'
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: BackupTooOld
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: BackupTooOld
+        exp_alerts:
+          - exp_labels: { severity: critical, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "A última cópia para fora da VPS tem mais de 26 h (ou nunca houve)" }

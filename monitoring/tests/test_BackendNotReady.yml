@@ -1,0 +1,25 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'probe_success{job="probe-backend", instance="http://backend:8000/api/health/ready"}'
+        values: '1+0x4 0+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: BackendNotReady
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: BackendNotReady
+        exp_alerts:
+          - exp_labels: { severity: critical, job: probe-backend, instance: "http://backend:8000/api/health/ready" }
+            exp_annotations: { summary: "O backend não responde em /api/health/ready (ou a base de dados falhou)" }
+  - interval: 30s                      # saudável: nunca dispara
+    input_series:
+      - series: 'probe_success{job="probe-backend", instance="http://backend:8000/api/health/ready"}'
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: BackendNotReady
+        exp_alerts: []

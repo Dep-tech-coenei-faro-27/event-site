@@ -61,7 +61,7 @@ groups:
           summary: "Há emails novos que falharam definitivamente"
 
       - alert: EmailStatusUnavailable
-        expr: enei_email_status_ok == 0 or time() - node_textfile_mtime_seconds{file=~".*enei.prom"} > 300
+        expr: enei_email_status_ok == 0 or absent(enei_email_status_ok) or time() - node_textfile_mtime_seconds{file=~".*enei.prom"} > 300
         for: 5m
         labels: { severity: warning }
         annotations:
@@ -73,3 +73,12 @@ groups:
         labels: { severity: critical }
         annotations:
           summary: "A última cópia para fora da VPS tem mais de 26 h (ou nunca houve)"
+
+
+  - name: watchdog
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none }
+        annotations:
+          summary: "Alerta sempre ativo: se o serviço externo deixar de o receber, o Prometheus ou o Alertmanager caiu"

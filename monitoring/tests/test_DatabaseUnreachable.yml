@@ -1,0 +1,17 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'probe_success{job="probe-db", instance="postgres:5432"}'
+        values: '1+0x4 0+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: DatabaseUnreachable
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: DatabaseUnreachable
+        exp_alerts:
+          - exp_labels: { severity: critical, job: probe-db, instance: "postgres:5432" }
+            exp_annotations: { summary: "O Postgres não aceita ligações" }

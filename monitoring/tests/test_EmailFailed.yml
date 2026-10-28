@@ -1,0 +1,25 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'enei_email_failed{job="node", instance="node-exporter:9100"}'
+        values: '0+0x4 3+0x12'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: EmailFailed
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: EmailFailed
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "Há emails novos que falharam definitivamente" }
+  - interval: 30s                      # falhados antigos que não crescem: não dispara
+    input_series:
+      - series: 'enei_email_failed{job="node", instance="node-exporter:9100"}'
+        values: '3+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: EmailFailed
+        exp_alerts: []

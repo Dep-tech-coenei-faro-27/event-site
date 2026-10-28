@@ -992,12 +992,112 @@ _STRIPE_PAYMENT_EVENTS = {
 }
 
 
+def _handle_stripe_charge_refunded(db: Session, charge: dict) -> None:
+    """A refund made at Stripe (its dashboard, not our command): close the payment here.
+
+    Without this, a payment refunded in the Stripe dashboard stays ``confirmed`` and
+    its ticket keeps working at the door. A full refund cancels the ticket of THIS
+    payment, frees its seat and makes the payment ``refunded``, exactly like
+    ``refund_payment``; a payment that was never confirmed here is closed too, so a
+    late confirmation cannot give a ticket for money that already went back. A partial
+    refund changes nothing: after the ticket is given a refund is not allowed, so a
+    partial one is a goodwill refund agreed by email, and the ticket is taken away by
+    hand afterwards (admin panel or the server). It is logged. The charge is matched
+    by its PaymentIntent id, so an event about a payment of another site on the same
+    Stripe account is ignored. Idempotent: our own refunds raise this event too, and
+    by then the payment is already ``refunded``. The log has the reference and the
+    amounts, never the person.
+    """
+    intent_id = charge.get("payment_intent")
+    if not isinstance(intent_id, str):
+        return
+    transaction = db.scalar(
+        select(Transaction)
+        .where(
+            Transaction.provider == "stripe",
+            Transaction.provider_reference == intent_id,
+        )
+        .with_for_update()
+    )
+    if transaction is None:
+        # The id may not have been saved yet (the answer to the creation was lost):
+        # the reference we put in the metadata identifies the payment.
+        reference = (charge.get("metadata") or {}).get("reference")
+        if isinstance(reference, str):
+            transaction = db.scalar(
+                select(Transaction)
+                .where(
+                    Transaction.reference == reference,
+                    Transaction.provider == "stripe",
+                    Transaction.provider_reference.is_(None),
+                )
+                .with_for_update()
+            )
+            if transaction is not None:
+                transaction.provider_reference = intent_id
+                db.flush()
+    if transaction is None:
+        db.rollback()
+        logger.warning("Stripe event charge.refunded ignored: not one of our payments")
+        return
+
+    charged = charge.get("amount")
+    refunded_cents = charge.get("amount_refunded")
+    if type(charged) is int and charged != transaction.amount_cents:
+        db.rollback()
+        logger.error(
+            "Stripe charge of payment %s refunded for another amount than we charged "
+            "(%r instead of %d cents): left as it is, needs a look",
+            transaction.reference,
+            charged,
+            transaction.amount_cents,
+        )
+        return
+    fully = charge.get("refunded") is True or (
+        type(refunded_cents) is int and refunded_cents >= transaction.amount_cents
+    )
+    if transaction.status is TransactionStatus.REFUNDED:
+        db.rollback()
+        return
+    if not fully:
+        db.rollback()
+        logger.warning(
+            "Payment %s was partly refunded at Stripe (%r of %d cents): "
+            "the ticket is left as it is",
+            transaction.reference,
+            refunded_cents,
+            transaction.amount_cents,
+        )
+        return
+
+    reference = transaction.reference
+    ticket_id = db.scalar(
+        select(Ticket.id).where(
+            Ticket.transaction_reference == reference,
+            Ticket.payment_status != PaymentStatus.CANCELLED,
+        )
+    )
+    if ticket_id is not None and transaction.status is TransactionStatus.CONFIRMED:
+        cancel_ticket(db, ticket_id)  # also makes the payment ``refunded``
+    if transaction.status is not TransactionStatus.REFUNDED:
+        transaction.status = TransactionStatus.REFUNDED
+        db.commit()
+    db.refresh(transaction)
+    notify(reference, transaction.status)
+    logger.warning(
+        "Payment %s was refunded at Stripe (%d cents): ticket cancelled, seat freed",
+        reference,
+        transaction.amount_cents,
+    )
+
+
 def handle_stripe_event(db: Session, event: dict) -> None:
     """Apply a Stripe webhook event (already checked for its signature).
 
-    Only the three PaymentIntent events matter; anything else is ignored so Stripe
-    gets its 200 and stops sending it. The event says which payment it is about
-    through the reference we put in the PaymentIntent's metadata, and it only counts
+    Only the three PaymentIntent events and ``charge.refunded`` matter; anything else
+    is ignored so Stripe gets its 200 and stops sending it. The PaymentIntent events
+    say which payment they are about through the reference we put in the
+    PaymentIntent's metadata, and they only count
     when that payment is one of ours made through Stripe. ``succeeded`` confirms like
     the status poll (and, like the ifthenpay callback, also a payment we had already
     given up on: ``confirm_transaction`` then issues the ticket or keeps it for a
@@ -1007,6 +1107,9 @@ def handle_stripe_event(db: Session, event: dict) -> None:
     """
     kind = event.get("type")
     intent = (event.get("data") or {}).get("object")
+    if kind == "charge.refunded" and isinstance(intent, dict):
+        _handle_stripe_charge_refunded(db, intent)
+        return
     if kind not in _STRIPE_PAYMENT_EVENTS or not isinstance(intent, dict):
         return
     reference = (intent.get("metadata") or {}).get("reference")

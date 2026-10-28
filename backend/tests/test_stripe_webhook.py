@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
@@ -13,7 +14,7 @@ from app.domains.payments.stripe_webhook import (
     InvalidStripeSignatureError,
     verify_signature,
 )
-from app.domains.tickets.models import Ticket
+from app.domains.tickets.models import PaymentStatus, Ticket
 from app.main import app
 from tests.helpers import INITIATE_URL, authenticate, seed_ticket_tiers
 
@@ -453,3 +454,260 @@ def test_a_body_over_the_size_limit_is_refused_before_anything_is_read(
     payload = b'{"type":"ping","pad":"' + b"x" * 4096 + b'"}'
 
     assert post(auth_client, payload).status_code == 413
+
+
+# --- a refund made at Stripe (its dashboard) ---------------------------------------
+
+
+def charge_event(*, intent_id=INTENT, reference=None, **charge):
+    data = {
+        "id": "ch_1",
+        "object": "charge",
+        "payment_intent": intent_id,
+        "currency": "eur",
+        "amount": AMOUNT,
+        "amount_refunded": AMOUNT,
+        "refunded": True,
+        "metadata": {"reference": reference} if reference else {},
+        **charge,
+    }
+    return {"id": "evt_2", "type": "charge.refunded", "data": {"object": data}}
+
+
+def confirmed_payment(auth_client, email_sender, db_session) -> str:
+    reference = start_payment(auth_client, email_sender, db_session)
+    assert (
+        post(auth_client, event("payment_intent.succeeded", reference)).status_code
+        == 200
+    )
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+    return reference
+
+
+def ticket_status(db_session, reference) -> PaymentStatus:
+    ticket = db_session.scalar(
+        select(Ticket).where(Ticket.transaction_reference == reference)
+    )
+    db_session.refresh(ticket)
+    return ticket.payment_status
+
+
+def test_a_full_refund_at_stripe_cancels_the_ticket_and_closes_the_payment(
+    auth_client, email_sender, db_session, gateway, caplog
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(auth_client, charge_event())
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+    assert ticket_status(db_session, reference) is PaymentStatus.CANCELLED
+    assert f"Payment {reference} was refunded at Stripe" in caplog.text
+
+
+def test_the_seat_is_free_again_after_a_refund_at_stripe(
+    auth_client, email_sender, db_session, gateway
+):
+    confirmed_payment(auth_client, email_sender, db_session)
+    assert post(auth_client, charge_event()).status_code == 200
+
+    again = auth_client.post(INITIATE_URL, json=INITIATE)
+
+    assert again.status_code == 201  # the person can buy again
+
+
+def test_a_repeated_refund_event_changes_nothing(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    assert post(auth_client, charge_event()).status_code == 200
+    assert post(auth_client, charge_event()).status_code == 200
+
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+    assert ticket_status(db_session, reference) is PaymentStatus.CANCELLED
+
+
+def test_the_refund_event_of_our_own_refund_command_changes_nothing(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+    transaction = load(db_session, reference)
+    transaction.status = TransactionStatus.REFUNDED  # what ``refund`` leaves behind
+    db_session.commit()
+
+    assert post(auth_client, charge_event()).status_code == 200
+
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+
+
+def test_the_whole_amount_refunded_counts_even_without_the_refunded_flag(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(auth_client, charge_event(refunded=False, amount_refunded=AMOUNT))
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+
+
+@pytest.mark.parametrize("refunded_cents", [1, AMOUNT // 2, AMOUNT - 1, 0, None])
+def test_a_partial_refund_leaves_the_ticket_alone_and_says_so(
+    auth_client, email_sender, db_session, gateway, caplog, refunded_cents
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(
+        auth_client,
+        charge_event(refunded=False, amount_refunded=refunded_cents),
+    )
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+    assert ticket_status(db_session, reference) is not PaymentStatus.CANCELLED
+    assert "partly refunded" in caplog.text
+
+
+def test_a_refund_closes_a_payment_that_was_waiting_for_a_refund(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = start_payment(auth_client, email_sender, db_session)
+    transaction = load(db_session, reference)
+    transaction.status = TransactionStatus.REFUND_DUE
+    db_session.commit()
+
+    assert post(auth_client, charge_event()).status_code == 200
+
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+
+
+@pytest.mark.parametrize(
+    "local",
+    [TransactionStatus.PENDING, TransactionStatus.EXPIRED, TransactionStatus.FAILED],
+)
+def test_a_refund_before_we_confirmed_stops_a_late_confirmation_from_giving_a_ticket(
+    auth_client, email_sender, db_session, gateway, local
+):
+    reference = start_payment(auth_client, email_sender, db_session)
+    transaction = load(db_session, reference)
+    transaction.status = local
+    db_session.commit()
+
+    assert post(auth_client, charge_event()).status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+
+    # The ``succeeded`` event arrives late: the money already went back.
+    assert (
+        post(auth_client, event("payment_intent.succeeded", reference)).status_code
+        == 200
+    )
+    assert load(db_session, reference).status is TransactionStatus.REFUNDED
+    assert tickets(db_session, reference) == 0
+
+
+def test_the_ticket_of_another_payment_of_the_same_person_is_never_touched(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    # An earlier payment of the same person that was refunded at Stripe.
+    old = load(db_session, reference)
+    other = Transaction(
+        reference="ENEI-OLD0000001",
+        user_id=old.user_id,
+        ticket_tier_id=old.ticket_tier_id,
+        amount_cents=AMOUNT,
+        quantity=1,
+        phone="912345678",
+        provider="stripe",
+        provider_reference="pi_old",
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
+        status=TransactionStatus.CONFIRMED,
+    )
+    db_session.add(other)
+    db_session.commit()
+
+    assert post(auth_client, charge_event(intent_id="pi_old")).status_code == 200
+
+    assert load(db_session, "ENEI-OLD0000001").status is TransactionStatus.REFUNDED
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+    assert ticket_status(db_session, reference) is not PaymentStatus.CANCELLED
+
+
+def test_the_refund_of_a_charge_of_another_site_on_the_account_is_ignored(
+    auth_client, email_sender, db_session, gateway, caplog
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(auth_client, charge_event(intent_id="pi_someoneelse"))
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+    assert "not one of our payments" in caplog.text
+
+
+def test_a_refund_of_a_payment_made_through_another_provider_is_ignored(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+    transaction = load(db_session, reference)
+    transaction.provider = "ifthenpay"
+    db_session.commit()
+
+    assert post(auth_client, charge_event()).status_code == 200
+
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+
+
+def test_a_charge_for_another_amount_than_ours_is_left_alone_and_logged(
+    auth_client, email_sender, db_session, gateway, caplog
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(auth_client, charge_event(amount=AMOUNT + 100))
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+    assert "needs a look" in caplog.text
+
+
+def test_a_refund_event_before_the_intent_id_is_saved_is_found_by_reference(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+    transaction = load(db_session, reference)
+    transaction.provider_reference = None
+    db_session.commit()
+
+    response = post(auth_client, charge_event(reference=reference))
+
+    assert response.status_code == 200
+    transaction = load(db_session, reference)
+    assert transaction.status is TransactionStatus.REFUNDED
+    assert transaction.provider_reference == INTENT
+
+
+@pytest.mark.parametrize("intent_id", [None, 123, {"id": INTENT}])
+def test_a_refund_event_without_a_usable_payment_intent_is_acknowledged(
+    auth_client, email_sender, db_session, gateway, intent_id
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(auth_client, charge_event(intent_id=intent_id))
+
+    assert response.status_code == 200
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED
+
+
+def test_a_refund_event_with_a_bad_signature_changes_nothing(
+    auth_client, email_sender, db_session, gateway
+):
+    reference = confirmed_payment(auth_client, email_sender, db_session)
+
+    response = post(
+        auth_client, charge_event(), header=sign(b"{}", secret="whsec_other")
+    )
+
+    assert response.status_code == 400
+    assert load(db_session, reference).status is TransactionStatus.CONFIRMED

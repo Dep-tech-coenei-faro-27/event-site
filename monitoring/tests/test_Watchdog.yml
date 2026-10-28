@@ -1,0 +1,14 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node"}'
+        values: '1+0x5'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: Watchdog
+        exp_alerts:
+          - exp_labels: { severity: none }
+            exp_annotations: { summary: "Alerta sempre ativo: se o serviço externo deixar de o receber, o Prometheus ou o Alertmanager caiu" }
