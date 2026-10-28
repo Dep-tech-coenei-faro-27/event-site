@@ -125,7 +125,8 @@ def test_an_endpoint_missing_an_event_says_which():
     partial = [endpoint(events=["payment_intent.succeeded"])]
     problems = wrong(check(reader(endpoints=partial)))
     assert problems == [
-        "webhook events: missing payment_intent.canceled, payment_intent.payment_failed"
+        "webhook events: missing charge.refunded, payment_intent.canceled, "
+        "payment_intent.payment_failed"
     ]
 
 
