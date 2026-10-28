@@ -103,6 +103,7 @@ services:
       - ${ALERTMANAGER_CONFIG:-./monitoring/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
       - ${ALERT_WEBHOOK_FILE:-/home/debian/enei/alerts/discord_webhook}:/etc/alertmanager/discord_webhook:ro
       - ${ALERT_SMTP_PASSWORD_FILE:-/home/debian/enei/alerts/smtp_password}:/etc/alertmanager/smtp_password:ro
+      - ${ALERT_WATCHDOG_URL_FILE:-/home/debian/enei/alerts/watchdog_url}:/etc/alertmanager/watchdog_url:ro
     ports:
       - "127.0.0.1:9093:9093"
     logging: *default-logging

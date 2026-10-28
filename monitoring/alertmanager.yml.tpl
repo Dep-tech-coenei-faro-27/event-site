@@ -7,8 +7,16 @@ global:
 
 route:
   receiver: team
+  group_by: [alertname]
   group_wait: 30s
+  group_interval: 1m
   repeat_interval: 6h
+  routes:
+    - matchers: ['alertname="Watchdog"']
+      receiver: watchdog
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
 
 receivers:
   - name: team
@@ -17,3 +25,7 @@ receivers:
     email_configs:
       - to: ${ALERT_EMAIL_TO}
         send_resolved: true
+  - name: watchdog
+    webhook_configs:
+      - url_file: /etc/alertmanager/watchdog_url
+        send_resolved: false
