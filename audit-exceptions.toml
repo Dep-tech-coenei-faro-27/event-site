@@ -1,0 +1,13 @@
+# Vulnerabilidades aceites de propósito pelo CI (scripts/audit_deps.py).
+#
+# Só se acrescenta uma exceção quando não dá para atualizar o pacote: ainda não há versão
+# corrigida, ou a correção parte alguma coisa e a falha não nos afeta. Cada exceção tem
+# motivo e data de revisão; depois dessa data o CI volta a falhar até alguém ver outra vez.
+# Ver docs/deploy.md, «Vulnerabilidades nas dependências».
+#
+# [[exception]]
+# ecosystem = "python"          # ou "npm"
+# id = "GHSA-xxxx-xxxx-xxxx"    # o GHSA, CVE ou PYSEC que o CI mostra
+# package = "nome-do-pacote"
+# reason = "Porque é que não nos afeta, ou porque ainda não há correção."
+# review_by = 2026-12-31

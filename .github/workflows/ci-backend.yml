@@ -160,3 +160,54 @@ jobs:
           # O servidor do teste de fumo pode ainda estar a fechar na porta 8000.
           E2E_PORT: "8001"
         run: sh ../scripts/e2e-full-flow.sh
+
+  # Vulnerabilidades conhecidas nas dependências que vão para a imagem (sem o grupo dev).
+  # As exceções estão em audit-exceptions.toml, cada uma com motivo e data de revisão.
+  audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: pip-audit
+        run: python3 scripts/audit_deps.py backend
+
+  # A imagem do backend (backend/Dockerfile) arranca como no servidor: o entrypoint aplica
+  # as migrations numa base vazia e o uvicorn sobe com ENVIRONMENT=prod. Falha, com os
+  # registos do contentor, se não responder a /api/health em 30 s ou se o teste de fumo
+  # falhar. Nenhum email sai (ver scripts/check-backend-container.sh).
+  container:
+    name: Backend image starts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          # A validação de produção recusa a palavra-passe "postgres".
+          POSTGRES_PASSWORD: ci-container-only-password
+          POSTGRES_DB: event_site_container
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build, start and check the container
+        env:
+          POSTGRES_PASSWORD: ci-container-only-password
+          POSTGRES_DB: event_site_container
+        run: sh scripts/check-backend-container.sh

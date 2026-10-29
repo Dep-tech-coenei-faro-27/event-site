@@ -2,7 +2,7 @@
 
 ## Documentação
 
-- [`docs/deploy.md`](docs/deploy.md): como o site chega ao servidor (GitHub Actions e túnel da Cloudflare), segredos, cron, cópias de segurança, como verificar e reverter um deploy.
+- [`docs/deploy.md`](docs/deploy.md): como o site chega ao servidor (GitHub Actions e túnel da Cloudflare), o que o CI verifica (a imagem arranca, vulnerabilidades nas dependências), segredos, cron, cópias de segurança, como verificar e reverter um deploy.
 - [`docs/api-auth.md`](docs/api-auth.md): contrato dos endpoints de autenticação, para quem faz o frontend.
 - [`docs/testes-e2e.md`](docs/testes-e2e.md): o teste do fluxo completo (registo, verificação, login, compra e QR) contra o servidor a sério, no CI e localmente.
 - [`backend/README.md`](backend/README.md): o backend (configuração, sessões, limites de pedidos, testes).
@@ -67,5 +67,5 @@ npm run build     # verificação de tipos e build de produção, para frontend/
 ```
 
 - O `npm run dev` encaminha `/api` e `/media` para o backend em `http://localhost:8000` (ver `frontend/vite.config.ts`), por isso a API tem de estar a correr: `docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file backend/.env up -d --build postgres backend mailpit` (ver acima). Os emails de verificação e de recuperação aparecem no Mailpit, em http://localhost:8025.
-- O CI corre `npm run lint`, os testes e `npm run build` em cada PR; corre-os antes de fazer push.
+- O CI corre `npm run lint`, os testes e `npm run build` em cada PR; corre-os antes de fazer push. Também constrói a imagem e corre o `npm audit --omit=dev` (ver "A imagem e as dependências no CI" em `docs/deploy.md`).
 - Os links dos emails apontam para `FRONTEND_URL` (no `backend/.env`); em desenvolvimento, ponha `FRONTEND_URL=http://localhost:5173` para que abram no servidor do Vite.
