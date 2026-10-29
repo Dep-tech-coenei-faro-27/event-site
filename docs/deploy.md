@@ -66,7 +66,7 @@ e é o passo 2 acima que o apanha.
 - **Email:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_SENDER`; o SMTP de reserva (opcional)
   `SMTP2_HOST`, `SMTP2_PORT`, `SMTP2_USER`, `SMTP2_PASSWORD`, `SMTP2_EMAIL_SENDER`, e a Variable `SMTP_DAILY_LIMIT`.
 - **Pagamentos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MBWAY_KEY`, `MBWAY_AUTH_TOKEN` (segredos), e as Variables `PAYMENTS_PROVIDER`, `STUDENT_EMAIL_DOMAINS`, `PAYMENTS_MODE`, `STRIPE_ALLOW_TEST_KEY` (só no staging), `RATE_LIMIT_PAYMENT_PER_MINUTE` e `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS`.
-- **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 300).
+- **Limites:** a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (opcional; sem ela fica o valor do código, 60).
 - **Alertas:** os Secrets `ALERT_DISCORD_WEBHOOK` e `WATCHDOG_URL` e a Variable `ALERT_EMAIL_TO`.
 - **Resto:** `PROJECT_NAME`, `DEBUG`, `FRONTEND_URL`, `CORS_ALLOW_ORIGINS`.
 
@@ -104,7 +104,7 @@ de erro diz qual.
 | `JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`        | `30`, `15`                        | Validade dos links dos emails.                                                                                                                                                      |
 | `FORWARDED_ALLOW_IPS`                                                                 | `172.16.0.0/12` (valor da imagem) | Ver "IP dos visitantes".                                                                                                                                                            |
 | `RATE_LIMIT_*`                                                                        | opcional                          | Limites de pedidos (ver `docs/api-auth.md`). Mantém `RATE_LIMIT_ENABLED=true`.                                                                                                      |
-| `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE`                                                  | `300`                             | Inícios de sessão por minuto por IP. Vem da Variable do mesmo nome, que o CD só escreve no `.env` se existir (ver «Antes do evento»). |
+| `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE`                                                  | `60`                              | Inícios de sessão por minuto por IP. Vem da Variable do mesmo nome, que o CD só escreve no `.env` se existir (ver «Antes do evento»). |
 | `MAX_REQUEST_BYTES`                                                                   | `1048576`                         | Tamanho máximo do corpo de um pedido (1 MB). Acima disso a API responde `413`. O nginx tem o mesmo limite.                                                                          |
 | `UNVERIFIED_ACCOUNT_TTL_DAYS`                                                         | `7`                               | Dias até as contas não verificadas serem apagadas.                                                                                                                                  |
 | `PAYMENTS_MODE`                                                                       | `off` (`live` no evento)          | `off`, `simulated` ou `live`. Em `live` exige `MBWAY_KEY`, `MBWAY_BASE_URL` em `https` e `MBWAY_CALLBACK_KEY` (ver "Abrir a bilheteira").                                           |
@@ -503,10 +503,12 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
-- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. Os limites por IP
-  foram fixados com o teste de carga (`scripts/loadtest/RESULTADOS.md`): 300 logins por minuto (cada um gasta cerca de
-  0,2 s de CPU de `bcrypt`) e 600 leituras de `/api/payment/tiers`, para 300 pessoas atrás do mesmo IP entrarem no
-  mesmo minuto. Para mudar o do login, cria a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and
+- [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
+  fica em 60 por minuto por omissão: cada tentativa gasta 0,2 a 0,3 s de CPU de `bcrypt` e a VPS tem 2 vCPU, por isso
+  300 por minuto de um só IP ocupariam mais de um núcleo (`scripts/loadtest/RESULTADOS.md` mede que 300 pessoas atrás do
+  mesmo IP entram no mesmo minuto com 300). As leituras de `/api/payment/tiers` ficam em 600 por minuto por IP (cada
+  uma custa cerca de 10 ms). Se no dia for preciso mais login por IP, sobe-o com a Variable
+  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (por exemplo 300). Para mudar o do login, cria a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and
   variables → Actions → Variables) e faz deploy; para voltar ao valor do código, apaga-a. O limite por conta (5 por
   minuto por email e IP) não muda com isto. O registo continua a 2 por minuto por IP: numa sessão de inscrições em sala,
   sobe `RATE_LIMIT_REGISTER_PER_MINUTE` no `.env` da VPS nesse dia.

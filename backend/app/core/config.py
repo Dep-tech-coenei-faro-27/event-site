@@ -95,9 +95,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
     RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
-    # Per IP, everyone behind one address counts together (a campus, the venue): the
-    # load test signed 300 people in from one IP within a minute, ~1 core of bcrypt.
-    RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=300, gt=0)
+    # Per IP, everyone behind one address counts together (a campus, the venue). Each
+    # attempt costs ~0.2-0.3 s of bcrypt, so 300 a minute from one IP take ~1 core of
+    # the 2 vCPU server (scripts/loadtest/RESULTADOS.md): the default stays at 60 and
+    # the Variable RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE raises it on the day if needed.
+    RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=2, gt=0)
     RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
     RATE_LIMIT_EMAIL_PER_HOUR: int = Field(default=5, gt=0)

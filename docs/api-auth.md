@@ -254,7 +254,7 @@ bloqueados também contam. Os valores mudam com as variáveis `RATE_LIMIT_*` (ve
 
 | Endpoint                                   | Limite                                                                     |
 |--------------------------------------------|----------------------------------------------------------------------------|
-| login                                      | 5 por minuto por email e IP, 20 por minuto por email, 300 por minuto por IP |
+| login                                      | 5 por minuto por email e IP, 20 por minuto por email, 60 por minuto por IP |
 | register                                   | 2 por minuto por IP                                                        |
 | resend-verification-email, forgot-password | 1 por minuto e 5 por hora por email, 10 por minuto por IP                  |
 | PUT password                               | 2 por 15 minutos por utilizador                                            |
