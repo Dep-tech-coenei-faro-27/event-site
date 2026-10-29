@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, isPortuguesePhone, normalizePhone } from "./format";
+import { formatOpeningTime, formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 describe("formatPrice", () => {
   it("escreve cêntimos em euros, ao modo português", () => {
@@ -23,5 +23,17 @@ describe("telemóvel português", () => {
   });
   it.each(["", "12345", "812345678", "9123456789", "+44 7911 123456"])("recusa %s", (raw) => {
     expect(isPortuguesePhone(raw)).toBe(false);
+  });
+});
+
+describe("formatOpeningTime", () => {
+  it("escreve a hora de Lisboa em português", () => {
+    // em novembro Lisboa está a UTC+0; em julho, a UTC+1
+    expect(formatOpeningTime("2026-11-02T09:00:00+00:00")).toBe("2 de novembro às 09:00");
+    expect(formatOpeningTime("2026-07-02T09:00:00+00:00")).toBe("2 de julho às 10:00");
+  });
+
+  it("uma data inválida dá texto vazio (a página usa a frase sem data)", () => {
+    expect(formatOpeningTime("amanhã")).toBe("");
   });
 });

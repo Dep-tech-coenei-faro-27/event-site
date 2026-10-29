@@ -13,3 +13,16 @@ export function normalizePhone(raw: string): string {
 }
 
 export const isPortuguesePhone = (raw: string) => /^9\d{8}$/.test(normalizePhone(raw));
+
+/** «2 de novembro às 09:00», na hora de Lisboa, de uma data ISO 8601. */
+export function formatOpeningTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Lisbon",
+  }).format(date);
+}

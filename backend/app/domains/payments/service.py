@@ -263,12 +263,22 @@ def payment_description(tier: TicketTier) -> str:
     return f"ENEI - {TIER_SPECS[tier].name}"
 
 
+def sales_have_opened(now: datetime | None = None) -> bool:
+    """True once SALES_OPEN_AT has passed (or when there is no opening date)."""
+    opens_at = settings.SALES_OPEN_AT
+    return opens_at is None or (now or datetime.now(UTC)) >= opens_at
+
+
 def initiate_payment(
     db: Session,
     user: User,
     payload: PaymentInitiateRequest,
     gateway: MBWayGateway,
 ) -> tuple[Transaction, TicketTierPrice]:
+    # Before the opening date nothing is reserved or asked of the provider.
+    if not sales_have_opened():
+        raise TicketOfficeClosedError("Ticket sales are not open yet")
+
     # A payment of this person that is past its deadline may already be over (or
     # paid) at the provider. Ask before deciding anything, outside any lock.
     user_id = user.id
@@ -1246,7 +1256,8 @@ def account_payment_overview(db: Session, user: User) -> dict:
 def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
     """The modalities with their price and whether each can be bought right now.
 
-    ``sale_open`` is false while payments are off or the modality has no price.
+    ``sale_open`` is false while payments are off, the modality has no price or
+    ``SALES_OPEN_AT`` has not arrived (``opens_at`` then says when).
     ``available`` is also false when every seat of the shared stock is taken or
     reserved for a payment that is waiting. Read-only: it does not ask the provider
     about anything.
@@ -1254,10 +1265,11 @@ def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
     order = {tier: index for index, tier in enumerate(TicketTier)}
     rows = sorted(db.scalars(select(TicketTierPrice)), key=lambda r: order[r.tier])
     payments_on = settings.PAYMENTS_MODE != "off"
+    opened = sales_have_opened()
     has_room = _seats_left(db) >= 1
     result = []
     for row in rows:
-        sale_open = payments_on and row.price_cents is not None
+        sale_open = payments_on and opened and row.price_cents is not None
         result.append(
             TicketTierRead(
                 tier=row.tier,
@@ -1266,6 +1278,7 @@ def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
                 is_student=row.is_student,
                 sale_open=sale_open,
                 available=sale_open and has_room,
+                opens_at=None if opened else settings.SALES_OPEN_AT,
             )
         )
     return result

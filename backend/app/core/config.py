@@ -1,6 +1,7 @@
 import json
 import re
 import warnings
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -135,6 +136,14 @@ class Settings(BaseSettings):
     # that provider's credentials.
     PAYMENTS_MODE: Literal["off", "simulated", "live"] = "off"
     PAYMENTS_PROVIDER: Literal["stripe", "ifthenpay"] = "stripe"
+    # When the ticket office opens: an ISO 8601 date with a timezone, for example
+    # 2026-11-02T09:00:00+00:00. Before it, /payment/tiers shows every modality as
+    # closed (with this date) and /payment/initiate answers 503, even with
+    # PAYMENTS_MODE=live and prices set. Webhooks, payment status checks and refunds
+    # are not affected, so someone who already paid never loses the ticket. Empty or
+    # unset: no opening date (sales open as soon as payments are on and the modality
+    # has a price).
+    SALES_OPEN_AT: datetime | None = None
     # Stripe MB WAY (PaymentIntents API). A sandbox key starts with sk_test_, a real
     # one with sk_live_; a restricted key (rk_) works too.
     STRIPE_SECRET_KEY: str = ""
@@ -194,6 +203,23 @@ class Settings(BaseSettings):
         if not value.strip():
             raise ValueError(
                 f"JWT_SECRET_KEY must be set. Generate one with: {SECRET_HINT}"
+            )
+        return value
+
+    @field_validator("SALES_OPEN_AT", mode="before")
+    @classmethod
+    def empty_sales_open_at_means_no_date(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("SALES_OPEN_AT")
+    @classmethod
+    def sales_open_at_needs_a_timezone(cls, value: datetime | None):
+        if value is not None and value.tzinfo is None:
+            raise ValueError(
+                "SALES_OPEN_AT must include a timezone, "
+                "for example 2026-11-02T09:00:00+00:00"
             )
         return value
 

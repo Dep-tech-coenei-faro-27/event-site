@@ -37,6 +37,7 @@ def test_the_tiers_are_public_and_carry_price_and_availability(world):
         "is_student": False,
         "sale_open": True,
         "available": True,
+        "opens_at": None,
     }
     assert _by_tier(response)["acesso"]["is_student"] is True
 
