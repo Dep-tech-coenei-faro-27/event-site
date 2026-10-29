@@ -31,6 +31,8 @@ export type Tier = {
   sale_open: boolean;
   /** `false` se está esgotada ou reservada por pagamentos à espera, ou a venda está fechada. */
   available: boolean;
+  /** Quando a bilheteira abre (ISO 8601), só enquanto ainda não abriu. */
+  opens_at?: string | null;
 };
 
 export type Transaction = {

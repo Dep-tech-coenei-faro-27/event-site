@@ -111,6 +111,12 @@ jobs:
             if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
               echo "PAYMENTS_MODE=${{ vars.PAYMENTS_MODE }}" >> .env
             fi
+            # Abertura da bilheteira: data ISO 8601 com fuso (por exemplo 2026-11-02T09:00:00+00:00).
+            # Antes dela tudo fica fechado, mesmo com preços e chaves reais; só entra quando a
+            # Variable existe (sem ela não há data de abertura). Sem fuso, o backend não arranca.
+            if [ -n "${{ vars.SALES_OPEN_AT }}" ]; then
+              echo "SALES_OPEN_AT=${{ vars.SALES_OPEN_AT }}" >> .env
+            fi
             # Gateway real (stripe ou ifthenpay); só entra quando a Variable existe: o código tem "stripe" por omissão.
             if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
               echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env

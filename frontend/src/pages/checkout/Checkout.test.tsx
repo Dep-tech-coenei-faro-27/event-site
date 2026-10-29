@@ -92,6 +92,96 @@ describe("checkout", () => {
     expect(general).toBeChecked(); // a primeira aberta
   });
 
+  it("antes da data de abertura todas as modalidades ficam fechadas e dizem quando abre (hora de Lisboa)", async () => {
+    const closed = TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: "2026-11-02T09:00:00Z" }));
+    mocks.getTiers.mockResolvedValue(closed);
+    renderAt();
+
+    await screen.findByRole("radio", { name: /passe geral/i });
+    for (const radio of screen.getAllByRole("radio")) expect(radio).toBeDisabled();
+    expect(screen.getAllByText("A bilheteira abre a 2 de novembro às 09:00.")).toHaveLength(closed.length);
+    expect(screen.queryByText("Esgotado.")).toBeNull();
+    expect(screen.getByRole("button", { name: /pagar com mb way/i })).toBeDisabled();
+  });
+
+  it("quem espera pela abertura não precisa de recarregar: à hora marcada a página volta a pedir as modalidades e abre-as", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const opensAt = new Date(Date.now() + 30_000).toISOString();
+      const closed = TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: opensAt }));
+      mocks.getTiers.mockResolvedValueOnce(closed).mockResolvedValue(TIERS);
+      renderAt();
+      const general = await screen.findByRole("radio", { name: /passe geral/i });
+      expect(general).toBeDisabled();
+      const callsBefore = mocks.getTiers.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(25_000); // ainda antes da hora: nenhum pedido
+      expect(mocks.getTiers.mock.calls.length).toBe(callsBefore);
+      await vi.advanceTimersByTimeAsync(10_000); // passa a hora (mais o atraso de 0 a 3 s)
+
+      await waitFor(() => expect(screen.getByRole("radio", { name: /passe geral/i })).toBeEnabled());
+      expect(mocks.getTiers.mock.calls.length).toBeGreaterThan(callsBefore);
+      expect(screen.queryByText(/A bilheteira abre a/)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("longe da abertura (dias) não faz pedidos de repetição", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const opensAt = new Date(Date.now() + 3 * 24 * 3600_000).toISOString();
+      mocks.getTiers.mockResolvedValue(TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: opensAt })));
+      renderAt();
+      await screen.findByRole("radio", { name: /passe geral/i });
+      const calls = mocks.getTiers.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(60 * 60_000); // uma hora
+
+      expect(mocks.getTiers.mock.calls.length).toBe(calls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("nos últimos 5 minutos antes da abertura não faz pedidos; faz um só à hora marcada", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const opensAt = new Date(Date.now() + 4 * 60_000).toISOString();
+      mocks.getTiers.mockResolvedValue(TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: opensAt })));
+      renderAt();
+      await screen.findByRole("radio", { name: /passe geral/i });
+      const calls = mocks.getTiers.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(3.9 * 60_000); // ainda fechada, a menos de 5 min
+      expect(mocks.getTiers.mock.calls.length).toBe(calls);
+
+      await vi.advanceTimersByTimeAsync(10_000); // passa a hora (mais o atraso de 0 a 3 s)
+      expect(mocks.getTiers.mock.calls.length - calls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("com o relógio do browser adiantado (o servidor ainda diz fechada) volta a tentar com pausas, não em ciclo", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const opensAt = new Date(Date.now() - 60_000).toISOString(); // para o browser já devia ter aberto
+      mocks.getTiers.mockResolvedValue(TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: opensAt })));
+      renderAt();
+      await screen.findByRole("radio", { name: /passe geral/i });
+      const calls = mocks.getTiers.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      const extra = mocks.getTiers.mock.calls.length - calls;
+      expect(extra).toBeGreaterThanOrEqual(1);
+      expect(extra).toBeLessThanOrEqual(22); // uma volta de 3 a 6 s: cerca de 10 a 20 pedidos por minuto
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("abre a modalidade de estudante a quem já está verificado, e respeita a escolhida no endereço", async () => {
     mocks.getAccount.mockResolvedValue(account({ student_verification_status: "verified" }));
     renderAt("/bilhetes/checkout?bilhete=acesso");

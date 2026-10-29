@@ -13,7 +13,7 @@ import PageStatus from "../../components/PageStatus";
 import { loadErrorMessage } from "../../utils/loadError";
 import { cleanNif, nifError } from "../../utils/nif";
 import { ORGANIZATION_EMAIL, studentStatus, type StudentStatus } from "../../utils/studentProof";
-import { formatPrice, isPortuguesePhone, normalizePhone } from "./format";
+import { formatOpeningTime, formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 /**
  * Checkout (`ui-ux/bilhetes/checkout`): escolher a modalidade e pagar com MB WAY. As modalidades,
@@ -87,6 +87,44 @@ function CheckoutForm() {
       });
     return () => controller.abort();
   }, [attempt]);
+
+  // Antes da abertura a página pede as modalidades UMA vez, à hora marcada mais um atraso aleatório de 0 a 3 s
+  // (para o site não levar todos os pedidos no mesmo instante), para quem espera não ter de recarregar. Antes
+  // da hora não faz pedidos (cada um conta para o limite por IP); se a bilheteira ainda estiver fechada
+  // (relógio do browser adiantado, ou o servidor ainda não abriu) tenta de novo a cada 3 a 6 s.
+  const opensAt = useMemo(() => {
+    const times = (tiers ?? []).map((tier) => (tier.opens_at ? Date.parse(tier.opens_at) : Number.NaN)).filter((t) => !Number.isNaN(t));
+    return times.length > 0 ? Math.min(...times) : null;
+  }, [tiers]);
+  useEffect(() => {
+    if (opensAt === null) return;
+    const controller = new AbortController();
+    let timer: number | undefined;
+    const schedule = () => {
+      const remaining = opensAt - Date.now();
+      const delay = remaining > 0 ? remaining + Math.random() * 3000 : 3000 + Math.random() * 3000;
+      timer = window.setTimeout(() => {
+        // O temporizador não passa de ~24 dias: se ainda falta tempo, só volta a marcar (sem pedido).
+        if (opensAt - Date.now() > 1000) {
+          schedule();
+          return;
+        }
+        getTiers({ signal: controller.signal })
+          .then((fresh) => {
+            if (!controller.signal.aborted) setTiers(fresh);
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (!controller.signal.aborted) schedule();
+          });
+      }, Math.min(delay, 2_000_000_000));
+    };
+    schedule();
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [opensAt]);
 
   const retryLoad = () => {
     setLoadError(null);
@@ -381,6 +419,10 @@ function CheckoutForm() {
 
 /** A linha por baixo do nome: o que falta para a modalidade estar aberta, ou o que ela é. */
 function tierNote(tier: Tier, student: StudentStatus): string {
+  if (tier.opens_at) {
+    const when = formatOpeningTime(tier.opens_at);
+    return when ? `A bilheteira abre a ${when}.` : "A bilheteira ainda não abriu.";
+  }
   if (tier.price_cents === null || !tier.sale_open) return "A bilheteira ainda não abriu.";
   if (!tier.available) return "Esgotado.";
   if (tier.is_student && student === "submitted") return "Disponível quando o teu comprovativo for aprovado.";

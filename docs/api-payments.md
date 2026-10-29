@@ -48,7 +48,8 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 | --- | --- |
 | `price_cents` | preço em cêntimos; `null` se a modalidade ainda não tem preço |
 | `is_student` | só quem tem a verificação de estudante a pode comprar |
-| `sale_open` | `false` enquanto os pagamentos estão desligados (`PAYMENTS_MODE=off`) ou a modalidade não tem preço |
+| `sale_open` | `false` enquanto os pagamentos estão desligados (`PAYMENTS_MODE=off`), a modalidade não tem preço ou a bilheteira ainda não abriu (`SALES_OPEN_AT`) |
+| `opens_at` | quando a bilheteira abre (data ISO 8601 em UTC), **só enquanto ainda não abriu**; `null` depois da abertura e quando não há data (`SALES_OPEN_AT` por definir) |
 | `available` | `false` se não é possível comprar agora: bilheteira fechada, ou todos os lugares estão ocupados **ou reservados** para um pagamento que espera |
 
 Não se mostra quantos lugares restam. A ordem é fixa (acesso, refeições, completo, geral) e a lista pode crescer: a Frontend não deve assumir que são quatro.
@@ -72,7 +73,7 @@ Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O 
 | `422` | corpo inválido (telemóvel, NIF, quantidade ou modalidade) |
 | `429` | mais de 10 pedidos por minuto (`RATE_LIMIT_PAYMENT_PER_MINUTE`) |
 | `502` | o gateway MB WAY falhou. A transação fica marcada como `failed`; o frontend pode pedir ao utilizador para tentar de novo. |
-| `503` | bilheteira fechada (essa modalidade ainda sem preço) ou pagamentos desligados (`PAYMENTS_MODE=off`) |
+| `503` | bilheteira fechada (essa modalidade ainda sem preço, ou ainda antes da data de `SALES_OPEN_AT`) ou pagamentos desligados (`PAYMENTS_MODE=off`) |
 
 Resposta `201`:
 
@@ -241,6 +242,7 @@ Não há stock por modalidade: os bilhetes à venda são um número só para tod
 | --- | --- | --- |
 | `STUDENT_EMAIL_DOMAINS` | vazio | domínios de email institucional que verificam o estudante automaticamente (lista separada por vírgulas) |
 | `PAYMENTS_MODE` | `off` | `off`, `simulated` ou `live` (ver acima) |
+| `SALES_OPEN_AT` | vazio | quando a bilheteira abre: data ISO 8601 **com fuso** (`2026-11-02T09:00:00+00:00`). Antes dela todas as modalidades aparecem fechadas (com `opens_at`) e `/payment/initiate` responde `503`, mesmo com preços definidos e `PAYMENTS_MODE=live`. **Não afeta** o webhook, a consulta do estado nem os reembolsos: quem já pagou nunca perde o bilhete. Sem fuso ou ilegível, o backend não arranca. Vazio: sem data de abertura. Para um pagamento de teste antes da abertura, pôr uma data passada (ou apagar a Variable) durante o teste. |
 | `PAYMENTS_PROVIDER` | `stripe` | gateway usado em `PAYMENTS_MODE=live`: `stripe` ou `ifthenpay` |
 | `STRIPE_SECRET_KEY` | vazio | chave secreta do Stripe (`sk_test_...` no sandbox, `sk_live_...` em produção). Obrigatória com `PAYMENTS_MODE=live` e `PAYMENTS_PROVIDER=stripe`. Nunca vai para o git nem para os logs. |
 | `STRIPE_WEBHOOK_SECRET` | vazio | segredo de assinatura do webhook (`whsec_...`). Obrigatório com `PAYMENTS_MODE=live` e `PAYMENTS_PROVIDER=stripe`. |

@@ -99,3 +99,5 @@ class TicketTierRead(BaseModel):
     is_student: bool
     sale_open: bool
     available: bool
+    # When the ticket office opens, only while it has not opened yet (SALES_OPEN_AT).
+    opens_at: datetime | None = None
