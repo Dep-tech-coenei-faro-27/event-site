@@ -2134,7 +2134,7 @@ body[data-page="agenda"] .speaker-profile dd {
   -o-object-fit: cover;
   object-fit: cover;
   -o-object-position: center;
-  object-position: center;
+  object-position: center top;
   background: #eef3f7;
   filter: saturate(0.94);
 }

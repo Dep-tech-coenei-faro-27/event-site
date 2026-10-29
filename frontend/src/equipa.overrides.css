@@ -13,3 +13,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+body[data-page="equipa"] main .team-member img {
+  object-position: center top;
+}
