@@ -20,7 +20,7 @@ describe("Parcerias passa para a página inicial", () => {
     await renderRoute("/parcerias");
     expect(document.getElementById("parceiros")).not.toBeNull();
     expect(screen.getByRole("heading", { name: /quem apoia o enei/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /quero ser parceiro/i })).toHaveAttribute("href", "mailto:geral@eneiconf.pt");
+    expect(screen.queryByRole("link", { name: /quero ser parceiro/i })).toBeNull();
   });
 
   it("a barra de topo já não tem Parcerias e o rodapé liga à secção de parceiros", () => {

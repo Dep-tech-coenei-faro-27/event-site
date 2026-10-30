@@ -76,10 +76,10 @@ body[data-page="sobre"] main .section--surface,
 body[data-page="sobre"] main .section--panel {
   background: var(--bg);
 }
-body[data-page="sobre"] main main > .section:nth-of-type(odd) {
+body[data-page="sobre"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="sobre"] main main > .section:nth-of-type(odd)::before {
+body[data-page="sobre"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -91,10 +91,10 @@ body[data-page="sobre"] main main > .section:nth-of-type(odd)::before {
     repeat;
   opacity: 0.026;
 }
-body[data-page="sobre"] main main > .section:has(.cta) {
+body[data-page="sobre"] main > .section:has(.cta) {
   background: var(--bg);
 }
-body[data-page="sobre"] main main > .section:has(.cta)::before {
+body[data-page="sobre"] main > .section:has(.cta)::before {
   content: none;
 }
 body[data-page="sobre"] main .section--compact {
@@ -557,7 +557,7 @@ html body[data-page="sobre"][data-page] main .page-hero .lead {
 }
 html body[data-page="sobre"][data-page] main .photo-gallery {
   grid-template-columns: 1.35fr 0.65fr;
-  transform: translateY(-28px);
+  /* Centrada na secção (30/10): o desenho subia-a 28 px (`translateY(-28px)`), o que a deixava mais perto do banner. */
 }
 html body[data-page="sobre"][data-page] main .photo-gallery figure {
   border-radius: 28px;

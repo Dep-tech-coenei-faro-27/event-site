@@ -72,7 +72,7 @@ describe("página inicial", () => {
   it("os botões do desenho novo usam a classe .btn", () => {
     const { container } = renderHome();
     const buttons = [...container.querySelectorAll("a.btn")];
-    expect(buttons).toHaveLength(8); // hero 2, «Conhecer o ENEI», «Ver agenda», «Descobrir Faro», «Quero ser parceiro» e a caixa final 2
+    expect(buttons).toHaveLength(7); // hero 2, «Conhecer o ENEI», «Ver agenda», «Descobrir Faro» e a caixa final 2
     buttons.forEach((b) => expect(b.className).toMatch(/btn--(primary|secondary|dark|outline-light)/));
   });
 

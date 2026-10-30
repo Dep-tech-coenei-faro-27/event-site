@@ -72,10 +72,10 @@ body[data-page="legal"] main .section > .container {
 body[data-page="legal"] main .section::before {
   content: none;
 }
-body[data-page="legal"] main main > .section:nth-of-type(odd) {
+body[data-page="legal"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="legal"] main main > .section:nth-of-type(odd)::before {
+body[data-page="legal"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;
