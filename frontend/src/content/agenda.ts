@@ -39,8 +39,10 @@ export interface AgendaItem {
   id: string;
   /** `AAAA-MM-DDTHH:MM`, hora de Lisboa. */
   start: string;
-  /** Fim, `AAAA-MM-DDTHH:MM`, hora de Lisboa, no mesmo dia. Sem valor, o cartão mostra só a hora de início. */
+  /** Fim, `AAAA-MM-DDTHH:MM`, hora de Lisboa: no mesmo dia ou, numa noite, na madrugada do dia seguinte. Sem valor, o cartão mostra só a hora de início. */
   end?: string;
+  /** O separador do dia a que o item pertence, quando não é o da data de `start` (a discoteca de sexta começa à 00:00 de sábado e aparece em sexta). */
+  day?: AgendaDay['key'];
   title: string;
   /** Etiqueta do tipo de sessão («Palestra», «Refeição»…). */
   kind: string;
@@ -65,37 +67,41 @@ export const AGENDA_DAYS: AgendaDay[] = [
 ];
 
 /**
- * Por ordem de hora. As horas de fim (`end`) são PROVISÓRIAS: cada uma é o início da sessão seguinte do mesmo dia (a última
- * de cada dia fica sem fim). A organização tem de dar as reais; até lá o programa mostra estas.
+ * Por ordem de hora. O programa vem do calendário enviado pela organização a 28/10/2026 (horas de fim incluídas). Os locais e
+ * os oradores ainda não estão confirmados: a página diz «a confirmar» / «a anunciar». As noites que passam da meia-noite têm o
+ * `end` no dia seguinte, e a discoteca de sexta (00:00 de sábado) leva `day: 'sexta'` para aparecer no separador de sexta.
  */
 export const AGENDA: AgendaItem[] = [
-  { id: 'qui-1400-check-ins', start: '2027-04-01T14:00', end: '2027-04-01T18:00', title: 'Check-ins', kind: 'Check-in', category: 'encontro', tone: 'azul' },
-  { id: 'qui-1800-sessao-de-boas-vindas', start: '2027-04-01T18:00', end: '2027-04-01T20:00', title: 'Sessão de boas-vindas', kind: 'Boas-vindas', category: 'encontro', tone: 'azul' },
-  { id: 'qui-2000-jantar-e-arraial-academico', start: '2027-04-01T20:00', title: 'Jantar e arraial académico', kind: 'Jantar', category: 'encontro', tone: 'azul' },
-  { id: 'sex-1000-palestra-e-workshops-1-2-e-3', start: '2027-04-02T10:00', end: '2027-04-02T11:00', title: 'Palestra e workshops #1, #2 e #3', kind: 'Palestra / workshop', category: 'workshops' },
+  { id: 'qui-1600-sessao-de-boas-vindas', start: '2027-04-01T16:00', end: '2027-04-01T18:00', title: 'Sessão de boas-vindas', kind: 'Boas-vindas', category: 'encontro', tone: 'azul' },
+  { id: 'qui-1900-jantar', start: '2027-04-01T19:00', end: '2027-04-01T20:30', title: 'Jantar', kind: 'Refeição', category: 'encontro', tone: 'azul' },
+  { id: 'qui-2200-arraial', start: '2027-04-01T22:00', end: '2027-04-02T04:00', title: 'Arraial', kind: 'Noite', category: 'encontro', tone: 'azul' },
+  { id: 'sex-0900-palestra', start: '2027-04-02T09:00', end: '2027-04-02T10:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
+  { id: 'sex-1000-palestra', start: '2027-04-02T10:00', end: '2027-04-02T11:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sex-1100-palestra', start: '2027-04-02T11:00', end: '2027-04-02T12:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sex-1200-almoco', start: '2027-04-02T12:00', end: '2027-04-02T14:00', title: 'Almoço', kind: 'Refeição', category: 'encontro' },
-  { id: 'sex-1400-palestra-e-workshops-4-5-e-6', start: '2027-04-02T14:00', end: '2027-04-02T15:00', title: 'Palestra e workshops #4, #5 e #6', kind: 'Palestra / workshop', category: 'workshops' },
-  { id: 'sex-1500-palestra', start: '2027-04-02T15:00', end: '2027-04-02T16:30', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
-  { id: 'sex-1630-coffee-break', start: '2027-04-02T16:30', end: '2027-04-02T17:00', title: 'Coffee break', kind: 'Networking', category: 'encontro' },
+  { id: 'sex-1430-atividades', start: '2027-04-02T14:30', end: '2027-04-02T17:00', title: 'Atividades', kind: 'Atividades', category: 'workshops' },
+  { id: 'sex-1500-palestra', start: '2027-04-02T15:00', end: '2027-04-02T16:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
+  { id: 'sex-1600-palestra', start: '2027-04-02T16:00', end: '2027-04-02T17:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sex-1700-palestra', start: '2027-04-02T17:00', end: '2027-04-02T18:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
-  { id: 'sex-1800-tertulia', start: '2027-04-02T18:00', end: '2027-04-02T20:00', title: 'Tertúlia', kind: 'Tertúlia', category: 'palestras' },
-  { id: 'sex-2000-jantar', start: '2027-04-02T20:00', end: '2027-04-02T22:00', title: 'Jantar', kind: 'Refeição', category: 'encontro' },
-  { id: 'sex-2200-atividades-noturnas', start: '2027-04-02T22:00', title: 'Atividades noturnas', kind: 'Noite', category: 'encontro' },
-  { id: 'sab-1000-palestra-e-workshops-10-11-e-12', start: '2027-04-03T10:00', end: '2027-04-03T11:00', title: 'Palestra e workshops #10, #11 e #12', kind: 'Palestra / workshop', category: 'workshops' },
+  { id: 'sex-1900-jantar', start: '2027-04-02T19:00', end: '2027-04-02T20:30', title: 'Jantar', kind: 'Refeição', category: 'encontro' },
+  { id: 'sex-2100-dr-why', start: '2027-04-02T21:00', end: '2027-04-02T23:00', title: 'Dr Why', kind: 'Noite', category: 'encontro' },
+  { id: 'sex-0000-discoteca', start: '2027-04-03T00:00', end: '2027-04-03T04:00', day: 'sexta', title: 'Discoteca', kind: 'Noite', category: 'encontro' },
+  { id: 'sab-0900-palestra', start: '2027-04-03T09:00', end: '2027-04-03T10:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
+  { id: 'sab-1000-palestra', start: '2027-04-03T10:00', end: '2027-04-03T11:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sab-1100-palestra', start: '2027-04-03T11:00', end: '2027-04-03T12:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sab-1200-almoco', start: '2027-04-03T12:00', end: '2027-04-03T14:00', title: 'Almoço', kind: 'Refeição', category: 'encontro' },
-  { id: 'sab-1400-palestra-e-workshops-13-14-e-15', start: '2027-04-03T14:00', end: '2027-04-03T15:00', title: 'Palestra e workshops #13, #14 e #15', kind: 'Palestra / workshop', category: 'workshops' },
-  { id: 'sab-1500-palestra', start: '2027-04-03T15:00', end: '2027-04-03T16:30', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
-  { id: 'sab-1630-coffee-break', start: '2027-04-03T16:30', end: '2027-04-03T17:00', title: 'Coffee break', kind: 'Networking', category: 'encontro' },
+  { id: 'sab-1430-atividades', start: '2027-04-03T14:30', end: '2027-04-03T17:00', title: 'Atividades', kind: 'Atividades', category: 'workshops' },
+  { id: 'sab-1500-palestra', start: '2027-04-03T15:00', end: '2027-04-03T16:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
+  { id: 'sab-1600-palestra', start: '2027-04-03T16:00', end: '2027-04-03T17:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sab-1700-palestra', start: '2027-04-03T17:00', end: '2027-04-03T18:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
-  { id: 'sab-1800-tertulia', start: '2027-04-03T18:00', end: '2027-04-03T20:00', title: 'Tertúlia', kind: 'Tertúlia', category: 'palestras' },
-  { id: 'sab-2000-jantar', start: '2027-04-03T20:00', end: '2027-04-03T22:00', title: 'Jantar', kind: 'Refeição', category: 'encontro' },
-  { id: 'sab-2200-atividades-noturnas', start: '2027-04-03T22:00', title: 'Atividades noturnas', kind: 'Noite', category: 'encontro' },
-  { id: 'dom-1000-nascer-do-sol-na-praia', start: '2027-04-04T10:00', end: '2027-04-04T12:00', title: 'Nascer do sol na praia', kind: 'Social', category: 'encontro' },
-  { id: 'dom-1200-almoco', start: '2027-04-04T12:00', end: '2027-04-04T14:00', title: 'Almoço', kind: 'Refeição', category: 'encontro' },
-  { id: 'dom-1400-tertulia', start: '2027-04-04T14:00', end: '2027-04-04T16:00', title: 'Tertúlia', kind: 'Tertúlia', category: 'palestras' },
-  { id: 'dom-1600-sessao-de-encerramento', start: '2027-04-04T16:00', title: 'Sessão de encerramento', kind: 'Encerramento', category: 'encontro' },
+  { id: 'sab-1900-jantar', start: '2027-04-03T19:00', end: '2027-04-03T20:30', title: 'Jantar', kind: 'Refeição', category: 'encontro' },
+  { id: 'sab-2130-peddy-paper', start: '2027-04-03T21:30', end: '2027-04-03T22:30', title: 'Peddy Paper', kind: 'Noite', category: 'encontro' },
+  { id: 'sab-2130-rally-tascas', start: '2027-04-03T21:30', end: '2027-04-03T22:30', title: 'Rally Tascas', kind: 'Noite', category: 'encontro' },
+  { id: 'dom-0900-atividades', start: '2027-04-04T09:00', end: '2027-04-04T11:00', title: 'Atividades', kind: 'Atividades', category: 'encontro' },
+  { id: 'dom-1130-almoco', start: '2027-04-04T11:30', end: '2027-04-04T13:00', title: 'Almoço', kind: 'Refeição', category: 'encontro' },
+  { id: 'dom-1300-tomas-banho', start: '2027-04-04T13:00', end: '2027-04-04T14:00', title: 'Tomás banho', kind: 'Social', category: 'encontro' },
+  { id: 'dom-1500-tertulia-de-encerramento', start: '2027-04-04T15:00', end: '2027-04-04T17:00', title: 'Tertúlia de encerramento', kind: 'Tertúlia', category: 'palestras' },
+  { id: 'dom-1700-entrega-de-premios', start: '2027-04-04T17:00', end: '2027-04-04T18:00', title: 'Entrega de prémios', kind: 'Encerramento', category: 'encontro' },
 ];
 
 /** `HH:MM` de um item. */
@@ -106,7 +112,7 @@ export const endOf = (item: AgendaItem) => (item.end ? item.end.slice(11, 16) : 
 export const timeRange = (item: AgendaItem) => (item.end ? `${timeOf(item)} – ${endOf(item)}` : timeOf(item));
 /** Os itens visíveis de um dia, por ordem de hora. */
 export const itemsOfDay = (items: AgendaItem[], day: AgendaDay) =>
-  items.filter((item) => item.visible !== false && item.start.startsWith(day.date)).sort((a, b) => a.start.localeCompare(b.start));
+  items.filter((item) => item.visible !== false && (item.day ? item.day === day.key : item.start.startsWith(day.date))).sort((a, b) => a.start.localeCompare(b.start));
 
 /** Cartão com retrato (palestras e workshops) ou cartão de momento (o resto). */
 export const cardOf = (item: AgendaItem): 'speaker' | 'moment' => (item.category === 'encontro' ? 'moment' : 'speaker');

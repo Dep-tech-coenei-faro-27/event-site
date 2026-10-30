@@ -8,7 +8,8 @@ A Agenda e os testes leem tudo de `agenda.ts`. Para mudar o programa edita-se s�
 {
   id: 'sex-1000-workshop-react',          // estável: não muda se o item mudar de hora ou de dia
   start: '2027-04-02T10:00',              // AAAA-MM-DDTHH:MM, hora de Lisboa
-  end: '2027-04-02T11:00',                // opcional: fim, no mesmo dia; sem ele o cartão mostra só a hora de início
+  end: '2027-04-02T11:00',                // opcional: fim (no mesmo dia, ou na madrugada do dia seguinte numa noite); sem ele o cartão mostra só a hora de início
+  day: 'sexta',                           // opcional: o separador do dia a que pertence, quando não é o da data de `start` (a discoteca de sexta é à 00:00 de sábado)
   title: 'Workshop de React',
   kind: 'Workshop',                       // o tipo, em texto simples ao lado da hora («Palestra», «Refeição», «Tertúlia»…)
   category: 'workshops',                  // 'encontro' (momento) | 'palestras' | 'workshops': decide o cartão e os filtros
@@ -26,11 +27,11 @@ A Agenda e os testes leem tudo de `agenda.ts`. Para mudar o programa edita-se s�
 ```
 
 - **`category`** manda: `encontro` desenha o cartão com o azulejo no lugar do retrato; `palestras` e `workshops` desenham-no com o retrato (o retrato por anunciar enquanto não há fotografia). O filtro «Palestras» da página inclui os workshops; «Workshops» só os workshops.
-- **As horas de fim (`end`) que lá estão são PROVISÓRIAS:** cada uma é o início da sessão seguinte do mesmo dia, e o último item de cada dia fica sem fim. A organização tem de dar as reais; troca-se o `end` de cada item.
+- **As horas vêm do calendário enviado pela organização a 28/10/2026**, fins incluídos. Uma noite que passa da meia-noite leva o `end` no dia seguinte (o teste exige que seja até às 06:00) e, se começar depois da meia-noite mas fizer parte do dia anterior, `day`.
 - Mantém os itens por ordem de hora (o teste falha se não estiverem).
 - O `id` só tem minúsculas, números e hífenes e é único. **Não o mudes** depois de existirem inscrições nesse item. A página guarda no dispositivo de cada pessoa os ids das sessões que ela guardou (`localStorage`, chave `enei-agenda-saved`); um id que desaparece da agenda deixa de contar.
 - Fotografias: coloca o ficheiro em `src/assets/speakers/`, com peso máximo de 900 kB, e escreve o nome em `photo`. Sem fotografia, o cartão mostra o retrato por anunciar do protótipo (`assets/portrait-placeholder.svg`, um busto sobre azulejo). Os momentos (refeições, chegadas, convívio) não têm retrato: a coluna da imagem leva o azulejo do site (o padrão `azulejo-pattern-transparent.webp` em máscara, como nas secções e nas caixas finais).
-- **Cor:** `tone: 'azul'` pinta o cartão de azul, seja qual for a categoria. Os três itens do primeiro dia (quinta, 1 de abril) têm-no; o teste exige que todos os desse dia o tenham e que nenhum dos outros dias tenha cor própria.
+- **Cor:** `tone: 'azul'` pinta o cartão de azul, seja qual for a categoria. Os itens do primeiro dia (quinta, 1 de abril) têm-no; o teste exige que todos os desse dia o tenham e que nenhum dos outros dias tenha cor própria.
 - Os dias (`AGENDA_DAYS`) levam o texto dos botões (`tab`, `short`) e o nome por extenso (`label`); a página abre na sexta-feira e aceita `?dia=quinta|sexta|sabado|domingo`.
 
 ## O botão de inscrição, compra… (por ligar)

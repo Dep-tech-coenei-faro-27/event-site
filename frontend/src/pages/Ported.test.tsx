@@ -87,12 +87,12 @@ describe("Agenda", () => {
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
     const panel = () => container.querySelector("#ag-panel")!;
     expect(panel().querySelector("#sex-1100-palestra")).not.toBeNull();
-    expect(panel().querySelector("#qui-1400-check-ins")).toBeNull();
+    expect(panel().querySelector("#qui-1600-sessao-de-boas-vindas")).toBeNull();
 
     fireEvent.click(tabs[0]);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(tabs[1]).toHaveAttribute("aria-selected", "false");
-    expect(panel().querySelector("#qui-1400-check-ins")).not.toBeNull();
+    expect(panel().querySelector("#qui-1600-sessao-de-boas-vindas")).not.toBeNull();
     expect(panel().querySelector("#sex-1100-palestra")).toBeNull();
 
     fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
