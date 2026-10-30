@@ -407,6 +407,10 @@ body[data-page="agenda"] main .ag-closing {
 body[data-page="agenda"] main .ag-closing .cta {
   text-align: center;
 }
+/* O parágrafo e a etiqueta têm largura máxima (650 px): sem margens automáticas ficavam encostados à esquerda. */
+body[data-page="agenda"] main .ag-closing .cta > p {
+  margin-inline: auto;
+}
 body[data-page="agenda"] main .ag-closing .actions {
   display: flex;
   flex-wrap: wrap;
