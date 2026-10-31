@@ -146,6 +146,9 @@ describe("checkout", () => {
 
   it("nos últimos 5 minutos antes da abertura não faz pedidos; faz um só à hora marcada", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    // O atraso depois da hora é aleatório (0 a 3 s, e de 3 a 6 s nas repetições): fixa-se no máximo para o teste
+    // não depender da sorte (o primeiro pedido às 8,97 s e a repetição só depois dos 14 s).
+    const random = vi.spyOn(Math, "random").mockReturnValue(0.99);
     try {
       const opensAt = new Date(Date.now() + 4 * 60_000).toISOString();
       mocks.getTiers.mockResolvedValue(TIERS.map((t) => ({ ...t, sale_open: false, available: false, opens_at: opensAt })));
@@ -159,6 +162,7 @@ describe("checkout", () => {
       await vi.advanceTimersByTimeAsync(10_000); // passa a hora (mais o atraso de 0 a 3 s)
       expect(mocks.getTiers.mock.calls.length - calls).toBe(1);
     } finally {
+      random.mockRestore();
       vi.useRealTimers();
     }
   });
