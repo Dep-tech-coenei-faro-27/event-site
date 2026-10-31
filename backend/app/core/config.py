@@ -86,13 +86,20 @@ class Settings(BaseSettings):
     # so the pool must not be smaller than that: with fewer connections than threads,
     # threads queue for a connection while others cannot finish, and the whole API
     # stalls until the timeout (measured: 300 payments started in 10 s stopped the
-    # server for 30 s). A short timeout makes an overload fail fast, not hang.
+    # server for 30 s). A short timeout makes an overload fail fast, not hang. The
+    # threads that start payments (PAYMENT_INITIATE_THREADS) are not counted: they only
+    # hold a connection for short reads and writes, never while the provider answers
+    # (scripts/loadtest/RESULTADOS.md: 300 payments at 9 s each used 13 connections).
     DB_POOL_SIZE: int = Field(default=20, ge=1, le=100)
     DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=100)
     DB_POOL_TIMEOUT: float = Field(default=10, gt=0, le=60)
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
     RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
+    # Per IP, everyone behind one address counts together (a campus, the venue). Each
+    # attempt costs ~0.2-0.3 s of bcrypt, so 300 a minute from one IP take ~1 core of
+    # the 2 vCPU server (scripts/loadtest/RESULTADOS.md): the default stays at 60 and
+    # the Variable RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE raises it on the day if needed.
     RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=2, gt=0)
     RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
@@ -103,7 +110,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
     RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE: int = Field(default=120, gt=0)
     RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
-    RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
+    # The shop page of that same campus; one read costs ~10 ms (scripts/loadtest).
+    RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=600, gt=0)
     RATE_LIMIT_STUDENT_PROOF_PER_HOUR: int = Field(default=5, gt=0)
     RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR: int = Field(default=20, gt=0)
 
@@ -176,6 +184,10 @@ class Settings(BaseSettings):
     # time). Many people polling every 2 seconds must not become as many calls to the
     # provider; the callback still confirms a payment at once.
     PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS: int = Field(default=5, ge=0, le=300)
+    # Threads that start payments (each waits on the provider). Separate from the 40
+    # that answer every other request, so a slow provider only slows down purchases:
+    # measured at 9 s per call, sharing them stalled the whole API (scripts/loadtest).
+    PAYMENT_INITIATE_THREADS: int = Field(default=40, ge=1, le=200)
     # Live payment status (Server-Sent Events): the heartbeat keeps proxies from closing
     # a quiet stream, how long one stream lives (the browser reconnects), streams per
     # person, and how often the provider is asked about the payments being waited for.
@@ -188,6 +200,10 @@ class Settings(BaseSettings):
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the
     # backend refuses to start with `live` or `off` and a positive value.
     PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS: int = Field(default=0, ge=0, le=3600)
+    # Load tests only: the simulated provider takes this long to answer each call, like
+    # a slow ifthenpay. Past MBWAY_TIMEOUT_SECONDS it gives up as the real client would
+    # (a gateway error after the timeout). Only allowed with PAYMENTS_MODE=simulated.
+    PAYMENTS_SIMULATED_LATENCY_SECONDS: float = Field(default=0, ge=0, le=60)
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
@@ -376,6 +392,13 @@ class Settings(BaseSettings):
                 "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS requires "
                 "PAYMENTS_MODE=simulated; the confirming simulator cannot run with "
                 "live or off payments."
+            )
+        if (
+            self.PAYMENTS_SIMULATED_LATENCY_SECONDS > 0
+            and self.PAYMENTS_MODE != "simulated"
+        ):
+            raise ValueError(
+                "PAYMENTS_SIMULATED_LATENCY_SECONDS requires PAYMENTS_MODE=simulated."
             )
 
         if self.ENVIRONMENT != "prod":

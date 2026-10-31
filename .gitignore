@@ -19,3 +19,6 @@ media-*.tar.gz
 monitoring/alertmanager.yml
 monitoring/discord_webhook
 .local
+
+# Resultados brutos do teste de carga (cada pedido e o log do servidor).
+scripts/loadtest/results/

@@ -544,11 +544,18 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
-  é de 60 por minuto, o que chega para 300 pessoas a entrar no mesmo minuto a partir de 5 IPs (cada tentativa gasta
-  cerca de 0,3 s de CPU de `bcrypt`: não subir muito). Para o mudar, cria a Variable
-  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and variables → Actions → Variables) e faz deploy; para voltar
-  ao valor do código, apaga-a. O limite por conta (5 por minuto por email e IP) não muda com isto.
-  `RATE_LIMIT_REGISTER_PER_MINUTE` só se muda no `.env` da VPS.
+  fica em 60 por minuto por omissão: cada tentativa gasta 0,2 a 0,3 s de CPU de `bcrypt` e a VPS tem 2 vCPU, por isso
+  300 por minuto de um só IP ocupariam mais de um núcleo (`scripts/loadtest/RESULTADOS.md` mede que 300 pessoas atrás do
+  mesmo IP entram no mesmo minuto com 300). As leituras de `/api/payment/tiers` ficam em 600 por minuto por IP (cada
+  uma custa cerca de 10 ms). Se no dia for preciso mais login por IP, sobe-o com a Variable
+  `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (por exemplo 300). Para mudar o do login, cria a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and
+  variables → Actions → Variables) e faz deploy; para voltar ao valor do código, apaga-a. O limite por conta (5 por
+  minuto por email e IP) não muda com isto. O registo continua a 2 por minuto por IP: numa sessão de inscrições em sala,
+  sobe `RATE_LIMIT_REGISTER_PER_MINUTE` no `.env` da VPS nesse dia.
+- [ ] Teste de carga repetido numa VPS de staging com base própria (nunca na produção, que partilha a base com o
+  staging): `scripts/loadtest/README.md`. Os números de referência foram medidos num portátil e não na VPS.
+- [ ] Um só processo do uvicorn (o `CMD` do `Dockerfile`): o registo do SSE e a reconciliação estão em memória. Mais
+  processos só depois de passar o SSE para `LISTEN/NOTIFY`.
 - [ ] Uma regra de limite de pedidos na Cloudflare para `/api/auth/*`, como segunda barreira à frente do servidor.
 
 ## Reverter um deploy
