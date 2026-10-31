@@ -51,3 +51,33 @@ def test_set_price_creates_the_general_pass_with_meals(db_session):
     assert row.name == "Passe geral + refeições"
     assert row.price_cents == 6500
     assert row.is_student is False
+
+
+def test_set_price_with_a_normal_price_marks_an_early_bird(db_session):
+    set_price(db_session, TicketTier.ACESSO, 838, 1345)
+
+    row = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.ACESSO)
+    )
+    assert row is not None
+    assert (row.price_cents, row.normal_price_cents) == (838, 1345)
+
+
+def test_set_price_without_a_normal_price_ends_the_early_bird(db_session):
+    set_price(db_session, TicketTier.ACESSO, 838, 1345)
+
+    set_price(db_session, TicketTier.ACESSO, 1345)
+
+    row = db_session.scalar(
+        select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.ACESSO)
+    )
+    assert row is not None
+    assert (row.price_cents, row.normal_price_cents) == (1345, None)
+
+
+@pytest.mark.parametrize("normal", [838, 500])
+def test_set_price_rejects_a_normal_price_that_is_not_above_the_price(
+    db_session, normal
+):
+    with pytest.raises(ValueError):
+        set_price(db_session, TicketTier.ACESSO, 838, normal)

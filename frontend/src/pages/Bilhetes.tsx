@@ -3,11 +3,14 @@ import "../bilhetes.css";
 import "../bilhetes.overrides.css";
 import { useBodyPage } from "../utils/useBodyPage";
 import { usePageMeta } from "../utils/usePageMeta";
+import { EarlyBirdNotice, TicketPrice } from "./bilhetes/TicketPrice";
+import { useTierPrices } from "./bilhetes/useTierPrices";
 
 /** `ui-ux/bilhetes/index.html` no React. CSS gerado em `bilhetes.css` (ver `scripts/ui-port/genpage.py`). */
 export default function Bilhetes() {
   useBodyPage("bilhetes");
   usePageMeta('Bilhetes · ENEI 2027', 'Bilhetes e preparação para o ENEI 2027.');
+  const prices = useTierPrices();
 
   return (
     <>
@@ -33,11 +36,12 @@ export default function Bilhetes() {
       Cinco formas de participar, desde o acesso ao programa até à
       experiência completa.
       </p>
+      <EarlyBirdNotice prices={prices} />
       <div className="grid grid--4" style={{ marginTop: "42px" }}>
       <article className="ticket-card">
       <p className="eyebrow">ESTUDANTE</p>
       <h3>Apenas acesso</h3>
-      <div className="price">Acesso</div>
+      <TicketPrice prices={prices} slug="acesso" />
       <ul className="feature-list">
       <li>Entrada no evento</li>
       <li>Programa geral</li>
@@ -50,7 +54,7 @@ export default function Bilhetes() {
       <article className="ticket-card">
       <p className="eyebrow">ESTUDANTE</p>
       <h3>Acesso + refeições</h3>
-      <div className="price">Acesso + refeições</div>
+      <TicketPrice prices={prices} slug="refeicoes" />
       <ul className="feature-list">
       <li>Entrada no evento</li>
       <li>Refeições incluídas</li>
@@ -64,7 +68,7 @@ export default function Bilhetes() {
       <span className="ticket-badge">Recomendado</span>
       <p className="eyebrow">ESTUDANTE</p>
       <h3>Experiência completa</h3>
-      <div className="price">Experiência completa</div>
+      <TicketPrice prices={prices} slug="completo" />
       <ul className="feature-list">
       <li>Entrada no evento</li>
       <li>Refeições incluídas</li>
@@ -77,7 +81,7 @@ export default function Bilhetes() {
       <article className="ticket-card">
       <p className="eyebrow">NÃO ESTUDANTE</p>
       <h3>Passe geral</h3>
-      <div className="price">Passe geral</div>
+      <TicketPrice prices={prices} slug="geral" />
       <ul className="feature-list">
       <li>Acesso ao programa</li>
       <li>Programa completo</li>
@@ -90,7 +94,7 @@ export default function Bilhetes() {
       <article className="ticket-card">
       <p className="eyebrow">NÃO ESTUDANTE</p>
       <h3>Passe geral + refeições</h3>
-      <div className="price">Passe geral + refeições</div>
+      <TicketPrice prices={prices} slug="geral_refeicoes" />
       <ul className="feature-list">
       <li>Acesso ao programa completo</li>
       <li>Refeições incluídas</li>

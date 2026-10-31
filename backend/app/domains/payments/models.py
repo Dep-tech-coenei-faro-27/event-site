@@ -60,6 +60,11 @@ class TicketTierPrice(Base):
             "inventory_limit IS NULL OR inventory_limit >= 0",
             name="ck_ticket_tiers_inventory_not_negative",
         ),
+        CheckConstraint(
+            "normal_price_cents IS NULL"
+            " OR (price_cents IS NOT NULL AND normal_price_cents > price_cents)",
+            name="ck_ticket_tiers_normal_price_above_price",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -77,6 +82,10 @@ class TicketTierPrice(Base):
     )
     name: Mapped[str] = mapped_column(String(120))
     price_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # The regular price, only while ``price_cents`` is an early-bird discount on it.
+    # It is shown (struck through) next to the price; the amount charged is always
+    # ``price_cents``.
+    normal_price_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_student: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )

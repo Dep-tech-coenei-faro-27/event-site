@@ -208,6 +208,7 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 ```
 
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
+- **Early Bird:** `set_price <modalidade> <preço> --normal <preço normal>` mostra o preço normal riscado na página de bilhetes; **sem `--normal` o preço normal apaga-se**, por isso a troca para o preço normal é `set_price <modalidade> <preço normal>`. Nada é cobrado pelo preço normal.
 - **Não há stock por modalidade.** Os bilhetes à venda no site são **um número só para todas as modalidades**: a Variable `TICKET_STOCK_LIMIT` (600 por omissão; os bilhetes da organização e dos convidados não contam). Um pagamento confirmado ou à espera ocupa um lugar; um falhado, expirado ou reembolsado liberta-o. Quando o total chega ao limite, **todas** as modalidades ficam esgotadas. Para o mudar: `gh variable set TICKET_STOCK_LIMIT --body 550` e correr o CD (o backend lê-o no arranque).
 - Em `live`, no backoffice da ifthenpay configure o URL de callback como
   `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este

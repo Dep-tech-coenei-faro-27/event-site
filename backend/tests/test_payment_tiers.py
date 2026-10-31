@@ -4,7 +4,7 @@
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.domains.payments.models import TicketTierPrice, TransactionStatus
+from app.domains.payments.models import TicketTier, TicketTierPrice, TransactionStatus
 from tests.test_payment_pipeline import world  # noqa: F401
 
 URL = "/api/payment/tiers"
@@ -33,6 +33,7 @@ def test_the_tiers_are_public_and_carry_price_and_availability(world):
         "tier": "geral",
         "name": "Passe geral",
         "price_cents": 5000,
+        "normal_price_cents": None,
         "currency": "EUR",
         "is_student": False,
         "sale_open": True,
@@ -121,3 +122,19 @@ def test_the_tiers_are_rate_limited_per_ip(world, monkeypatch):
 
     assert codes == [200, 200, 200, 429, 429]
     assert int(client.get(URL).headers["Retry-After"]) >= 1
+
+
+def test_the_normal_price_is_shown_only_while_an_early_bird_price_is_in_force(world):
+    world.seed()
+    with world.session() as db:
+        geral = db.scalar(
+            select(TicketTierPrice).where(TicketTierPrice.tier == TicketTier.GERAL)
+        )
+        geral.normal_price_cents = 6000
+        db.commit()
+
+    rows = _by_tier(world.anonymous().get(URL))
+
+    assert rows["geral"]["price_cents"] == 5000
+    assert rows["geral"]["normal_price_cents"] == 6000
+    assert rows["acesso"]["normal_price_cents"] is None

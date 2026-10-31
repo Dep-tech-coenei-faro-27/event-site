@@ -147,3 +147,140 @@ body[data-page="bilhetes"] main .cta .btn--secondary:hover {
     padding: 34px 24px;
   }
 }
+
+/*
+ * Early Bird: aviso por cima dos cartões e, em cada cartão, o preço (o espaço que o protótipo usava para repetir o nome).
+ * O preço normal fica riscado ao lado; por baixo, quanto se poupa e até quando.
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice {
+  margin-top: 30px;
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  border: 1px solid var(--line-accent);
+  border-left: 5px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  background:
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.12), transparent 70%),
+    var(--panel);
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice strong {
+  font: 800 13px/1.2 Montserrat, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice span {
+  color: var(--muted);
+  font-size: 14px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice + .grid--4 {
+  margin-top: 24px !important;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .price--stack {
+  min-height: 0;
+  margin: 14px 0 6px;
+  padding-block: 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border-block: 1px dashed var(--line-accent);
+  font-variant-numeric: tabular-nums;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-now {
+  font: 800 46px/1 Montserrat, sans-serif;
+  letter-spacing: -0.01em;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-cents {
+  font-size: 0.7em;
+  letter-spacing: 0;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-was {
+  color: var(--muted);
+  font: 600 18px/1 Montserrat, sans-serif;
+  text-decoration-color: rgba(255, 120, 120, 0.8);
+  text-decoration-thickness: 2px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-save {
+  padding: 5px 9px;
+  border-radius: 2px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent-strong);
+  font: 700 11px/1 Montserrat, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-until {
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (min-width: 1241px) and (max-width: 1480px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .eb-notice {
+    width: min(100%, 1116px);
+    margin-inline: auto;
+  }
+}
+
+/* Nome da modalidade maior (26 px) e a etiqueta de cima um pouco maior, para o cartão se ler pelo nome e pelo preço. */
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card h3 {
+  font: 800 26px/1.14 Montserrat, sans-serif;
+  letter-spacing: -0.01em;
+  min-height: 2.3em;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .eyebrow {
+  font-size: 12px;
+}
+
+/*
+ * Tablet e telemóvel (até 1240 px, onde a grelha já é de 2 colunas ou de 1): o recomendado vem primeiro e, a seguir,
+ * por esta ordem: acesso + refeições, apenas acesso, passe geral + refeições, passe geral. No computador (de 1241 px
+ * para cima) fica a ordem do código. A ordem só muda no ecrã: o teclado e os leitores de ecrã seguem a do código.
+ * Com 5 cartões e 2 colunas, o último (passe geral, o 4.º no código) fica sozinho na última linha, centrado.
+ */
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(3) {
+    order: 1;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(2) {
+    order: 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(1) {
+    order: 3;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    order: 4;
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    order: 5;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(calc((100% - 18px) / 2), 400px);
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-pending {
+  color: var(--muted);
+  font: 600 15px/1.3 Poppins, sans-serif;
+}

@@ -36,6 +36,7 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
     "tier": "geral",
     "name": "Passe geral",
     "price_cents": 5000,
+    "normal_price_cents": null,
     "currency": "EUR",
     "is_student": false,
     "sale_open": true,
@@ -46,7 +47,8 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 
 | Campo | Significado |
 | --- | --- |
-| `price_cents` | preço em cêntimos; `null` se a modalidade ainda não tem preço |
+| `price_cents` | preço em cêntimos; `null` se a modalidade ainda não tem preço. É o que se cobra |
+| `normal_price_cents` | o preço normal, **só enquanto `price_cents` é um preço Early Bird** (e então é maior); `null` no resto do tempo. Serve só para mostrar o preço normal riscado, nunca é cobrado |
 | `is_student` | só quem tem a verificação de estudante a pode comprar |
 | `sale_open` | `false` enquanto os pagamentos estão desligados (`PAYMENTS_MODE=off`), a modalidade não tem preço ou a bilheteira ainda não abriu (`SALES_OPEN_AT`) |
 | `opens_at` | quando a bilheteira abre (data ISO 8601 em UTC), **só enquanto ainda não abriu**; `null` depois da abertura e quando não há data (`SALES_OPEN_AT` por definir) |
@@ -232,6 +234,13 @@ python -m app.domains.payments.set_price geral 3500
 python -m app.domains.payments.set_price acesso 2500
 # ou
 make set-price tier=geral price=3500
+```
+
+Para um preço Early Bird, `--normal` diz qual é o preço normal (maior que o preço), e a página de bilhetes mostra-o riscado. **Pôr um preço sem `--normal` apaga o preço normal**: é assim que acaba o Early Bird.
+
+```bash
+python -m app.domains.payments.set_price acesso 838 --normal 1345   # Early Bird
+python -m app.domains.payments.set_price acesso 1345                # acabou: preço normal
 ```
 
 Não há stock por modalidade: os bilhetes à venda são um número só para todas, `TICKET_STOCK_LIMIT` (600 por omissão).
