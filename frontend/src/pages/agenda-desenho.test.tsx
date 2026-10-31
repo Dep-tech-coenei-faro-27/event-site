@@ -126,21 +126,21 @@ describe("Agenda: filtros e pesquisa", () => {
     const search = screen.getByRole("searchbox", { name: "Pesquisar sessões" });
     fireEvent.change(search, { target: { value: "ALMOCO" } });
     expect(titles()).toEqual(["Almoço"]);
-    fireEvent.change(search, { target: { value: "tertulia" } });
-    expect(titles()).toEqual(["Tertúlia"]);
+    fireEvent.change(search, { target: { value: "dr why" } });
+    expect(titles()).toEqual(["Dr Why"]);
     fireEvent.change(search, { target: { value: "12:00" } });
     expect(titles()).toContain("Almoço");
     fireEvent.change(search, { target: { value: "auditorio" } });
     expect(titles().length).toBeGreaterThan(0);
     fireEvent.change(search, { target: { value: "  salas  " } });
-    expect(titles().every((t) => /workshops/.test(t!))).toBe(true);
+    expect(titles()).toEqual(["Atividades"]);
   });
 
   it("a pesquisa encontra também pela hora de fim", () => {
     open();
-    // o almoço de sexta acaba às 14:00, que é a hora de início do bloco de workshops seguinte
+    // o almoço de sexta acaba às 14:00 e nenhum item começa a essa hora: só se acha pela hora de fim
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "14:00" } });
-    expect(titles()).toEqual(["Almoço", "Palestra e workshops #4, #5 e #6"]);
+    expect(titles()).toEqual(["Almoço"]);
   });
 
   it("a linha de resultados usa o singular com uma sessão e o plural nas outras", () => {
@@ -261,8 +261,15 @@ describe("Agenda: o cartão leva tudo e não tem «Ver mais»", () => {
     expect(card).toHaveTextContent("Auditório a confirmar");
   });
 
-  it("o último item de um dia, sem hora de fim, mostra só a hora de início", () => {
-    open();
+  it("um item sem hora de fim mostra só a hora de início", () => {
+    const items: AgendaItem[] = [{ id: "sex-2300-sem-fim", start: "2027-04-02T23:00", title: "Sem fim", kind: "Noite", category: "encontro" }];
+    render(
+      <MemoryRouter initialEntries={["/agenda"]}>
+        <main>
+          <Agenda items={items} />
+        </main>
+      </MemoryRouter>,
+    );
     const last = cards().at(-1)!;
     expect(last.querySelectorAll("time")).toHaveLength(1);
     expect(last.querySelector(".ag-card__time")?.textContent).toMatch(/^\d\d:\d\d$/);

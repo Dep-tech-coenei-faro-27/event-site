@@ -76,10 +76,10 @@ body[data-page="bilhetes"] main .section--surface,
 body[data-page="bilhetes"] main .section--panel {
   background: var(--bg);
 }
-body[data-page="bilhetes"] main main > .section:nth-of-type(odd) {
+body[data-page="bilhetes"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="bilhetes"] main main > .section:nth-of-type(odd)::before {
+body[data-page="bilhetes"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;

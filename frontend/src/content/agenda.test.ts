@@ -82,17 +82,40 @@ describe("dados da agenda (esquema)", () => {
     }
   });
 
-  it("a hora de fim, quando existe, é do mesmo dia e depois do início; só o último item de cada dia pode não ter fim", () => {
+  it("a hora de fim, quando existe, é depois do início e no mesmo dia; só as noites acabam na madrugada do dia seguinte (até às 06:00)", () => {
     for (const item of AGENDA) {
       if (!item.end) continue;
       expect(START.test(item.end), item.id).toBe(true);
-      expect(item.end.slice(0, 10), item.id).toBe(item.start.slice(0, 10));
       expect(item.end > item.start, `${item.id}: o fim tem de ser depois do início`).toBe(true);
+      if (item.end.slice(0, 10) !== item.start.slice(0, 10)) {
+        const next = new Date(`${item.start.slice(0, 10)}T00:00:00Z`);
+        next.setUTCDate(next.getUTCDate() + 1);
+        expect(item.end.slice(0, 10), `${item.id}: o fim só pode ser no dia seguinte`).toBe(next.toISOString().slice(0, 10));
+        expect(item.end.slice(11) <= "06:00", `${item.id}: uma noite acaba até às 06:00`).toBe(true);
+      }
     }
+  });
+
+  it("só o último item de um dia pode não ter fim", () => {
     for (const day of AGENDA_DAYS) {
       const ofDay = itemsOfDay(AGENDA, day);
       expect(ofDay.slice(0, -1).every((i) => i.end), `${day.key}: só o último item do dia pode estar sem fim`).toBe(true);
     }
+  });
+
+  it("`day` põe um item no separador desse dia, mesmo começando depois da meia-noite (a discoteca de sexta é à 00:00 de sábado)", () => {
+    const disco = AGENDA.find((i) => i.id === "sex-0000-discoteca")!;
+    expect(disco.start.slice(0, 10)).toBe("2027-04-03");
+    const [, sexta, sabado] = AGENDA_DAYS;
+    expect(itemsOfDay(AGENDA, sexta).at(-1)).toBe(disco);
+    expect(itemsOfDay(AGENDA, sabado).map((i) => i.id)).not.toContain(disco.id);
+    // sem `day`, o item fica no dia da sua data
+    expect(itemsOfDay([{ ...disco, day: undefined }], sabado)).toHaveLength(1);
+  });
+
+  it("uma noite que passa da meia-noite mostra «22:00 – 04:00»", () => {
+    const arraial = AGENDA.find((i) => i.id === "qui-2200-arraial")!;
+    expect(timeRange(arraial)).toBe("22:00 – 04:00");
   });
 
   it("`timeRange` dá «11:00 – 12:00», ou só a hora de início sem fim", () => {

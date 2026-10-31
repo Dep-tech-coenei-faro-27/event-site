@@ -176,15 +176,17 @@ export default function Bilhetes() {
       </div>
       </div>
       </section>
-      <section className="section section--surface">
-      <div className="container center">
+      <section className="section">
+      <div className="container">
+      <div className="cta">
       <h2>Precisas de ajuda?</h2>
-      <p className="lead">
+      <p>
       Consulta as respostas sobre modalidades, alojamento, transportes e
       participação.
       </p>
-      <div className="actions" style={{ justifyContent: "center" }}>
-      <Link to="/informacao-ajuda" className="btn btn--primary">Informação &amp; Ajuda</Link>
+      <div className="actions">
+      <Link to="/informacao-ajuda" className="btn btn--dark">Informação &amp; Ajuda</Link>
+      </div>
       </div>
       </div>
       </section>

@@ -5,6 +5,24 @@
  */
 body[data-page="agenda"] main .ag-programme {
   padding: 72px 0 88px;
+  position: relative;
+  overflow: hidden;
+  /* Um tom mais claro e o azulejo suave: é o que separa o cabeçalho da lista, como no desenho. */
+  background: var(--surface);
+}
+body[data-page="agenda"] main .ag-programme::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px repeat;
+  opacity: 0.026;
+}
+body[data-page="agenda"] main .ag-programme > .container {
+  position: relative;
+  z-index: 1;
 }
 body[data-page="agenda"] main .ag-programme h2 {
   font-size: clamp(32px, 4.2vw, 46px);
@@ -402,10 +420,15 @@ body[data-page="agenda"] main .ag-toast.is-visible {
 
 /* Caixa final */
 body[data-page="agenda"] main .ag-closing {
-  padding: 0 0 88px;
+  /* A caixa fica centrada na secção: a mesma folga em cima e em baixo, como nas outras páginas. */
+  padding: clamp(72px, 9vw, 124px) 0;
 }
 body[data-page="agenda"] main .ag-closing .cta {
   text-align: center;
+}
+/* O parágrafo e a etiqueta têm largura máxima (650 px): sem margens automáticas ficavam encostados à esquerda. */
+body[data-page="agenda"] main .ag-closing .cta > p {
+  margin-inline: auto;
 }
 body[data-page="agenda"] main .ag-closing .actions {
   display: flex;

@@ -49,6 +49,30 @@ html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:n
   }
 }
 
+/*
+ * De 1241 a 1480 px (por exemplo 1440 x 900): três cartões em cima e dois em baixo, centrados, em vez de quatro e um
+ * sozinho (decidido a 30/10). Seis colunas, cada cartão ocupa duas; os de baixo começam na 2.ª e na 4.ª coluna.
+ * A grelha não passa de três cartões de 360 px (3 x 360 + 2 x 18 = 1116): a 400 px ficavam largos a esta resolução (30/10).
+ */
+@media (min-width: 1241px) and (max-width: 1480px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: min(100%, 1116px);
+    margin-inline: auto;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card {
+    grid-column: span 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: 4 / span 2;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+
 /* Aviso do comprovativo de estudante: uma coluna só, por baixo da lista de dados. */
 html body[data-page="bilhetes"][data-page] main .registration-checklist--proof {
   grid-template-columns: minmax(0, 1fr);
@@ -58,5 +82,68 @@ html body[data-page="bilhetes"][data-page] main .registration-checklist--proof {
 @media (min-width: 621px) {
   html body[data-page="bilhetes"][data-page] main .registration-checklist:not(.registration-checklist--proof) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Caixa luminosa «Precisas de ajuda?»: a mesma das outras páginas (Sobre, Equipa). */
+body[data-page="bilhetes"] main > .section:has(.cta) {
+  background: var(--bg);
+}
+body[data-page="bilhetes"] main > .section:has(.cta)::before {
+  content: none;
+}
+body[data-page="bilhetes"] main .cta .btn--dark {
+  background: var(--panel);
+}
+body[data-page="bilhetes"] main .cta .btn--dark:hover {
+  background: var(--panel-strong);
+}
+body[data-page="bilhetes"] main .cta {
+  padding: clamp(44px, 7vw, 80px);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    125deg,
+    #006FA6,
+    #00AAFF 58%,
+    #00C5FF
+  );
+  color: white;
+}
+body[data-page="bilhetes"] main .cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #FFFFFF;
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top /
+    140px 140px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px
+    repeat;
+  opacity: 0.075;
+}
+body[data-page="bilhetes"] main .cta > * {
+  position: relative;
+  z-index: 2;
+}
+body[data-page="bilhetes"] main .cta p {
+  max-width: 650px;
+  color: rgba(255, 255, 255, 0.84);
+}
+body[data-page="bilhetes"] main .cta .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.68);
+  background: rgba(3, 16, 31, 0.72);
+  color: #FFFFFF;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+body[data-page="bilhetes"] main .cta .btn--secondary:hover {
+  border-color: #FFFFFF;
+  background: rgba(3, 16, 31, 0.9);
+}
+@media (max-width: 620px) {
+  body[data-page="bilhetes"] main .cta {
+    margin-inline: -4px;
+    padding: 34px 24px;
   }
 }

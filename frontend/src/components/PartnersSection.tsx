@@ -2,15 +2,10 @@
 const supporters = [
   'UAlg',
   'FCT UAlg',
-  'AAUAlg',
+  'SAS UAlg',
   'NEEC',
   'Algarve Evolution',
   'UAlg Cria',
-  'CM Faro',
-  'CM Loulé',
-  'CM Portimão',
-  'CM Lagos',
-  'CM Aljustrel',
   'CM São Brás',
   'Tomás Cabreira',
 ];
@@ -31,11 +26,6 @@ export default function PartnersSection() {
             <li key={name}>{name}</li>
           ))}
         </ul>
-        <div className="actions">
-          <a className="btn btn--secondary" href="mailto:geral@eneiconf.pt">
-            Quero ser parceiro
-          </a>
-        </div>
       </div>
     </section>
   );

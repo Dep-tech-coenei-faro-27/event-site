@@ -75,10 +75,10 @@ body[data-page="informacao-ajuda"] main .section::before {
 body[data-page="informacao-ajuda"] main .section--surface {
   background: var(--bg);
 }
-body[data-page="informacao-ajuda"] main main > .section:nth-of-type(odd) {
+body[data-page="informacao-ajuda"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="informacao-ajuda"] main main > .section:nth-of-type(odd)::before {
+body[data-page="informacao-ajuda"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;

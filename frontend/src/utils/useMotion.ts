@@ -190,7 +190,7 @@ export function useMotion() {
     // Na página inicial são as `.section` do protótipo; nas restantes, as secções do topo da página (o
     // React não tem a classe `.section`): as que não estão dentro de outra secção, cabeçalho ou cartão.
     const sections = fromPrototype
-        ? document.querySelectorAll<HTMLElement>("main > .section")
+        ? document.querySelectorAll<HTMLElement>("main > .section, main > .ag-programme, main > .ag-closing")
         : [...document.querySelectorAll<HTMLElement>("main section")].filter(
             (section) => !section.parentElement?.closest("section, header, article"),
           );

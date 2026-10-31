@@ -159,11 +159,15 @@ body.motion-page-leave {
     rgba(var(--accent-rgb), 0.75) 70%,
     transparent
   );
-  /* O traço cresce com a secção a entrar no ecrã (`--reveal` vem do hook). */
+  /* Sem animação (decidido a 30/10): o traço está sempre inteiro. Aberta a página no topo, a animação
+     nunca o deixava completo por baixo do banner. O hook continua a escrever `--reveal`, que já não se usa aqui. */
   --reveal: 0;
-  opacity: calc(0.7 * var(--reveal));
-  transform: scaleX(var(--reveal));
-  transform-origin: left center;
+  opacity: 0.7;
+}
+/* O traço da 1.ª secção, logo por baixo do banner, vai de ponta a ponta: com as pontas a esbater via-se onde acaba
+   a imagem do banner e começa a secção. Nas outras secções o traço continua a esbater nas pontas. */
+.page-hero + .motion-section > .motion-section__trace {
+  background: rgba(var(--accent-rgb), 0.75);
 }
 /* Imagens que se revelam com o scroll: a moldura inteira (imagem e contorno) abre da esquerda para a
    direita, de esbatida e com um pouco de zoom a inteira. O corte fica na moldura para o contorno

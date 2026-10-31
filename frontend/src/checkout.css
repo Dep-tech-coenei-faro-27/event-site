@@ -72,10 +72,10 @@ body[data-page="checkout"] main .section > .container {
 body[data-page="checkout"] main .section::before {
   content: none;
 }
-body[data-page="checkout"] main main > .section:nth-of-type(odd) {
+body[data-page="checkout"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="checkout"] main main > .section:nth-of-type(odd)::before {
+body[data-page="checkout"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;

@@ -76,10 +76,10 @@ body[data-page="equipa"] main .section--surface,
 body[data-page="equipa"] main .section--panel {
   background: var(--bg);
 }
-body[data-page="equipa"] main main > .section:nth-of-type(odd) {
+body[data-page="equipa"] main > .section:nth-of-type(odd) {
   background: var(--surface);
 }
-body[data-page="equipa"] main main > .section:nth-of-type(odd)::before {
+body[data-page="equipa"] main > .section:nth-of-type(odd)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -91,10 +91,10 @@ body[data-page="equipa"] main main > .section:nth-of-type(odd)::before {
     repeat;
   opacity: 0.026;
 }
-body[data-page="equipa"] main main > .section:has(.cta) {
+body[data-page="equipa"] main > .section:has(.cta) {
   background: var(--bg);
 }
-body[data-page="equipa"] main main > .section:has(.cta)::before {
+body[data-page="equipa"] main > .section:has(.cta)::before {
   content: none;
 }
 body[data-page="equipa"] main .eyebrow {
