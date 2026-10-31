@@ -1278,6 +1278,7 @@ def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
                 tier=row.tier,
                 name=row.name,
                 price_cents=row.price_cents,
+                normal_price_cents=row.normal_price_cents,
                 is_student=row.is_student,
                 sale_open=sale_open,
                 available=sale_open and has_room,

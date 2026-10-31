@@ -63,7 +63,7 @@ export default function Footer() {
               className="gap-4 text-[27px] md:text-[30px]"
               imageClassName="h-[55px] w-[44px] md:h-[60px] md:w-[48px]"
             />
-            <p className="m-0 mt-5 max-w-[410px] text-[15px] leading-[1.65]">
+            <p className="m-0 mt-5 max-w-[410px] text-[15px] leading-[1.65] min-[621px]:max-[900px]:max-w-none">
               Encontro Nacional de Estudantes de Informática · Faro, Algarve · {EVENT_DATES}.
             </p>
           </div>
@@ -88,8 +88,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Organizado por + redes sociais */}
-          <div className={`footer-connect grid grid-cols-2 items-start gap-6 border-t ${LINE} pt-[26px] min-[621px]:grid-cols-1 min-[621px]:gap-7 min-[621px]:border-t-0 min-[621px]:pt-0 min-[621px]:border-l min-[621px]:pl-[clamp(24px,4vw,50px)]`}>
+          {/* Organizado por + redes sociais (no tablet, de 621 a 900px, o bloco com a linha encostado à direita) */}
+          <div className={`footer-connect grid grid-cols-2 items-start gap-6 border-t ${LINE} pt-[26px] min-[621px]:grid-cols-1 min-[621px]:gap-7 min-[621px]:border-t-0 min-[621px]:pt-0 min-[621px]:border-l min-[621px]:pl-[clamp(24px,4vw,50px)] min-[621px]:max-[900px]:justify-self-end`}>
             <div className="w-fit">
               <span className={labelClass}>Organizado por</span>
               <img

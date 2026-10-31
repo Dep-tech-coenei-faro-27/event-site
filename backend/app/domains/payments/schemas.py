@@ -95,6 +95,8 @@ class TicketTierRead(BaseModel):
     tier: TicketTier
     name: str
     price_cents: int | None
+    # The regular price, only while price_cents is an early-bird price (above it).
+    normal_price_cents: int | None = None
     currency: str = "EUR"
     is_student: bool
     sale_open: bool
