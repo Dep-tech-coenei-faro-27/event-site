@@ -238,3 +238,48 @@ html body[data-page="sobre"][data-page] main .about-practical .about-practical-t
   flex: 0 0 auto;
   text-decoration: none;
 }
+/* Brilho exterior suave no cartão de resumo do encontro. */
+html body[data-page="sobre"][data-page] main .about-highlights .fact-grid {
+  border-color: rgba(83, 198, 255, .38);
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* O mesmo halo nos restantes cartões destacados da página. */
+html body[data-page="sobre"][data-page] main .about-audience,
+html body[data-page="sobre"][data-page] main .about-experience__tiles > .about-tile,
+html body[data-page="sobre"][data-page] main .about-practical__panel {
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* Halo exterior no bloco da organização, incluindo fotografia e texto. */
+html body[data-page="sobre"][data-page] main .about-makers__layout {
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* Mesma tipografia do título do banner da página inicial. */
+html body[data-page="sobre"][data-page] main .about-practical__panel h2 {
+  font-family: Poppins, sans-serif;
+  font-weight: 700;
+  letter-spacing: -.045em;
+  line-height: 1.06;
+  text-shadow: none;
+}
+
+/* Tipografia limpa e consistente em todo o painel de informação prática. */
+html body[data-page="sobre"][data-page] main .about-practical__panel .eyebrow,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile div > span {
+  font-family: Poppins, sans-serif;
+  text-shadow: none;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3 {
+  font-weight: 700;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p {
+  font-weight: 400;
+  line-height: 1.6;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile > svg {
+  filter: none;
+}
