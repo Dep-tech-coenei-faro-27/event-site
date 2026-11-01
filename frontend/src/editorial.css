@@ -199,17 +199,23 @@ html body[data-page="inicio"] main .section.home-partners::before {
   opacity: .035;
 }
 
-/* Halo azul discreto, alinhado com a fotografia do campus. */
-html body[data-page="inicio"] main .home-practical::after {
+/* Luz azul localizada na fotografia do campus. */
+html body[data-page="inicio"] main .home-practical::after { content: none; }
+html body[data-page="inicio"] .home-practical .split > div {
+  position: relative;
+  isolation: isolate;
+}
+html body[data-page="inicio"] .home-practical .split > div::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -32px -40px;
+  z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 24% 52%, rgba(0, 174, 239, .14), transparent 55%);
+  background: radial-gradient(ellipse closest-side at 50% 50%, rgba(0, 174, 239, .075) 0%, rgba(0, 174, 239, .035) 45%, transparent 100%);
 }
 html body[data-page="inicio"] .home-practical .preview-photo {
   border-color: rgba(83, 198, 255, .28);
-  box-shadow: 0 18px 55px rgba(0, 8, 24, .3);
+  box-shadow: 0 0 36px rgba(0, 174, 239, .1), 0 18px 40px rgba(0, 8, 24, .25);
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   html body[data-page="inicio"] .home-practical .preview-photo img {
@@ -217,5 +223,108 @@ html body[data-page="inicio"] .home-practical .preview-photo {
   }
   html body[data-page="inicio"] .home-practical .preview-photo:hover img {
     transform: scale(1.035);
+  }
+}
+
+/* Prolongar o padrão do programa até à linha inferior do hero. */
+html body[data-page="inicio"] .stats-overlap::before {
+  content: "";
+  position: absolute;
+  top: var(--stats-overlap);
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  background: #65cfff;
+  -webkit-mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  opacity: .025;
+}
+
+/* Em computador, encurtar ligeiramente o destaque inicial. */
+@media (min-width: 1024px) and (min-height: 700px) {
+  html body[data-page="inicio"] main .hero-home {
+    min-height: clamp(580px, calc(100svh - 190px), 940px);
+  }
+  html body[data-page="inicio"] main .hero-content {
+    padding-block: 60px 104px;
+  }
+}
+
+/* Tablet: enquadramento próprio, com os três dados essenciais visíveis. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html body[data-page="inicio"] main .hero-home {
+    min-height: clamp(520px, calc(100svh - 260px), 760px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html body[data-page="inicio"] main .hero-content {
+    padding-block: 56px 104px;
+    gap: 16px;
+  }
+  html body[data-page="inicio"] .hero-title {
+    font-size: clamp(72px, 10vw, 100px);
+  }
+  html body[data-page="inicio"] .quick-info__item {
+    min-width: 0;
+    padding: 22px 14px;
+  }
+  html body[data-page="inicio"] .quick-info__label { margin-bottom: 16px; }
+  html body[data-page="inicio"] .quick-info__item > span:nth-child(2) { font-size: 24px; }
+  html body[data-page="inicio"] .quick-info__item > span:last-child { font-size: 13px; }
+  html body[data-page="inicio"] .home-programme__grid { gap: 20px; }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  html body[data-page="inicio"][data-page] main .home-practical .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  html body[data-page="inicio"] .home-practical .preview-photo { aspect-ratio: 16 / 10; }
+  html body[data-page="inicio"] .home-programme .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+/* Alinhar a ação do programa à direita também nos cabeçalhos empilhados. */
+html body[data-page="inicio"] .home-programme .section-heading > .btn {
+  align-self: flex-end;
+  margin-inline-start: auto;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+/* Título e ação partilham a linha sempre que couberem. */
+html body[data-page="inicio"] .home-programme .section-heading {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px 24px;
+}
+html body[data-page="inicio"] .home-programme .section-heading > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+html body[data-page="inicio"] .home-programme .section-heading > .btn {
+  flex: 0 1 auto;
+}
+
+/* Em ecrãs estreitos, colocar a ação diretamente sob o título. */
+@media (max-width: 700px) {
+  html body[data-page="inicio"] .home-programme .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  html body[data-page="inicio"] .home-programme .section-heading > div {
+    flex: 0 1 auto;
+    width: 100%;
+  }
+  html body[data-page="inicio"] .home-programme .section-heading > .btn {
+    align-self: flex-start;
+    margin-inline-start: 0;
   }
 }
