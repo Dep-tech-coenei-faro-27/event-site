@@ -172,3 +172,50 @@ html body[data-page="agenda"] .ag-closing { padding-top: 28px; padding-bottom: 4
     width: 100%;
   }
 }
+
+/* Azulejos discretos no fundo da apresentação do programa. */
+html body[data-page="inicio"][data-page] main .home-programme.azulejo-bg::before {
+  content: "";
+  background: #65cfff;
+  -webkit-mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  opacity: .025;
+}
+/* Fundo liso na secção de locais e acessos da página inicial. */
+html body[data-page="inicio"] main .home-practical.section::before {
+  content: none;
+}
+
+
+/* Azulejos no fundo da secção de parceiros. */
+html body[data-page="inicio"] main .section.home-partners::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #65cfff;
+  -webkit-mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  opacity: .035;
+}
+
+/* Halo azul discreto, alinhado com a fotografia do campus. */
+html body[data-page="inicio"] main .home-practical::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 24% 52%, rgba(0, 174, 239, .14), transparent 55%);
+}
+html body[data-page="inicio"] .home-practical .preview-photo {
+  border-color: rgba(83, 198, 255, .28);
+  box-shadow: 0 18px 55px rgba(0, 8, 24, .3);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  html body[data-page="inicio"] .home-practical .preview-photo img {
+    transition: transform 700ms cubic-bezier(.2, .65, .3, 1);
+  }
+  html body[data-page="inicio"] .home-practical .preview-photo:hover img {
+    transform: scale(1.035);
+  }
+}

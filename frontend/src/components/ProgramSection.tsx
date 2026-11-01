@@ -12,7 +12,7 @@ const items = [
 
 export default function ProgramSection() {
   return (
-    <section className="section home-programme">
+    <section className="section home-programme azulejo-bg">
       <div className="container">
         <div className="section-heading">
           <div><p className="eyebrow">Programa</p><h2>O que te espera.</h2></div>
