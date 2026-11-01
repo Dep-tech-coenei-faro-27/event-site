@@ -45,6 +45,26 @@ const sections: LegalSection[] = [
         ),
     },
     {
+        id: 'cancelamento-e-reembolso',
+        title: 'Cancelamento e reembolso',
+        content: (
+            <>
+            <p>
+                O bilhete é vendido pela AAUalg. Depois de o pagamento estar concluído e o bilhete emitido, <strong>não há direito a reembolso</strong>.
+            </p>
+            <p>
+                Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
+            </p>
+            <p>
+                Se não puderes mesmo participar, escreve para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra. Analisamos o pedido caso a caso e, se o aceitarmos, o reembolso é parcial e o bilhete é cancelado. O reembolso é feito pelo mesmo meio de pagamento e pode demorar alguns dias a aparecer na tua conta.
+            </p>
+            <p>
+                Estas condições não afetam os direitos que a lei te reconhece.
+            </p>
+            </>
+        ),
+    },
+    {
         title: 'Utilização responsável',
         content: (
             <p>
@@ -59,9 +79,9 @@ export default function Acessibilidade() {
             eyebrow="INFORMAÇÃO LEGAL"
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
-            version="1.0"
-            lastUpdated="8 outubro 2026"
-            lastUpdatedISO="2026-10-08"
+            version="1.1"
+            lastUpdated="1 novembro 2026"
+            lastUpdatedISO="2026-11-01"
             sections={sections}
         />
     );

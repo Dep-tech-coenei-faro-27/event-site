@@ -58,3 +58,11 @@ html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid
 html body[data-page="checkout"][data-page] main .checkout-nif input[aria-invalid="true"] + small {
   color: #f6d2cd;
 }
+
+/* Condições de reembolso por cima do botão de pagar (o protótipo não as desenha). */
+html body[data-page="checkout"][data-page] main .checkout-refund-note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted, inherit);
+}
