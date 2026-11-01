@@ -1,0 +1,285 @@
+/* Sobre: informação por temas, tiles breves e detalhe progressivo. */
+html body[data-page="sobre"][data-page] main > .about-block { padding-block: clamp(40px, 5vw, 68px); background: var(--bg); }
+html body[data-page="sobre"][data-page] main > .about-block::before { content: none; }
+html body[data-page="sobre"][data-page] main .about-block h2 { font-size: clamp(27px, 3vw, 36px); line-height: 1.2; letter-spacing: -.035em; font-weight: 600; }
+html body[data-page="sobre"][data-page] main .about-block h3 { font-size: 19px; line-height: 1.3; letter-spacing: -.02em; font-weight: 600; }
+html body[data-page="sobre"][data-page] main .about-block p:not(.eyebrow) { margin: 14px 0 0; color: #b9c6d8; font-size: 15px; line-height: 1.7; }
+.about-text-link { display: inline-flex; align-items: center; gap: 12px; color: #53c6ff; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 5px; }
+.about-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 28px; }
+.about-intro__layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: clamp(32px, 6vw, 88px); }
+html body[data-page="sobre"][data-page] main .about-intro p.about-intro__lead { max-width: 48ch; font-size: 18px; line-height: 1.65; margin-top: 22px; }
+.about-audience { display: flex; gap: 16px; align-items: flex-start; padding: 20px; margin-top: 28px; border: 1px solid rgba(83,198,255,.2); border-radius: 0; border-left: 3px solid #42c5f5; background: #0b2c43; }
+.about-audience > svg { flex: 0 0 24px; width: 24px; height: 24px; color: #53c6ff; }
+html body[data-page="sobre"][data-page] main .about-audience p { margin-top: 7px; font-size: 14px; }
+.about-intro__photo { position: relative; width: 88%; max-width: 410px; margin: 0; justify-self: end; overflow: hidden; border-radius: 44px 8px 8px 8px; }
+.about-intro__photo img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: 54% center; }
+.about-intro__photo figcaption { position: absolute; inset: auto 0 0; padding: 40px 18px 16px; color: #fff; background: linear-gradient(transparent,rgba(3,7,16,.94)); font-size: 13px; line-height: 1.5; font-weight: 600; }
+.about-experience__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.about-tile { --tile-bg: linear-gradient(145deg,#0a4c74,#103551 48%,#0b233b); --tile-heading: #fff; --tile-body: #d7e7f5; min-width: 0; padding: 28px; border: 1px solid rgba(40,194,255,.3); border-top: 3px solid #28c2ff; border-radius: 0; background: var(--tile-bg); box-shadow: 0 16px 34px rgba(0,0,0,.14); }
+.about-tile > svg { display: block; width: 28px; height: 28px; margin-bottom: 26px; color: #53c6ff; }
+html body[data-page="sobre"][data-page] main .about-tile p.about-tile__label { margin: 0 0 9px; color: #8eb8d0; font-size: 11px; font-weight: 500; letter-spacing: .025em; }
+html body[data-page="sobre"][data-page] main .about-tile h3 { font-size: 21px; max-width: 20ch; }
+.about-disclosure { margin-top: 22px; border-top: 1px solid rgba(160,191,222,.15); }
+.about-disclosure summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 15px 0; color: #aabbd0; font-size: 13px; line-height: 1.5; cursor: pointer; list-style: none; }
+.about-disclosure summary::-webkit-details-marker { display: none; }
+.about-disclosure summary > span { color: #53c6ff; font-size: 21px; font-weight: 400; line-height: 1; }
+.about-disclosure[open] summary > span { transform: rotate(45deg); }
+.about-disclosure summary:hover { color: #fff; }
+.about-disclosure summary:focus-visible { outline: 2px solid #53c6ff; outline-offset: 4px; }
+.about-disclosure__body { max-width: 76ch; padding: 4px 0 20px; }
+html body[data-page="sobre"][data-page] main .about-disclosure__body p { font-size: 14px; }
+.about-makers__layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: 0; overflow: hidden; border: 1px solid rgba(160,191,222,.17); border-radius: 0; background: #09152b; }
+.about-makers__photo { position: relative; align-self: stretch; margin: 0; min-height: 320px; }
+.about-makers__photo img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 55%; }
+.about-makers__photo figcaption { position: absolute; inset: auto 0 0; padding: 36px 20px 16px; color: #fff; background: linear-gradient(transparent,rgba(3,7,16,.9)); font-size: 11px; }
+.about-makers__copy { min-width: 0; padding: clamp(26px, 4vw, 44px); }
+.about-makers__copy > .about-text-link { margin-top: 10px; }
+.about-faro__banner { position: relative; overflow: hidden; border-radius: 16px 16px 40px 16px; min-height: 390px; display: flex; align-items: center; }
+.about-faro__banner > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 60%; }
+.about-faro__banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,rgba(3,10,24,.97),rgba(3,10,24,.78) 36%,rgba(3,10,24,.08) 85%); }
+.about-faro__copy { position: relative; z-index: 1; max-width: 460px; padding: 44px; }
+html body[data-page="sobre"][data-page] main .about-faro__copy h2 { font-size: clamp(28px,3vw,38px); }
+html body[data-page="sobre"][data-page] main .about-faro__copy > p:not(.eyebrow) { color: #d3deec; max-width: 34ch; }
+html body[data-page="sobre"][data-page] main .about-faro__copy ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
+.about-faro__copy li { padding: 5px 10px; border: 1px solid rgba(213,232,248,.3); border-radius: 0; background: rgba(5,15,30,.4); color: #ecf4fb; font-size: 11px; line-height: 1.5; }
+.about-practical__tiles { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
+.about-practical-tile { min-width: 0; display: flex; gap: 16px; padding: 24px; border: 1px solid rgba(160,191,222,.17); border-radius: 0; border-left: 2px solid #238cb5; background: #0b253b; text-decoration: none; transition: border-color .18s, background .18s; }
+.about-practical-tile > svg { flex: 0 0 24px; width: 24px; height: 24px; color: #53c6ff; }
+html body[data-page="sobre"][data-page] main .about-practical-tile h3 { font-size: 16px; }
+html body[data-page="sobre"][data-page] main .about-practical-tile p { font-size: 13px; margin-top: 8px; }
+.about-practical-tile div > span { display: block; margin-top: 18px; color: #53c6ff; font-size: 12px; font-weight: 500; }
+.about-practical-tile:hover { border-color: rgba(83,198,255,.65); background: #10243d; }
+.about-practical-tile:focus-visible { outline: 2px solid #53c6ff; outline-offset: 4px; }
+/* Preservar os destaques já afinados com o utilizador. */
+html body[data-page="sobre"][data-page] main > .about-highlights { padding-block: 36px; background: var(--bg); }
+html body[data-page="sobre"][data-page] main > .about-highlights::before { content: none; }
+html body[data-page="sobre"][data-page] main .about-highlights .fact-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; margin: 0; border: 1px solid rgba(83,198,255,.2); border-radius: 0; background: linear-gradient(120deg,rgba(26,178,255,.14),transparent 65%),#09182d; }
+html body[data-page="sobre"][data-page] main .about-highlights .fact { min-width: 0; min-height: 0; padding: 26px 28px 28px; background: none; opacity: 1; translate: none; }
+html body[data-page="sobre"][data-page] main .about-highlights .fact + .fact { border-left: 1px solid rgba(180,208,234,.1); }
+html body[data-page="sobre"][data-page] main .about-highlights .fact small { display: block; margin-bottom: 15px; color: #a5b5c9; font-size: 10px; font-weight: 500; line-height: 1.4; letter-spacing: .13em; text-transform: uppercase; }
+html body[data-page="sobre"][data-page] main .about-highlights .fact strong { color: #53c6ff; font-size: clamp(28px,3vw,36px); font-weight: 600; line-height: 1.15; letter-spacing: -.035em; }
+html body[data-page="sobre"][data-page] main .about-highlights .fact span { margin-top: 10px; color: #bcc9d9; font-size: 13px; line-height: 1.55; }
+@media (max-width: 1000px) {
+  .about-practical-tile { display: block; padding: 22px; }
+  .about-practical-tile > svg { display: block; margin-bottom: 16px; }
+}
+@media (max-width: 900px) {
+  html body[data-page="sobre"][data-page] main .about-highlights .fact-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html body[data-page="sobre"][data-page] main .about-highlights .fact:nth-child(3) { border-left: 0; }
+  html body[data-page="sobre"][data-page] main .about-highlights .fact:nth-child(n+3) { border-top: 1px solid rgba(180,208,234,.1); }
+  .about-tile { padding: 22px; }
+}
+@media (max-width: 760px) {
+  .about-intro__layout, .about-makers__layout { grid-template-columns: minmax(0,1fr); }
+  .about-intro__layout { gap: 28px; }
+  .about-intro__photo { width: 100%; max-width: none; justify-self: stretch; border-radius: 28px 4px 28px 4px; }
+  .about-intro__photo img { aspect-ratio: 16 / 10; object-position: center 48%; }
+  .about-experience__tiles { grid-template-columns: minmax(0,1fr); gap: 14px; }
+  .about-tile { display: grid; grid-template-columns: 28px minmax(0,1fr); column-gap: 18px; padding: 24px; }
+  .about-tile > svg { grid-column: 1; grid-row: 1 / 4; margin: 0; }
+  .about-tile > p, .about-tile > h3 { grid-column: 2; }
+  html body[data-page="sobre"][data-page] main .about-tile h3 { max-width: none; font-size: 20px; }
+  .about-makers__photo { min-height: 0; aspect-ratio: 16 / 9; }
+  .about-makers__copy { padding: 26px; }
+  .about-faro__banner { min-height: 440px; align-items: end; }
+  .about-faro__banner > img { object-position: 63% center; }
+  .about-faro__banner::after { background: linear-gradient(0deg,rgba(3,10,24,.98),rgba(3,10,24,.8) 40%,rgba(3,10,24,.05) 85%); }
+  .about-faro__copy { padding: 28px; max-width: 100%; }
+  .about-practical__tiles { grid-template-columns: minmax(0,1fr); gap: 14px; }
+  .about-practical-tile { display: flex; }
+  .about-practical-tile > svg { margin: 0; }
+  .about-section-heading { align-items: start; flex-direction: column; gap: 16px; }
+}
+@media (max-width: 480px) {
+  html body[data-page="sobre"][data-page] main .about-highlights .fact { padding: 20px 18px; }
+  html body[data-page="sobre"][data-page] main .about-highlights .fact small { margin-bottom: 12px; }
+  html body[data-page="sobre"][data-page] main .about-highlights .fact span { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .about-practical-tile { transition: none; } }
+
+/* Cor por tema, dentro da identidade azul/ciano do ENEI. */
+
+
+.about-practical-tile:hover { background: #123954; }
+
+/* Linguagem dos tiles existentes: azul em degradê, borda e ícones ciano. */
+.about-tile > svg { color: #28c2ff; }
+html body[data-page="sobre"][data-page] main .about-tile h3 { color: var(--tile-heading); }
+html body[data-page="sobre"][data-page] main .about-tile p:not(.eyebrow) { color: var(--tile-body); }
+html body[data-page="sobre"][data-page] main .about-tile p.about-tile__label { color: #6dd4ff; }
+
+/* Variação do painel azul das outras páginas: um bloco contínuo, retangular. */
+.about-practical__panel { padding: clamp(26px,4vw,48px); background: linear-gradient(125deg,#0098ef,#00aaff 58%,#00c5ff); color: #fff; }
+.about-practical__panel .about-section-heading { margin-bottom: 32px; }
+html body[data-page="sobre"][data-page] main .about-practical__panel h2,
+html body[data-page="sobre"][data-page] main .about-practical__panel .eyebrow { color: #fff; }
+.about-practical .about-practical__tiles { gap: 0; }
+.about-practical .about-practical-tile { border: 0; border-top: 1px solid rgba(6,35,62,.3); background: transparent; padding: 24px 24px 8px; }
+.about-practical .about-practical-tile:first-child { padding-left: 0; }
+.about-practical .about-practical-tile:last-child { padding-right: 0; }
+.about-practical .about-practical-tile + .about-practical-tile { border-left: 1px solid rgba(6,35,62,.2); }
+.about-practical .about-practical-tile > svg,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3,
+.about-practical .about-practical-tile div > span { color: #fff; }
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p { color: #fff; }
+.about-practical .about-practical-tile div > span { text-decoration: underline; text-underline-offset: 4px; }
+.about-practical .about-practical-tile:hover { background: rgba(255,255,255,.14); }
+.about-practical .about-practical-tile:focus-visible { outline-color: #fff; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .about-practical .about-practical-tile,
+  .about-practical .about-practical-tile:first-child,
+  .about-practical .about-practical-tile:last-child { padding: 22px 0; }
+  .about-practical .about-practical-tile + .about-practical-tile { border-left: 0; }
+  .about-practical .about-practical-tile:last-child { padding-bottom: 0; }
+}
+
+/* Azulejos e figura do painel da página inicial, com intensidade contida. */
+.about-makers__copy.azulejo-bg::before,
+.about-highlights .fact-grid.azulejo-bg::before,
+.about-tile.azulejo-bg::before,
+.about-practical__panel.azulejo-bg::before {
+  background: #fff;
+  -webkit-mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  opacity: .075;
+}
+.about-tile.azulejo-bg::before,
+.about-highlights .fact-grid.azulejo-bg::before,
+.about-makers__copy.azulejo-bg::before { opacity: .045; }
+.about-practical__panel { box-shadow: 0 18px 36px rgba(0,0,0,.2); }
+.about-practical__panel .about-section-heading { min-height: 90px; padding-right: 100px; }
+.about-practical__panel > .about-practical__symbol {
+  position: absolute;
+  top: 22px;
+  right: clamp(26px,4vw,48px);
+  width: 72px;
+  height: 116px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .35;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .about-practical__symbol { animation: motion-logo-breathe 5.2s ease-in-out infinite; }
+}
+@media (max-width: 760px) {
+  .about-practical__panel .about-section-heading { min-height: 0; padding-right: 0; }
+  .about-practical__panel > .about-practical__symbol { display: none; }
+}
+/* Azulejos no fundo da apresentação do encontro. */
+html body[data-page="sobre"][data-page] main > .about-intro.azulejo-bg::before,
+html body[data-page="sobre"][data-page] main > .about-faro.azulejo-bg::before {
+  content: "";
+  background: #65cfff;
+  -webkit-mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  mask: url('./assets/azulejo-pattern-transparent.webp') left top / 140px 140px repeat;
+  opacity: .025;
+}
+
+/* Texto uniforme com uma sombra discreta sobre o azul vivo. */
+.about-practical__panel { color: #fff; }
+html body[data-page="sobre"][data-page] main .about-practical__panel h2,
+html body[data-page="sobre"][data-page] main .about-practical__panel .eyebrow,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p,
+.about-practical .about-practical-tile div > span {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(3,36,65,.65);
+}
+.about-practical .about-practical-tile > svg { color: #fff; filter: drop-shadow(0 1px 1px rgba(3,36,65,.45)); }
+.about-practical .about-practical-tile:focus-visible { outline-color: #fff; }
+.about-practical .about-practical-tile div > span {
+  color: #06233e;
+  font-weight: 600;
+  text-shadow: none;
+  text-decoration-thickness: 2px;
+}
+@media (min-width: 761px) {
+  .about-practical .about-practical-tile {
+    display: grid;
+    grid-template-columns: 24px minmax(0,1fr);
+    align-items: stretch;
+  }
+  .about-practical-tile > div { display: flex; flex-direction: column; min-width: 0; }
+  .about-practical .about-practical-tile div > span { margin-top: auto; padding-top: 18px; }
+}
+/* Organização: azul-marinho coerente com o fundo da página. */
+.about-makers__copy { background: #09152b; }
+.about-makers__copy.azulejo-bg::before { background: #53c6ff; opacity: .025; }
+@media (max-width: 760px) {
+  html body[data-page="sobre"][data-page] main .about-intro p.about-intro__lead { font-size: 16px; line-height: 1.6; margin-top: 18px; }
+  .about-intro .about-audience { margin-top: 22px; padding: 18px; gap: 12px; }
+  .about-intro .about-disclosure { margin-top: 20px; }
+  .about-intro__layout { gap: 24px; }
+}
+.about-makers__copy > .about-text-link { display: inline-block; }
+.about-makers__copy > .about-text-link > span { display: inline; margin-left: 3px; }
+/* Manter a seta junto da última palavra, mesmo em ecrãs estreitos. */
+.about-practical .about-practical-tile .about-link-arrow { white-space: nowrap; }
+/* Uma só legenda sublinhada; a seta fica próxima e sem sublinhado próprio. */
+.about-text-link,
+.about-makers__copy > .about-text-link,
+.about-practical .about-practical-tile div > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  text-decoration: none;
+}
+.about-text-link > .about-link-label,
+.about-practical .about-practical-tile div > span > .about-link-label {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.about-text-link > .about-link-arrow,
+.about-makers__copy > .about-text-link > .about-link-arrow,
+.about-practical .about-practical-tile div > span > .about-link-arrow {
+  display: inline-block;
+  margin: 0;
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+/* Brilho exterior suave no cartão de resumo do encontro. */
+html body[data-page="sobre"][data-page] main .about-highlights .fact-grid {
+  border-color: rgba(83, 198, 255, .38);
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* O mesmo halo nos restantes cartões destacados da página. */
+html body[data-page="sobre"][data-page] main .about-audience,
+html body[data-page="sobre"][data-page] main .about-experience__tiles > .about-tile,
+html body[data-page="sobre"][data-page] main .about-practical__panel {
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* Halo exterior no bloco da organização, incluindo fotografia e texto. */
+html body[data-page="sobre"][data-page] main .about-makers__layout {
+  box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
+}
+
+/* Mesma tipografia do título do banner da página inicial. */
+html body[data-page="sobre"][data-page] main .about-practical__panel h2 {
+  font-family: Poppins, sans-serif;
+  font-weight: 700;
+  letter-spacing: -.045em;
+  line-height: 1.06;
+  text-shadow: none;
+}
+
+/* Tipografia limpa e consistente em todo o painel de informação prática. */
+html body[data-page="sobre"][data-page] main .about-practical__panel .eyebrow,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p,
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile div > span {
+  font-family: Poppins, sans-serif;
+  text-shadow: none;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile h3 {
+  font-weight: 700;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile p {
+  font-weight: 400;
+  line-height: 1.6;
+}
+html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile > svg {
+  filter: none;
+}

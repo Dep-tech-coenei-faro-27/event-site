@@ -17,11 +17,11 @@ export default function SessionEnded() {
       }
       kicker="Sessão terminada"
       title="A tua sessão terminou."
-      lead="Terminámos a sessão por segurança ou porque esteve inativa durante algum tempo. Volta a entrar para continuares."
+      lead="Volta a entrar na conta para continuares."
       actions={
         <>
           <Link className="btn btn--primary" to="/conta">
-            Iniciar sessão novamente
+            Voltar a entrar
           </Link>
           <Link className="btn btn--secondary" to="/">
             Voltar ao início
@@ -31,7 +31,7 @@ export default function SessionEnded() {
       note="As alterações que já foram confirmadas continuam guardadas. Dados ainda não enviados poderão ter de ser preenchidos novamente."
       detail={{
         code: "401",
-        heading: "É necessário autenticar novamente.",
+        heading: "Entra novamente na conta.",
         text: "Esta medida ajuda a impedir o acesso à conta quando deixas o dispositivo sem supervisão.",
         facts: [
           { label: "Código", value: "401" },

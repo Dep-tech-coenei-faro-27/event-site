@@ -104,10 +104,10 @@ export default function LegalPageLayout({
                             <div>
                                 <p className="eyebrow">DÚVIDAS</p>
                                 <h2>Podemos ajudar.</h2>
-                                <p>Consulta a informação prática ou entra em contacto com a organização através da área de ajuda.</p>
+                                <p>Tens dúvidas? Consulta a ajuda ou fala com a organização.</p>
                             </div>
                             <Link className="btn btn--primary" to="/informacao-ajuda">
-                                Informação &amp; Ajuda
+                                Informações e ajuda
                             </Link>
                         </div>
                     </article>

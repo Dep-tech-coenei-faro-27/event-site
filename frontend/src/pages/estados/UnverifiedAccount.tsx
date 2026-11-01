@@ -37,18 +37,17 @@ export default function UnverifiedAccount() {
         </>
       }
       kicker="Conta por verificar"
-      title="Confirma o teu email para continuar."
+      title="Confirma o teu email."
       lead={
         <>
-          Enviámos uma ligação para {email ? <strong>{email}</strong> : "o teu email"}. Abre o email e confirma o
-          endereço para ativares a conta.
+          Enviámos uma ligação para {email ? <strong>{email}</strong> : "o teu endereço"}. Abre a mensagem e segue a ligação para ativares a conta.
         </>
       }
       actions={
         <>
           {email && (
             <button className="btn btn--primary" type="button" onClick={resend} disabled={status === "sending" || status === "sent"}>
-              {status === "sent" ? "Email reenviado" : status === "sending" ? "A enviar…" : "Reenviar email"}
+              {status === "sent" ? "Email reenviado" : status === "sending" ? "A enviar…" : "Reenviar mensagem"}
             </button>
           )}
           <Link className={`btn ${email ? "btn--secondary" : "btn--primary"}`} to="/conta/criar">
@@ -59,17 +58,16 @@ export default function UnverifiedAccount() {
       note={
         status === "failed"
           ? "Não foi possível reenviar agora. Espera um pouco e tenta outra vez."
-          : "Verifica também a pasta de spam. Por segurança, a ligação de confirmação só pode ser utilizada uma vez."
+          : "Verifica também a pasta de correio não solicitado. Por segurança, a ligação de confirmação só pode ser utilizada uma vez."
       }
       detail={{
-        code: "EMAIL",
+        code: "MENSAGEM",
         codeIsLabel: true,
         heading: "A confirmação protege a tua conta.",
         text: "Depois de confirmares o email, regressa à área de participante para completares o perfil.",
         facts: [
           { label: "Estado", value: "Confirmação pendente" },
-          { label: "Código API", value: "403" },
-          { label: "Próximo passo", value: "Abrir o email" },
+          { label: "Próximo passo", value: "Abrir a mensagem" },
         ],
       }}
     />

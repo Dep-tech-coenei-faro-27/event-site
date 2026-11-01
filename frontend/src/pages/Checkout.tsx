@@ -11,7 +11,7 @@ import { isTicketSlug, TICKET_NAMES } from "../data/Tickets";
  * O formulário de pagamento (MB Way) é feito na issue #153 e entra nesta página.
  */
 export default function CheckoutPage() {
-  usePageMeta("Checkout · ENEI 2027", "Compra o teu bilhete para o ENEI 2027.");
+  usePageMeta("Finalizar inscrição · ENEI 2027", "Compra o teu bilhete para o ENEI 2027.");
 
   const [params] = useSearchParams();
   const slug = params.get("bilhete");
@@ -27,7 +27,7 @@ export default function CheckoutPage() {
         <div className="mx-auto w-[min(calc(100%-28px),760px)] border border-[rgba(26,178,255,0.42)] bg-azul-painel px-[22px] py-[30px] min-[621px]:w-[min(calc(100%-40px),760px)] min-[621px]:p-[clamp(38px,6vw,64px)]">
           {valid ? (
             <>
-              <Eyebrow text="CHECKOUT" />
+              <Eyebrow text="INSCRIÇÃO" />
               <h1 className="text-[clamp(32px,4vw,46px)] leading-[1.06] tracking-[-0.045em]">
                 {TICKET_NAMES[slug]}
               </h1>
@@ -50,7 +50,7 @@ export default function CheckoutPage() {
             </>
           ) : (
             <>
-              <Eyebrow text="CHECKOUT" />
+              <Eyebrow text="INSCRIÇÃO" />
               <h1 className="text-[clamp(32px,4vw,46px)] leading-[1.06] tracking-[-0.045em]">
                 Escolhe uma modalidade.
               </h1>

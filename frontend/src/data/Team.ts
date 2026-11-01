@@ -16,7 +16,7 @@ export const departments: Department[] = [
   {
     id: "direcao",
     label: "Direção",
-    eyebrow: "01 · Direção",
+    eyebrow: "Direção",
     title: "Coordenação do encontro",
     description: "Estratégia, gestão e representação do ENEI 2027.",
     members: [
@@ -34,7 +34,7 @@ export const departments: Department[] = [
   {
     id: "marketing",
     label: "Marketing",
-    eyebrow: "02 · Marketing",
+    eyebrow: "Marketing",
     title: "Marca e comunicação",
     description: "Conteúdos, identidade e comunicação do encontro.",
     members: [
@@ -48,7 +48,7 @@ export const departments: Department[] = [
   {
     id: "atividades",
     label: "Atividades",
-    eyebrow: "03 · Atividades",
+    eyebrow: "Atividades",
     title: "Programa e experiências",
     description: "Conteúdo, comunidade e momentos que dão vida ao evento.",
     members: [
@@ -64,7 +64,7 @@ export const departments: Department[] = [
   {
     id: "tecnologia",
     label: "Tecnologia",
-    eyebrow: "04 · Tecnologia",
+    eyebrow: "Tecnologia",
     title: "Plataforma e infraestrutura",
     description: "Produto digital, sistemas e experiência tecnológica.",
     members: [
@@ -82,7 +82,7 @@ export const departments: Department[] = [
   {
     id: "comercial",
     label: "Comercial",
-    eyebrow: "05 · Comercial",
+    eyebrow: "Comercial",
     title: "Parcerias e relações",
     description: "Patrocínios e ligação ao ecossistema empresarial.",
     members: [
@@ -97,7 +97,7 @@ export const departments: Department[] = [
   {
     id: "logistica",
     label: "Logística",
-    eyebrow: "06 · Logística",
+    eyebrow: "Logística",
     title: "Recinto e operação",
     description: "Acolhimento, mobilidade e execução no terreno.",
     members: [

@@ -38,8 +38,8 @@ export default function ProfilePage() {
 
   return (
     <AccountLayout
-      metaTitle="Dashboard · ENEI 2027"
-      metaDescription="Dashboard pessoal, bilhete digital e definições de perfil do ENEI 2027."
+      metaTitle="Área pessoal · ENEI 2027"
+      metaDescription="Área pessoal, bilhete digital e definições de perfil do ENEI 2027."
       eyebrow="ÁREA PESSOAL"
       title={`Olá, ${firstName}.`}
       lead="Consulta o bilhete digital e mantém os dados da tua conta atualizados."
@@ -175,7 +175,7 @@ export default function ProfilePage() {
                   O teu pagamento está pendente de confirmação.
                 </h3>
                 <p className="mx-auto mb-5 mt-2.5 max-w-[520px] text-[14px] text-cinza-texto">
-                  {pending.tier_name} · Referência {pending.reference}. Assim que o pagamento for validado, o teu bilhete digital e o código QR ficarão disponíveis aqui automaticamente.
+                  {pending.tier_name} · Referência {pending.reference}. Quando o pagamento for confirmado, o bilhete e o código QR aparecem aqui.
                 </p>
                 <SecondaryButton text="Precisas de ajuda?" to="/informacao-ajuda/" />
               </div>
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                   Ainda não tens uma inscrição.
                 </h3>
                 <p className="mb-5 mt-2.5 text-[14px] text-cinza-texto">
-                  Escolhe o teu bilhete para iniciares o processo de participação.
+                  Escolhe um bilhete para participares no ENEI.
                 </p>
                 <SecondaryButton text="Consultar bilhetes" to="/bilhetes/" />
               </div>
@@ -233,7 +233,7 @@ export default function ProfilePage() {
                   id="account-ready-title"
                   className="mt-2 text-[clamp(26px,3vw,42px)] font-extrabold leading-[1.08] tracking-[-0.04em] text-white"
                 >
-                  Tudo num só lugar.
+                  Antes de vires.
                 </h2>
               </div>
               <p className="m-0 max-w-[380px] text-[14px] leading-relaxed text-cinza-texto min-[768px]:text-[16px]">

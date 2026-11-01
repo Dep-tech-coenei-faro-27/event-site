@@ -12,8 +12,8 @@ export default function CtaBanner() {
           <p className="eyebrow" style={{ color: 'white' }}>
             &lt;ENEI_2027 /&gt;
           </p>
-          <h2>Prepara-te para fazer parte.</h2>
-          <p>Escolhe o teu bilhete e consulta tudo o que precisas para preparar os quatro dias.</p>
+          <h2>Falta só estares lá.</h2>
+          <p className="home-closing__lead">Traz a curiosidade. Leva novas ideias, novas amizades e quatro dias para recordar.</p>
           <div className="actions">
             <Link className="btn btn--dark" to="/bilhetes">
               Comprar bilhete

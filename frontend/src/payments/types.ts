@@ -26,7 +26,7 @@ export type Tier = {
   name: string;
   /** `null` enquanto a modalidade não tem preço (bilheteira fechada). */
   price_cents: number | null;
-  /** O preço normal, só enquanto `price_cents` é um preço Early Bird (e então é maior). */
+  /** Preço normal, quando existe um preço de lançamento inferior. */
   normal_price_cents?: number | null;
   currency: string;
   is_student: boolean;

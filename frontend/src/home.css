@@ -702,10 +702,10 @@ body[data-page="inicio"] .cta > .home-closing__passer {
   border: 0;
   background: none;
 }
-body[data-page="inicio"] .home-closing__passer img {
-  /* Sem a «respiração» contínua do protótipo (sobe, roda e cresce em ciclo): ficava sempre a
-     mexer ao lado dos botões. O símbolo só se move com o scroll. */
-  animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  body[data-page="inicio"] .home-closing__passer img {
+    animation: motion-logo-breathe 5.2s ease-in-out infinite;
+  }
 }
 body[data-page="inicio"] .cta > .home-closing__passer {
   /* Parado: o símbolo já não se move com o scroll. */
@@ -741,7 +741,7 @@ body[data-page="inicio"] .programme-preview__item:nth-child(4) {
 body[data-page="inicio"] .home-edition > .motion-section__trace {
   display: none;
 }
-/* Parceiros e apoios (substitui a página Parcerias). Placeholders com o nome até haver logótipos. */
+/* Parceiros e apoios: logótipos a cores sobre branco suavizado. */
 html body[data-page="inicio"][data-page] main .home-partners__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -751,18 +751,23 @@ html body[data-page="inicio"][data-page] main .home-partners__grid {
   list-style: none;
 }
 html body[data-page="inicio"][data-page] main .home-partners__grid li {
-  min-height: 96px;
+  min-height: 150px;
   display: grid;
   place-items: center;
   padding: 18px;
-  border: 1px dashed var(--line-accent);
-  border-radius: 2px;
-  background:
-    linear-gradient(145deg, rgba(26, 178, 255, 0.12), transparent 58%),
-    var(--panel);
+  border: 2px solid rgba(26, 178, 255, 0.55);
+  border-radius: 8px;
+  background: #e6e8eb;
   color: #E8F1FF;
   font: 700 13px/1.35 Montserrat, sans-serif;
   text-align: center;
+}
+html body[data-page="inicio"][data-page] main .home-partners__grid svg {
+  display: block;
+  width: 100%;
+  height: 110px;
+  overflow: hidden;
+  mix-blend-mode: multiply;
 }
 html body[data-page="inicio"][data-page] main .home-partners .actions {
   margin-top: 32px;

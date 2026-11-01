@@ -74,7 +74,7 @@ describe("checkout", () => {
   it("sem sessão pede para criar conta ou entrar, e não mostra o formulário", () => {
     mocks.user.current = null;
     renderAt();
-    expect(screen.getByRole("heading", { name: /antes de comprar, cria a tua conta/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /o bilhete fica na tua conta/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Criar conta" })).toHaveAttribute("href", "/conta/criar");
     expect(screen.getByRole("link", { name: "Já tenho conta" })).toHaveAttribute("href", "/conta");
     expect(screen.queryByRole("button", { name: /pagar com mb way/i })).toBeNull();

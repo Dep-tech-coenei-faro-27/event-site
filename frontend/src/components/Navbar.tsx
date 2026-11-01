@@ -8,7 +8,7 @@ const navLinks = [
   { name: 'Sobre', path: '/sobre' },
   { name: 'Agenda', path: '/agenda' },
   { name: 'Equipa', path: '/equipa' },
-  { name: 'Informação & Ajuda', path: '/informacao-ajuda' },
+  { name: 'Informações e ajuda', path: '/informacao-ajuda' },
   { name: 'Bilhetes', path: '/bilhetes' }
 ];
 
@@ -115,7 +115,7 @@ export default function Navbar() {
 
   return (
     <header className="site-header fixed top-0 inset-x-0 z-[100] h-[64px] md:h-[76px] border-b border-acento-principal/15 bg-azul-noite/30 backdrop-blur-[22px] backdrop-saturate-[1.35] shadow-[0_8px_30px_rgba(0,0,0,0.08)] font-poppins">
-      <div className="max-w-[1180px] mx-auto w-[calc(100%-28px)] md:w-[calc(100%-40px)] h-full flex items-center justify-between gap-4">
+      <div className="max-w-[1180px] mx-auto w-[calc(100%-40px)] h-full flex items-center justify-between gap-4">
 
         <div className="flex-shrink-0 z-50">
           <BrandLogo />
@@ -145,7 +145,7 @@ export default function Navbar() {
           aria-label="Principal"
           // Fechado no telemóvel, o menu está só encolhido: `inert` tira os links da ordem de tabulação.
           inert={isMobile && !isMenuOpen}
-          className={`md:static md:flex md:items-center md:justify-center md:bg-transparent md:h-auto md:p-0 md:max-h-none md:overflow-visible md:border-none fixed inset-x-0 top-[64px] bg-azul-base/95 px-5 flex flex-col transition-all duration-300 overflow-hidden text-[13px] text-nevoa-azul ${isMenuOpen ? 'max-h-[calc(100vh-64px)] py-[18px] border-b border-branco/10' : 'max-h-0 border-b-0 py-0'
+          className={`md:static md:flex md:items-center md:justify-center md:bg-transparent md:h-auto md:p-0 md:max-h-none md:overflow-visible md:border-none fixed inset-x-0 top-[64px] bg-azul-base/95 px-5 flex flex-col transition-all duration-300 overflow-x-hidden text-[13px] text-nevoa-azul ${isMenuOpen ? 'max-h-[calc(100vh-64px)] overflow-y-auto py-[18px] border-b border-branco/10' : 'max-h-0 overflow-y-hidden border-b-0 py-0'
             }`}
         >
           <div className="flex flex-col md:flex-row md:items-center md:gap-7 w-full md:w-auto">

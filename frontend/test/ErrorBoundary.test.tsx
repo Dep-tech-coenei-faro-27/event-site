@@ -31,7 +31,7 @@ test('um erro ao desenhar mostra o ecrã de erro em vez de deixar o site em bran
     </div>,
   );
 
-  expect(screen.getByRole('alert')).toHaveTextContent('Algo não correu como esperado.');
+  expect(screen.getByRole('alert')).toHaveTextContent('Não conseguimos abrir esta página.');
   expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Pedir ajuda' })).toHaveAttribute(
     'href',
