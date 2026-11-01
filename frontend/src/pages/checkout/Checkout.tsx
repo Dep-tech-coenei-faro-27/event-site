@@ -368,6 +368,18 @@ function CheckoutForm() {
                 </span>
               </label>
 
+              <p className="checkout-refund-note">
+                Depois de pagares, o bilhete não é reembolsável. Se houver um erro nosso, devolvemos-te o valor total. Dúvidas:{" "}
+                <a className="auth-legal-link" href="mailto:geral@eneiconf.pt">
+                  geral@eneiconf.pt
+                </a>
+                .{" "}
+                <Link className="auth-legal-link" to="/termos#cancelamento-e-reembolso">
+                  Ver as condições
+                </Link>
+                .
+              </p>
+
               {failure && <FailureNotice failure={failure} />}
 
               <button className="btn btn--primary checkout-submit" type="submit" disabled={!canSubmit}>
