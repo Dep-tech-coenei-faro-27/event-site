@@ -110,13 +110,13 @@ describe("página inicial", () => {
     });
   });
 
-  it("mostra três imagens provisórias e a fotografia do campus com crédito à UAlg", () => {
+  it("mostra imagens com descrição e a fotografia do campus com crédito à UAlg", () => {
     const { container } = renderHome();
     const photos = container.querySelectorAll(".preview-photo");
     expect(photos).toHaveLength(4);
     Array.from(photos).slice(0,3).forEach(photo => {
-      expect(within(photo as HTMLElement).getByRole("img")).toHaveAttribute("alt", expect.stringContaining("imagem provisória"));
-      expect(within(photo as HTMLElement).getByText("Imagem provisória")).toBeInTheDocument();
+      expect(within(photo as HTMLElement).getByRole("img")).toHaveAttribute("alt", expect.stringMatching(/\S/));
+      expect(photo.textContent).not.toMatch(/imagem provisória/i);
     });
     expect(within(photos[3] as HTMLElement).getByRole("img")).toHaveAttribute("alt", expect.stringContaining("Campus das Gambelas"));
     expect(within(photos[3] as HTMLElement).getByText("Fotografia: UAlg")).toBeInTheDocument();

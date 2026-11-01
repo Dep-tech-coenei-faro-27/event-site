@@ -4,8 +4,8 @@ type Props = { src: string; alt: string; subject: string; priority?: boolean };
 export default function PreviewPhoto({ src, alt, subject, priority = false }: Props) {
   return (
     <figure className="preview-photo">
-      <img src={src} alt={`${alt} — imagem provisória`} loading={priority ? 'eager' : 'lazy'} />
-      <figcaption><span>{subject}</span><small>Imagem provisória</small></figcaption>
+      <img src={src} alt={alt} loading={priority ? 'eager' : 'lazy'} />
+      <figcaption><span>{subject}</span></figcaption>
     </figure>
   );
 }
