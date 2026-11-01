@@ -7,7 +7,7 @@ from app.core.email.base import EmailDeliveryError, EmailSender
 from app.core.email.smtp import SmtpEmailSender
 from app.core.email.templates import (
     VERIFICATION_EMAIL_SUBJECT,
-    build_verification_email_html,
+    build_verification_email,
 )
 
 
@@ -202,18 +202,19 @@ def test_send_html_allows_explicit_starttls_override(monkeypatch):
 
 
 def test_verification_template_contains_link_and_subject():
-    html = build_verification_email_html(
+    html, text = build_verification_email(
         "Ana", "https://app.example.com/verify-email?token=abc123"
     )
 
     assert "<html" in html.lower()
     assert "Ana" in html
     assert "https://app.example.com/verify-email?token=abc123" in html
+    assert "https://app.example.com/verify-email?token=abc123" in text
     assert VERIFICATION_EMAIL_SUBJECT != ""
 
 
 def test_verification_template_escapes_html_in_name():
-    html = build_verification_email_html(
+    html, _ = build_verification_email(
         "<script>alert('xss')</script>",
         "https://app.example.com/verify-email?token=abc",
     )

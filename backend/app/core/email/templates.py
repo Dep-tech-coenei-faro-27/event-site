@@ -11,87 +11,18 @@ PASSWORD_CHANGED_SUBJECT = "A tua password foi alterada"
 TICKET_EMAIL_SUBJECT = "O teu bilhete para o ENEI 2027"
 TICKET_QR_CID = "ticket-qr"
 TICKET_PATH = "/perfil"
+FORGOT_PASSWORD_PATH = "/conta/recuperar"
 EVENT_DATES = "1–4 abril 2027"
 EVENT_LOCATION = "Campus de Gambelas, Faro"
 MARKER_PATTERN = re.compile(r"\[([A-Z][A-Z_]*)\]")
 _TICKET_HTML = Path(__file__).with_name("ticket_email.html")
 _TICKET_TEXT = Path(__file__).with_name("ticket_email.txt")
-
-
-def build_verification_email_html(first_name: str, verify_url: str) -> str:
-    safe_name = escape(first_name)
-    safe_url = escape(verify_url, quote=True)
-    return f"""\
-<html>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
-        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3f3f46;">
-          Obrigado por criares uma conta. Confirma o teu email para sabermos que te pertence.
-        </p>
-        <a href="{safe_url}" style="display:inline-block;padding:12px 24px;border-radius:8px;
-           background-color:#18181b;color:#ffffff;text-decoration:none;font-size:16px;">
-          Confirmar email
-        </a>
-        <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#71717a;">
-          Se o botão não funcionar, abre este link no browser:<br />
-          <a href="{safe_url}" style="color:#71717a;word-break:break-all;">{safe_url}</a>
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
-"""
-
-
-def build_password_reset_email_html(first_name: str, reset_url: str) -> str:
-    safe_name = escape(first_name)
-    safe_url = escape(reset_url, quote=True)
-    return f"""\
-<html>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
-        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#3f3f46;">
-          Recebemos um pedido para repor a tua password. Clica no botão abaixo para escolher uma nova.
-        </p>
-        <a href="{safe_url}" style="display:inline-block;padding:12px 24px;border-radius:8px;
-           background-color:#18181b;color:#ffffff;text-decoration:none;font-size:16px;">
-          Repor Password
-        </a>
-        <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#71717a;">
-          Se não fizeste este pedido, podes ignorar este email com segurança.<br /><br />
-          Ou copia este link para o browser:<br />
-          <a href="{safe_url}" style="color:#71717a;word-break:break-all;">{safe_url}</a>
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
-"""
-
-
-def build_password_changed_email_html(first_name: str) -> str:
-    safe_name = escape(first_name)
-    return f"""\
-<html>
-  <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-      <div style="background-color:#ffffff;border-radius:12px;padding:32px;">
-        <h1 style="margin:0 0 16px;font-size:22px;color:#18181b;">Olá {safe_name},</h1>
-        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#3f3f46;">
-          A password da tua conta foi alterada.
-        </p>
-        <p style="margin:0;font-size:14px;line-height:1.6;color:#71717a;">
-          Se foste tu, não precisas de fazer nada. Se não foste tu, usa a opção de recuperar a password no site para escolheres uma nova e fala connosco.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
-"""
+_VERIFICATION_HTML = Path(__file__).with_name("verification_email.html")
+_VERIFICATION_TEXT = Path(__file__).with_name("verification_email.txt")
+_PASSWORD_RESET_HTML = Path(__file__).with_name("password_reset_email.html")
+_PASSWORD_RESET_TEXT = Path(__file__).with_name("password_reset_email.txt")
+_PASSWORD_CHANGED_HTML = Path(__file__).with_name("password_changed_email.html")
+_PASSWORD_CHANGED_TEXT = Path(__file__).with_name("password_changed_email.txt")
 
 
 def render_template(template: str, values: dict[str, str], *, html: bool = True) -> str:
@@ -137,3 +68,56 @@ def build_ticket_email(
     html = render_template(_TICKET_HTML.read_text(encoding="utf-8"), values)
     text = render_template(_TICKET_TEXT.read_text(encoding="utf-8"), values, html=False)
     return html, text
+
+
+def _first_name(name: str) -> str:
+    parts = name.split()
+    return parts[0] if parts else name
+
+
+def _render_pair(
+    html_file: Path, text_file: Path, values: dict[str, str]
+) -> tuple[str, str]:
+    html = render_template(html_file.read_text(encoding="utf-8"), values)
+    text = render_template(text_file.read_text(encoding="utf-8"), values, html=False)
+    return html, text
+
+
+def build_verification_email(name: str, verify_url: str) -> tuple[str, str]:
+    """The email-confirmation email as ``(html, plain text)``."""
+    return _render_pair(
+        _VERIFICATION_HTML,
+        _VERIFICATION_TEXT,
+        {
+            "FIRST_NAME": _first_name(name),
+            "VERIFICATION_URL": verify_url,
+            "VERIFICATION_VALIDITY_MINUTES": str(
+                config.settings.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES
+            ),
+        },
+    )
+
+
+def build_password_reset_email(name: str, reset_url: str) -> tuple[str, str]:
+    """The password-recovery email as ``(html, plain text)``."""
+    return _render_pair(
+        _PASSWORD_RESET_HTML,
+        _PASSWORD_RESET_TEXT,
+        {
+            "FIRST_NAME": _first_name(name),
+            "PASSWORD_RESET_URL": reset_url,
+            "RESET_VALIDITY_MINUTES": str(
+                config.settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+            ),
+        },
+    )
+
+
+def build_password_changed_email(name: str) -> tuple[str, str]:
+    """The "your password was changed" email, with a link to ask for a reset."""
+    request_url = f"{config.settings.FRONTEND_URL.rstrip('/')}{FORGOT_PASSWORD_PATH}"
+    return _render_pair(
+        _PASSWORD_CHANGED_HTML,
+        _PASSWORD_CHANGED_TEXT,
+        {"FIRST_NAME": _first_name(name), "PASSWORD_RESET_REQUEST_URL": request_url},
+    )
