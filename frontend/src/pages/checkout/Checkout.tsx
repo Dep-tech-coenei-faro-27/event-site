@@ -199,10 +199,10 @@ function CheckoutForm() {
           </Link>
           <div className="checkout-heading__copy">
             <div>
-              <p className="eyebrow">&lt;CHECKOUT /&gt;</p>
+              <p className="eyebrow">&lt;INSCRIÇÃO /&gt;</p>
               <h1>Finaliza a tua inscrição.</h1>
             </div>
-            <p className="lead">Escolhe o bilhete e conclui o pagamento através de MB Way.</p>
+            <p className="lead">Escolhe o bilhete e conclui o pagamento através de MB WAY.</p>
           </div>
           <ol className="checkout-steps" aria-label="Etapas da compra">
             <li className="checkout-step checkout-step--active">
@@ -230,7 +230,7 @@ function CheckoutForm() {
                 <div>
                   <p className="eyebrow">BILHETE</p>
                   <h2 id="ticket-heading">Escolhe a modalidade</h2>
-                  <p>Seleciona a experiência que melhor se adapta a ti.</p>
+                  <p>Vê o que cada bilhete inclui.</p>
                 </div>
               </div>
 
@@ -285,18 +285,18 @@ function CheckoutForm() {
                 <span className="checkout-panel__number">02</span>
                 <div>
                   <p className="eyebrow">PAGAMENTO</p>
-                  <h2 id="payment-heading">Paga com MB Way</h2>
+                  <h2 id="payment-heading">Paga com MB WAY</h2>
                   <p>Receberás um pedido de confirmação no telemóvel.</p>
                 </div>
               </div>
 
               <div className="mbway-card">
                 <div className="mbway-mark">
-                  <img src={mbwayLogo} alt="MB Way" width="112" height="70" />
+                  <img src={mbwayLogo} alt="MB WAY" width="112" height="70" />
                 </div>
                 <div>
                   <strong>Pagamento seguro</strong>
-                  <span>Confirma a operação na aplicação MB Way.</span>
+                  <span>Confirma a operação na aplicação MB WAY.</span>
                 </div>
               </div>
 
@@ -321,7 +321,7 @@ function CheckoutForm() {
                 <small id="phone-help">
                   {phoneTouched && !phoneValid
                     ? "Indica um telemóvel português válido (9 dígitos)."
-                    : "Utiliza o número associado à tua conta MB Way."}
+                    : "Utiliza o número associado à tua conta MB WAY."}
                 </small>
               </label>
 
@@ -371,7 +371,7 @@ function CheckoutForm() {
               {failure && <FailureNotice failure={failure} />}
 
               <button className="btn btn--primary checkout-submit" type="submit" disabled={!canSubmit}>
-                {submitting ? "A iniciar o pagamento…" : "Pagar com MB Way"}
+                {submitting ? "A iniciar o pagamento…" : "Pagar com MB WAY"}
                 <span aria-hidden="true">→</span>
               </button>
             </section>
@@ -383,7 +383,7 @@ function CheckoutForm() {
             <div className="checkout-summary__ticket">
               <span>ENEI 2027</span>
               <strong>{current?.name ?? "Escolhe uma modalidade"}</strong>
-              <small>1–4 abril · Faro, Algarve</small>
+              <small>1 a 4 de abril · Faro</small>
             </div>
             <dl className="checkout-summary__details">
               <div>
@@ -404,7 +404,7 @@ function CheckoutForm() {
               <strong>{current ? formatPrice(current.price_cents, current.currency) : "—"}</strong>
             </div>
             <ul className="checkout-trust-list">
-              <li>Pagamento através de MB Way</li>
+              <li>Pagamento através de MB WAY</li>
               <li>Bilhete disponível na área pessoal</li>
             </ul>
             <Link className="checkout-help" to="/informacao-ajuda">
@@ -438,7 +438,7 @@ function StudentHint({ status }: { status: StudentStatus }) {
       ? "O teu comprovativo de estudante está em revisão. As modalidades de estudante abrem quando for aprovado."
       : status === "rejected"
         ? "O teu comprovativo de estudante foi recusado. Vê o motivo e envia outro na tua conta."
-        : "Não tens email de aluno? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
+        : "Sem endereço de estudante? Envia o comprovativo de matrícula na tua conta.";
   return (
     <p style={{ margin: "12px 0 0", fontSize: 13 }}>
       {text}{" "}

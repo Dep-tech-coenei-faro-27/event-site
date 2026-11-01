@@ -49,8 +49,8 @@ describe("Preços na página de bilhetes (vêm do servidor)", () => {
     expect(completo.querySelector(".price-now .sr-only")?.textContent).toMatch(/^25,63\s€$/);
     expect(completo.querySelector("s.price-was")?.textContent).toMatch(/30,71/);
     expect(completo.querySelector(".price-save")?.textContent).toMatch(/^Poupas 5,08\s€$/);
-    expect(completo.querySelector(".price-until")?.textContent).toBe("Preço Early Bird");
-    expect(screen.getByRole("note")).toHaveTextContent("Preços Early Bird");
+    expect(completo.querySelector(".price-until")?.textContent).toBe("Preço de lançamento");
+    expect(screen.getByRole("note")).toHaveTextContent("Preços de lançamento");
   });
 
   it("sem preço normal (já acabou o Early Bird): só o preço, sem riscado nem aviso", async () => {

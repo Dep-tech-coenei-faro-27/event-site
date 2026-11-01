@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 /**
  * Marca o `<body>` com `data-page`, que é o que o CSS das páginas no desenho novo usa para se
@@ -7,7 +7,7 @@ import { useEffect } from "react";
  * `payment-result-page`) e também sai ao desmontar.
  */
 export function useBodyPage(page: string, bodyClass?: string) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.dataset.page = page;
     const classes = bodyClass ? bodyClass.split(" ") : [];
     document.body.classList.add(...classes);

@@ -40,8 +40,7 @@ const socials: SocialLink[] = [
   },
 ];
 
-// Três colunas só a partir dos 900px: o protótipo usa os 700px, mas as larguras mínimas (260+260+220
-// mais os espaços) não cabem entre os 700 e os ~860px e a página ganhava scroll horizontal.
+// Três colunas a partir dos 901px, com colunas flexíveis para não comprimir as ligações.
 // Medidas do rodapé do desenho novo (`ui-ux/src/core.css`, `.site-footer`): títulos e listas a 14px,
 // 9px entre ligações, etiquetas a 10px, linhas com a cor `--line`.
 const LINE = 'border-[rgba(215,227,244,0.1)]';
@@ -53,10 +52,10 @@ const labelClass =
 export default function Footer() {
   return (
     <>
-    <footer className={`site-footer border-t ${LINE} bg-azul-noite pb-6 pt-16 font-poppins text-cinza-texto`}>
-      <div className="mx-auto w-[calc(100%-28px)] max-w-[1180px] md:w-[calc(100%-40px)]">
+    <footer className={`site-footer border-t ${LINE} bg-azul-noite pb-6 pt-12 font-poppins text-cinza-texto`}>
+      <div className="mx-auto w-[calc(100%-40px)] max-w-[1180px] min-[901px]:w-[calc(100%-80px)]">
         {/* Três blocos: identidade, ligações (Explorar e Participar) e organização e redes */}
-        <div className="footer-main grid grid-cols-1 items-start gap-9 min-[621px]:grid-cols-2 min-[621px]:gap-11 min-[901px]:gap-[clamp(36px,5vw,76px)] min-[901px]:grid-cols-[minmax(260px,1.15fr)_minmax(260px,0.9fr)_minmax(220px,0.75fr)]">
+        <div className="footer-main grid grid-cols-1 items-start gap-8 min-[621px]:grid-cols-2 min-[901px]:gap-8 min-[901px]:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
           {/* Identidade */}
           <div className="footer-identity flex flex-col min-[621px]:col-span-2 min-[901px]:col-span-1">
             <BrandLogo
@@ -69,7 +68,7 @@ export default function Footer() {
           </div>
 
           {/* Explorar e Participar */}
-          <div className="footer-navigation grid grid-cols-2 gap-6 min-[621px]:gap-8">
+          <div className="footer-navigation grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-6">
             <div>
               <h2 className={headingClass}>Explorar</h2>
               <ul className={listClass}>
@@ -83,13 +82,13 @@ export default function Footer() {
               <ul className={listClass}>
                 <li><Link to="/conta" className="transition-colors hover:text-branco">Entrar</Link></li>
                 <li><Link to="/bilhetes" className="transition-colors hover:text-branco">Bilhetes</Link></li>
-                <li><Link to="/informacao-ajuda" className="transition-colors hover:text-branco">Informação &amp; Ajuda</Link></li>
+                <li><Link to="/informacao-ajuda" className="transition-colors hover:text-branco">Informações e ajuda</Link></li>
               </ul>
             </div>
           </div>
 
-          {/* Organizado por + redes sociais (no tablet, de 621 a 900px, o bloco com a linha encostado à direita) */}
-          <div className={`footer-connect grid grid-cols-2 items-start gap-6 border-t ${LINE} pt-[26px] min-[621px]:grid-cols-1 min-[621px]:gap-7 min-[621px]:border-t-0 min-[621px]:pt-0 min-[621px]:border-l min-[621px]:pl-[clamp(24px,4vw,50px)] min-[621px]:max-[900px]:justify-self-end`}>
+          {/* Organizado por + redes sociais */}
+          <div className={`footer-connect flex flex-wrap items-start justify-between gap-6 border-t ${LINE} pt-6 min-[621px]:grid min-[621px]:grid-cols-1 min-[621px]:gap-6 min-[621px]:border-t-0 min-[621px]:pt-0 min-[621px]:border-l min-[621px]:pl-6 min-[621px]:max-[900px]:justify-self-end`}>
             <div className="w-fit">
               <span className={labelClass}>Organizado por</span>
               <img
@@ -128,7 +127,7 @@ export default function Footer() {
         </div>
 
         {/* Barra inferior */}
-        <div className={`mt-11 flex flex-col items-start justify-between gap-6 border-t ${LINE} pt-5 text-[12px] text-cinza-subtil min-[621px]:flex-row min-[621px]:items-center`}>
+        <div className={`mt-8 flex flex-col items-start justify-between gap-6 border-t ${LINE} pt-5 text-[12px] text-cinza-subtil min-[901px]:flex-row min-[901px]:items-center`}>
           <p className="m-0">© 2027 ENEI. Todos os direitos reservados.</p>
           <div className="flex flex-wrap justify-start gap-3 min-[621px]:justify-end min-[621px]:gap-[18px]">
             <Link to="/termos" className="transition-colors hover:text-branco">Termos e condições</Link>

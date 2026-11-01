@@ -56,7 +56,7 @@ describe('404', () => {
     );
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Perdeste-te pelo caminho?');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Não encontrámos esta página.');
     expect(screen.getByRole('complementary', { name: 'Detalhes do erro' })).toHaveTextContent('404');
     expect(screen.getByRole('link', { name: 'Voltar ao início' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Ver agenda' })).toHaveAttribute('href', '/agenda');
@@ -68,7 +68,7 @@ describe('404', () => {
   test('aparece numa rota inexistente, dentro do layout', async () => {
     openApp('/esta-pagina-nao-existe');
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Perdeste-te pelo caminho?' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Não encontrámos esta página.' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getAllByRole('main')).toHaveLength(1);
     expect(screen.getAllByRole('navigation').length).toBeGreaterThan(0);
@@ -79,7 +79,7 @@ describe('404', () => {
     openApp('/termos');
 
     expect(await screen.findAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.queryByText('Perdeste-te pelo caminho?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Não encontrámos esta página.')).not.toBeInTheDocument();
   });
 });
 
@@ -88,7 +88,7 @@ describe('500', () => {
     render(<ServerError onRetry={() => {}} />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Algo não correu como esperado.');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Não conseguimos abrir esta página.');
     expect(screen.getByRole('complementary', { name: 'Detalhes do erro' })).toHaveTextContent('500');
     expect(document.body.dataset.page).toBe('estado');
     expect(document.body).toHaveClass('system-state-page', 'system-state-page--danger');
@@ -107,7 +107,7 @@ describe('500', () => {
       </div>,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Algo não correu como esperado.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Não conseguimos abrir esta página.');
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByText('Menu do site')).toBeInTheDocument();
     expect(screen.getByText('Rodapé do site')).toBeInTheDocument();

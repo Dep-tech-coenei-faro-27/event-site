@@ -55,7 +55,7 @@ function describe(phase: string | undefined, accountChecked: boolean) {
       return {
         tag: "REEMBOLSO A CAMINHO",
         title: "O pagamento chegou, mas não conseguimos emitir o bilhete.",
-        text: "O lugar já não estava disponível. Devolvemos o valor ao teu MB Way; não precisas de fazer nada.",
+        text: "O lugar já não estava disponível. Devolvemos o valor ao teu MB WAY; não precisas de fazer nada.",
         status: "Reembolso a caminho",
         retry: false,
       };

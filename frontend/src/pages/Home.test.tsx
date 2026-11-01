@@ -28,11 +28,11 @@ afterEach(() => {
 const stubMatchMedia = () => vi.stubGlobal("matchMedia", () => ({ matches: false }));
 
 describe("página inicial", () => {
-  it("tem as sete secções do desenho como filhas diretas do main (o CSS conta-as por ordem)", () => {
+  it("mantém cinco secções com informação direta", () => {
     const { container } = renderHome();
     const main = container.querySelector("main")!;
     const sections = [...main.children].filter((el) => el.tagName === "SECTION");
-    expect(sections).toHaveLength(8);
+    expect(sections).toHaveLength(5);
     expect(sections[0]).toHaveClass("hero-home");
     expect(sections.slice(1).every((s) => s.classList.contains("section"))).toBe(true);
   });
@@ -45,15 +45,11 @@ describe("página inicial", () => {
       within(main).getAllByRole("link", { name })[nth].getAttribute("href");
 
     expect(hrefOf("Saber mais")).toBe("/sobre");
-    expect(hrefOf("Conhecer o ENEI")).toBe("/sobre");
-    expect(hrefOf(/Ver parceiros/)).toBe("/#parceiros");
-    expect(hrefOf(/Descobrir o ENEI/)).toBe("/sobre");
-    expect(hrefOf("Ver agenda")).toBe("/agenda");
-    expect(hrefOf("Descobrir Faro")).toBe("/sobre#faro");
+    expect(hrefOf("Ver programa completo")).toBe("/agenda");
+    expect(hrefOf("Ver locais e acessos")).toBe("/informacao-ajuda#localizacoes");
     expect(hrefOf("Tenho dúvidas")).toBe("/informacao-ajuda");
-    // «Comprar bilhete» aparece no hero, nos percursos e na caixa final: todos levam a /bilhetes
     const buy = within(main).getAllByRole("link", { name: /Comprar bilhete/i });
-    expect(buy.length).toBeGreaterThanOrEqual(3);
+    expect(buy).toHaveLength(2);
     buy.forEach((a) => expect(a).toHaveAttribute("href", "/bilhetes"));
 
     links.forEach((a) => {
@@ -72,7 +68,7 @@ describe("página inicial", () => {
   it("os botões do desenho novo usam a classe .btn", () => {
     const { container } = renderHome();
     const buttons = [...container.querySelectorAll("a.btn")];
-    expect(buttons).toHaveLength(7); // hero 2, «Conhecer o ENEI», «Ver agenda», «Descobrir Faro» e a caixa final 2
+    expect(buttons).toHaveLength(6);
     buttons.forEach((b) => expect(b.className).toMatch(/btn--(primary|secondary|dark|outline-light)/));
   });
 
@@ -88,7 +84,7 @@ describe("página inicial", () => {
     expect(document.title).toBe("ENEI 2027");
   });
 
-  it("o cartão data/local/bilhetes mostra os três itens", () => {
+  it("o cartão mostra data, local e duração", () => {
     const { container } = renderHome();
     const card = container.querySelector(".stats-overlap")!;
     ["DATA", "LOCAL", "BILHETES"].forEach((label) =>
@@ -107,25 +103,22 @@ describe("página inicial", () => {
       </MemoryRouter>,
     );
     const sections = [...container.querySelectorAll("main > section")].slice(1);
-    expect(sections).toHaveLength(7);
+    expect(sections).toHaveLength(4);
     sections.forEach((section) => {
       const name = section.className;
       expect(section.querySelectorAll("[data-motion-item]").length, name).toBeGreaterThan(0);
     });
   });
 
-  it("a «Experiência» anima o título, a citação e cada uma das quatro cartas; Faro anima imagem e texto", () => {
-    stubMatchMedia();
-    const { container } = render(
-      <MemoryRouter>
-        <main>
-          <Layer />
-          <Home />
-        </main>
-      </MemoryRouter>,
-    );
-    expect(container.querySelectorAll(".home-experience [data-motion-item]")).toHaveLength(6); // etiqueta, citação, 4 cartas
-    expect(container.querySelectorAll(".ops-item[data-motion-item]")).toHaveLength(4);
-    expect(container.querySelectorAll(".home-faro [data-motion-item]")).toHaveLength(2); // imagem e texto
+  it("mostra três imagens provisórias e a fotografia do campus com crédito à UAlg", () => {
+    const { container } = renderHome();
+    const photos = container.querySelectorAll(".preview-photo");
+    expect(photos).toHaveLength(4);
+    Array.from(photos).slice(0,3).forEach(photo => {
+      expect(within(photo as HTMLElement).getByRole("img")).toHaveAttribute("alt", expect.stringContaining("imagem provisória"));
+      expect(within(photo as HTMLElement).getByText("Imagem provisória")).toBeInTheDocument();
+    });
+    expect(within(photos[3] as HTMLElement).getByRole("img")).toHaveAttribute("alt", expect.stringContaining("Campus das Gambelas"));
+    expect(within(photos[3] as HTMLElement).getByText("Fotografia: UAlg")).toBeInTheDocument();
   });
 });

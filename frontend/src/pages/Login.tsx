@@ -8,9 +8,9 @@ import { formErrorsFrom, formMessage, useAuthForm } from "../utils/authForm";
 import { http, ApiError } from "../utils/http";
 
 const points = [
-  "Consulta o estado dos teus bilhetes.",
-  "Atualiza os dados do teu perfil.",
-  "Recebe informação importante do evento.",
+  "Consulta o teu bilhete.",
+  "Atualiza os teus dados.",
+  "Acompanha a tua inscrição.",
 ];
 
 // Página para onde voltar depois de entrar: a que o ProtectedRoute guardou em `state.from`.
@@ -52,7 +52,7 @@ export default function LoginPage() {
           // Conta por verificar: a página própria explica e deixa reenviar o email.
           navigate("/conta/por-verificar", { state: { email } });
         } else {
-          fail(formErrorsFrom(err, "Demasiadas tentativas de login."));
+          fail(formErrorsFrom(err, "Demasiadas tentativas de início de sessão."));
         }
       }
     });
@@ -61,12 +61,12 @@ export default function LoginPage() {
   return (
     <AuthLayout
       eyebrow="CONTA_ENEI"
-      title="A tua experiência começa aqui."
-      lead="Entra para acompanhar a tua inscrição e manter os teus dados do evento organizados."
+      title="O teu ENEI, aqui."
+      lead="Consulta o bilhete e gere os teus dados."
       points={points}
     >
       <AuthEyebrow text="ENTRAR" />
-      <h2>Bem-vindo de volta.</h2>
+      <h2>Entra na tua conta.</h2>
       <p className="auth-intro">Usa o email associado à tua conta ENEI.</p>
 
       {sessionEnded && (

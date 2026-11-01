@@ -3,12 +3,11 @@ export default function TeamHero() {
   return (
     <header className="page-hero team-hero">
       <div className="container">
-        <p className="hidden">Fotografia da equipa organizadora do ENEI 2027 reunida na praia.</p>
-        <p className="eyebrow">&lt;EQUIPA /&gt;</p>
-        <h1>As pessoas por trás do ENEI 2027.</h1>
-        <p className="lead">
-          Uma estrutura organizada por áreas de especialidade para transformar ambição estudantil numa experiência nacional.
-        </p>
+        <div className="team-hero__copy">
+          <p className="eyebrow">&lt;EQUIPA /&gt;</p>
+          <h1>As pessoas por trás<br />{' '}do ENEI 2027.</h1>
+          <p className="lead">Estudantes a preparar os teus quatro dias em Faro.</p>
+        </div>
       </div>
     </header>
   );

@@ -30,8 +30,8 @@ export default function ServerError({ onRetry, standalone = false }: ServerError
           </>
         }
         kicker="Erro do servidor"
-        title="Algo não correu como esperado."
-        lead="Não conseguimos concluir o teu pedido. O problema é temporário e os teus dados continuam seguros: tenta novamente dentro de momentos."
+        title="Não conseguimos abrir esta página."
+        lead="Tenta novamente daqui a pouco. Se o problema continuar, contacta a equipa."
         actions={
           <>
             <PrimaryButton text="Tentar novamente" onClick={onRetry} />

@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
     <AuthLayout
       eyebrow="RECUPERAÇÃO"
       title="Volta à tua conta."
-      lead="Enviaremos as instruções de recuperação para o email associado ao teu perfil."
+      lead="Recebe uma ligação para definir uma nova palavra-passe."
       points={points}
     >
       <AuthStateIcon>

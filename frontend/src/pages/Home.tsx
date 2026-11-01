@@ -1,10 +1,7 @@
-import AboutSection from '../components/AboutSection';
 import Hero from '../components/Hero';
-import ParticipationSection from '../components/ParticipationSection';
 import ProgramSection from '../components/ProgramSection';
 import QuickInfo from '../components/QuickInfo';
 import LocationSection from '../components/LocationSection'
-import ExperienceSection from '../components/ExperienceSection';
 import PartnersSection from '../components/PartnersSection';
 import CtaBanner from '../components/CtaBanner';
 import { usePageMeta } from "../utils/usePageMeta";
@@ -20,11 +17,8 @@ function Home() {
         <>
             <Hero />
             <QuickInfo />
-            <AboutSection />
-            <ParticipationSection />
             <ProgramSection />
             <LocationSection />
-            <ExperienceSection />
             <PartnersSection />
             <CtaBanner />
         </>

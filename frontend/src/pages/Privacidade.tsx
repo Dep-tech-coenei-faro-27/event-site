@@ -46,7 +46,7 @@ const sections: LegalSection[] = [
         title: 'Os teus direitos',
         content: (
             <p>
-                Podes solicitar acesso, correção, limitação ou eliminação dos teus dados quando aplicável, bem como esclarecer dúvidas sobre o tratamento. Utiliza a página Informação & Ajuda para encaminhar o pedido à organização.
+                Podes solicitar acesso, correção, limitação ou eliminação dos teus dados quando aplicável, bem como esclarecer dúvidas sobre o tratamento. Utiliza a página Informações e ajuda para encaminhar o pedido à organização.
             </p>
         ),
     },
@@ -59,7 +59,7 @@ export default function Acessibilidade() {
             title="Política de privacidade"
             lead="Informação clara sobre os dados necessários para gerir a conta, o bilhete e a participação no encontro."
             version="1.0"
-            lastUpdated="8 outubro 2026"
+            lastUpdated="8 de outubro de 2026"
             lastUpdatedISO="2026-10-08"
             sections={sections}
         />

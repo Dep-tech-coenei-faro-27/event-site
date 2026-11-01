@@ -52,7 +52,7 @@ body[data-page="agenda"] main .ag-day {
   gap: 4px;
   padding: 14px 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--surface);
   color: var(--text);
   font-family: inherit;
@@ -199,6 +199,71 @@ body[data-page="agenda"] main .ag-card__media {
   width: 168px;
   background: var(--surface);
 }
+body[data-page="agenda"] main .ag-visual {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b1b30;
+  color: #6ccded;
+  border-right: 1px solid rgba(215,227,244,.08);
+}
+body[data-page="agenda"] main .ag-visual svg {
+  width: 44%;
+  min-width: 36px;
+  max-width: 64px;
+  height: auto;
+  aspect-ratio: 1;
+}
+/* Movimento contido, com o mesmo ritmo suave da animação da página inicial. */
+body[data-page="agenda"] main .ag-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(26,178,255,.16), transparent 70%);
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-visual svg {
+  position: relative;
+  filter: drop-shadow(0 0 9px rgba(26,178,255,.18));
+}
+body[data-page="agenda"] main .ag-card:focus-within {
+  border-color: var(--tone);
+}
+@media (prefers-reduced-motion: no-preference) {
+  body[data-page="agenda"] main .ag-visual svg {
+    animation: ag-icon-breathe 5.2s ease-in-out infinite;
+  }
+  body[data-page="agenda"] main .ag-card:nth-child(2n) .ag-visual svg {
+    animation-delay: -1.7s;
+  }
+  body[data-page="agenda"] main .ag-card:nth-child(3n) .ag-visual svg {
+    animation-delay: -3.4s;
+  }
+  body[data-page="agenda"] main .ag-card {
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  body[data-page="agenda"] main .ag-visual::before {
+    transition: opacity .25s ease;
+    opacity: .65;
+  }
+  body[data-page="agenda"] main .ag-card:focus-within .ag-visual::before {
+    opacity: 1;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="agenda"] main .ag-card:hover {
+    border-color: var(--tone);
+    box-shadow: 0 5px 24px rgba(0,0,0,.18);
+  }
+  body[data-page="agenda"] main .ag-card:hover .ag-visual::before {
+    opacity: 1;
+  }
+}
+@keyframes ag-icon-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
 /* A imagem enche a coluna sem contar para a altura do cartão (assim nem a imagem, antes de carregar, o estica). */
 body[data-page="agenda"] main .ag-card__media img {
   position: absolute;
@@ -211,6 +276,16 @@ body[data-page="agenda"] main .ag-card__media img {
 }
 /* Momentos (refeições, chegadas, convívio): sem retrato, o azulejo do site, como nas secções e nas caixas finais
    (uma cor em máscara com o padrão `azulejo-pattern-transparent.webp`). */
+body[data-page="agenda"] main .ag-card__media--activity img {
+  object-fit: contain;
+  object-position: center;
+  padding: 8px;
+}
+body[data-page="agenda"] main .ag-card__media--photo img {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+}
 body[data-page="agenda"] main .ag-card__media--moment {
   background: var(--surface);
 }
@@ -448,7 +523,7 @@ body[data-page="agenda"] main .ag-closing .actions {
   }
   body[data-page="agenda"] main .ag-day {
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 0;
   }
   body[data-page="agenda"] main .ag-day small {
     font-size: 9.5px;

@@ -47,7 +47,7 @@ describe("Agenda: dia", () => {
     open();
     expect(screen.getByRole("tab", { name: /SEXTA/ })).toHaveAttribute("aria-selected", "true");
     expect(cards()).toHaveLength(dayCount("sexta"));
-    expect(result()).toBe(`Sexta-feira, 2 abril · ${dayCount("sexta")} sessões`);
+    expect(result()).toBe(`Sexta-feira, 2 de abril · ${dayCount("sexta")} sessões`);
   });
 
   it.each([
@@ -113,7 +113,7 @@ describe("Agenda: filtros e pesquisa", () => {
     const speakerCards = cards().filter((c) => c.dataset.category !== "encontro").length;
     expect(cards()).toHaveLength(speakerCards);
     expect(cards().length).toBeLessThan(all);
-    fireEvent.click(filter("Workshops"));
+    fireEvent.click(filter("Oficinas"));
     expect(cards().length).toBeGreaterThan(0);
     expect(cards().every((c) => c.dataset.category === "workshops")).toBe(true);
     expect(cards().length).toBeLessThan(speakerCards);
@@ -146,16 +146,16 @@ describe("Agenda: filtros e pesquisa", () => {
   it("a linha de resultados usa o singular com uma sessão e o plural nas outras", () => {
     open();
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "almoco" } });
-    expect(result()).toBe("Sexta-feira, 2 abril · 1 sessão");
+    expect(result()).toBe("Sexta-feira, 2 de abril · 1 sessão");
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
-    expect(result()).toBe("Sexta-feira, 2 abril · 0 sessões");
+    expect(result()).toBe("Sexta-feira, 2 de abril · 0 sessões");
   });
 
   it("sem resultados mostra o estado vazio, e «Ver todas as sessões» limpa o filtro e a pesquisa e leva o foco para «Tudo»", () => {
     open();
     const empty = document.querySelector<HTMLElement>(".ag-empty")!;
     expect(empty.hidden).toBe(true);
-    fireEvent.click(filter("Workshops"));
+    fireEvent.click(filter("Oficinas"));
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
     expect(empty.hidden).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Ver todas as sessões" }));
@@ -168,9 +168,9 @@ describe("Agenda: filtros e pesquisa", () => {
 
   it("o filtro e a pesquisa ficam ao mudar de dia", () => {
     open();
-    fireEvent.click(filter("Workshops"));
+    fireEvent.click(filter("Oficinas"));
     fireEvent.click(screen.getByRole("tab", { name: /SÁBADO/ }));
-    expect(filter("Workshops")).toHaveAttribute("aria-pressed", "true");
+    expect(filter("Oficinas")).toHaveAttribute("aria-pressed", "true");
     expect(cards().every((c) => c.dataset.category === "workshops")).toBe(true);
   });
 });
@@ -282,17 +282,18 @@ describe("Agenda: o cartão leva tudo e não tem «Ver mais»", () => {
     for (const card of cards()) expect(card.querySelector("button[aria-expanded]")).toBeNull();
   });
 
-  it("os momentos têm o azulejo do site (CSS, sem imagem) e as palestras e workshops o retrato por anunciar", () => {
+  it("as sessões sem fotografia têm pictogramas decorativos e mantêm a informação por confirmar", () => {
     open();
     const moment = cards().find((c) => c.dataset.category === "encontro")!;
     expect(within(moment).queryByRole("img")).toBeNull();
     expect(moment.querySelector(".ag-card__media--moment")).not.toBeNull();
     expect(moment.querySelector(".ag-card__media img")).toBeNull();
-    const rule = agendaCss.slice(agendaCss.indexOf(".ag-card__media--moment::before"));
-    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/azulejo-pattern-transparent\.webp/);
+    expect(moment.querySelector('.ag-visual svg')).not.toBeNull();
+    expect(moment.querySelector('.ag-visual')).toHaveAttribute('aria-hidden', 'true');
     expect(moment).toHaveTextContent("Local a confirmar");
     const speaker = cards().find((c) => c.dataset.category !== "encontro")!;
-    expect(within(speaker).getByRole("img", { name: "Retrato do orador por anunciar" })).toBeInTheDocument();
+    expect(speaker.querySelector('.ag-visual svg')).not.toBeNull();
+    expect(speaker).toHaveTextContent('Orador a anunciar');
   });
 
   it("os cartões do primeiro dia levam a cor azul; os dos outros dias, a da categoria", () => {
@@ -394,10 +395,10 @@ describe("Agenda: o espaço da ação (inscrição, compra…)", () => {
 describe("Agenda: texto da página", () => {
   it("tem o texto do desenho: título, nota final, fecho com as duas ligações, sem Plataforma nem `aside`", () => {
     open();
-    expect(screen.getByRole("heading", { level: 1, name: "Encontra a tua próxima ideia." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Quatro dias, um programa completo." })).toBeInTheDocument();
-    expect(screen.getByText(/Os perfis dos oradores serão publicados após confirmação\./)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Descobrir os bilhetes" })).toHaveAttribute("href", "/bilhetes");
+    expect(screen.getByRole("heading", { level: 1, name: "O programa, dia a dia." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Sessões por dia" })).toBeInTheDocument();
+    expect(screen.getByText(/Locais e oradores por confirmar\./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver bilhetes" })).toHaveAttribute("href", "/bilhetes");
     expect(screen.getByRole("link", { name: "Tenho uma dúvida" })).toHaveAttribute("href", "/informacao-ajuda");
     expect(screen.queryByText(/plataforma/i)).toBeNull();
     // um `aside` dentro do `main` é um marco «complementar» fora do nível superior (axe: landmark-complementary-is-top-level)
