@@ -40,7 +40,7 @@ def test_smtp_errors_do_not_contain_the_recipient(monkeypatch):
 
 def test_a_failed_verification_email_is_logged_without_the_address(auth_client, caplog):
     class FailingSender:
-        def send_html(self, to_email, subject, html_body):
+        def send_html(self, to_email, subject, html_body, text_body=None):
             raise EmailDeliveryError("smtp is down")
 
     app.dependency_overrides[get_email_sender] = lambda: FailingSender()

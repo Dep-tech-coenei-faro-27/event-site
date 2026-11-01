@@ -17,9 +17,9 @@ from app.core.email.templates import (
     PASSWORD_CHANGED_SUBJECT,
     PASSWORD_RESET_SUBJECT,
     VERIFICATION_EMAIL_SUBJECT,
-    build_password_changed_email_html,
-    build_password_reset_email_html,
-    build_verification_email_html,
+    build_password_changed_email,
+    build_password_reset_email,
+    build_verification_email,
 )
 from app.core.rate_limit import (
     RateLimit,
@@ -125,12 +125,13 @@ def _send_verification_email(email_sender: EmailSender, user: User) -> None:
         f"{settings.FRONTEND_URL}{settings.FRONTEND_VERIFY_PATH}"
         f"?token={verification_token}"
     )
-    html_body = build_verification_email_html(user.name, verification_url)
+    html_body, text_body = build_verification_email(user.name, verification_url)
     try:
         email_sender.send_html(
             to_email=user.email,
             subject=VERIFICATION_EMAIL_SUBJECT,
             html_body=html_body,
+            text_body=text_body,
         )
     except EmailDeliveryError as exc:
         logger.warning(
@@ -348,11 +349,13 @@ def change_password(
 
 
 def _send_password_changed_email(email_sender: EmailSender, user: User) -> None:
+    html_body, text_body = build_password_changed_email(user.name)
     try:
         email_sender.send_html(
             to_email=user.email,
             subject=PASSWORD_CHANGED_SUBJECT,
-            html_body=build_password_changed_email_html(user.name),
+            html_body=html_body,
+            text_body=text_body,
         )
     except EmailDeliveryError as exc:
         logger.warning(
@@ -372,13 +375,14 @@ def _send_password_reset_email(
     reset_url = (
         f"{settings.FRONTEND_URL}{settings.FRONTEND_RESET_PATH}?token={reset_token}"
     )
-    html_body = build_password_reset_email_html(user.name, reset_url)
+    html_body, text_body = build_password_reset_email(user.name, reset_url)
 
     try:
         email_sender.send_html(
             to_email=user.email,
             subject=PASSWORD_RESET_SUBJECT,
             html_body=html_body,
+            text_body=text_body,
         )
     except EmailDeliveryError as exc:
         logger.warning(
