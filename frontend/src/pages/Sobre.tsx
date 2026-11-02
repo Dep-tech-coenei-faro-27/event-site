@@ -93,9 +93,9 @@ export default function Sobre() {
         <figure className="about-makers__photo"><img src={campus} alt="Estudantes junto à Biblioteca da Universidade do Algarve, no Campus das Gambelas" width={1800} height={1198} loading="lazy" /><figcaption>Vida no campus · Fotografia: UAlg</figcaption></figure>
         <div className="about-makers__copy azulejo-bg">
           <p className="eyebrow">A organização</p><h2 id="about-community-title">Feito por estudantes.</h2>
-          <p>Uma equipa do NEEI da Universidade do Algarve prepara a edição de Faro para receber participantes de todo o país.</p>
+          <p>O NEEI da Universidade do Algarve lidera a organização do ENEI em Faro, com uma equipa que reúne membros do núcleo e estudantes de outros cursos.</p>
           <More title="Saber mais sobre a organização">
-            <p>A edição de Faro é organizada pelo Núcleo de Estudantes de Engenharia Informática (NEEI) da Universidade do Algarve. Os vários departamentos da equipa tratam do programa, da comunicação, da logística e de tudo o que faz o encontro acontecer.</p>
+            <p>A organização é assegurada por membros do Núcleo de Estudantes de Engenharia Informática (NEEI) da Universidade do Algarve e por estudantes de outros cursos que se juntaram à equipa. Distribuídos por vários departamentos, preparam o programa, a comunicação e a logística para receber participantes de todo o país.</p>
             <p>Ao longo do ano, o NEEI liga os estudantes à comunidade académica e às empresas, com atividades e voluntariado na região. Com o ENEI, essa ligação chega a todo o país.</p>
           </More>
           <Link className="about-text-link" to="/equipa"><span className="about-link-label">Conhece a equipa</span><span className="about-link-arrow" aria-hidden="true">→</span></Link>
@@ -114,11 +114,14 @@ export default function Sobre() {
       </div></section>
 
       <section className="section about-block about-practical" aria-labelledby="about-visit-title"><div className="container"><div className="about-practical__panel azulejo-bg"><img className="about-practical__symbol" src={eneiSymbol} alt="" aria-hidden="true" />
-        <div className="about-section-heading"><div><p className="eyebrow">Informação prática</p><h2 id="about-visit-title">Prepara os quatro dias.</h2></div></div>
-        <div className="about-practical__tiles">
-          <Link className="about-practical-tile" to="/informacao-ajuda#localizacoes"><AboutIcon name="location" /><div><h3>Locais e acessos</h3><p>As atividades principais decorrem no Campus das Gambelas.</p><span><span className="about-link-label">Prepara a viagem</span><span className="about-link-arrow" aria-hidden="true">→</span></span></div></Link>
-          <Link className="about-practical-tile" to="/bilhetes"><AboutIcon name="stay" /><div><h3>Alojamento e refeições</h3><p>Descobre o que cada bilhete inclui em alojamento e refeições.</p><span><span className="about-link-label">Compara os bilhetes</span><span className="about-link-arrow" aria-hidden="true">→</span></span></div></Link>
-          <Link className="about-practical-tile" to="/conta"><AboutIcon name="ticket" /><div><h3>O teu bilhete</h3><p>Depois da inscrição, acede ao bilhete na tua área pessoal.</p><span><span className="about-link-label">Entra na tua conta</span><span className="about-link-arrow" aria-hidden="true">→</span></span></div></Link>
+        <div className="about-practical__content">
+          <p className="eyebrow">Informação prática</p>
+          <h2 id="about-visit-title">Prepara os quatro dias.</h2>
+          <p className="about-practical__lead">Consulta os locais, os acessos e as opções de alojamento e refeições.</p>
+          <div className="actions">
+            <Link className="btn btn--dark" to="/informacao-ajuda">Informações e ajuda</Link>
+            <Link className="btn btn--outline-light" to="/bilhetes">Ver bilhetes</Link>
+          </div>
         </div>
       </div></div></section>
     </>

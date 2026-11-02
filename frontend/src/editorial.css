@@ -243,24 +243,25 @@ html body[data-page="inicio"] .stats-overlap::before {
   opacity: .025;
 }
 
-/* Em computador, encurtar ligeiramente o destaque inicial. */
-@media (min-width: 1024px) and (min-height: 700px) {
-  html body[data-page="inicio"] main .hero-home {
-    min-height: clamp(580px, calc(100svh - 190px), 940px);
-  }
+/* Enquadramento do hero de referência: mais espaço acima do conteúdo e
+   o cartão de dados a espreitar junto ao fundo do primeiro ecrã. */
+html body[data-page="inicio"] main .hero-home {
+  min-height: max(560px, calc(100svh - 64px));
+}
+html body[data-page="inicio"] main .hero-content {
+  padding-block: clamp(96px, 15svh, 176px) clamp(96px, 12svh, 140px);
+}
+@media (max-width: 767px) {
   html body[data-page="inicio"] main .hero-content {
-    padding-block: 60px 104px;
+    padding-block: clamp(80px, 12svh, 112px) 104px;
   }
 }
-
-/* Tablet: enquadramento próprio, com os três dados essenciais visíveis. */
+/* Tablet: manter a escala do título e a leitura dos dados essenciais. */
 @media (min-width: 768px) and (max-width: 1023px) {
   html body[data-page="inicio"] main .hero-home {
-    min-height: clamp(520px, calc(100svh - 260px), 760px);
     grid-template-columns: minmax(0, 1fr);
   }
   html body[data-page="inicio"] main .hero-content {
-    padding-block: 56px 104px;
     gap: 16px;
   }
   html body[data-page="inicio"] .hero-title {

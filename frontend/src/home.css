@@ -738,28 +738,29 @@ body[data-page="inicio"] .programme-preview__item:nth-child(4) {
   --tile-color: #E5BF78;
 }
 /* O traço no topo de cada secção, na primeira (logo por baixo do cartão data/local/bilhetes), não aparece (pedido do presidente). */
-body[data-page="inicio"] .home-edition > .motion-section__trace {
+body[data-page="inicio"] .home-programme > .motion-section__trace {
   display: none;
 }
-/* Parceiros e apoios: logótipos a cores sobre branco suavizado. */
+/* White partner artwork over the azulejos; incomplete rows remain centred. */
 html body[data-page="inicio"][data-page] main .home-partners__grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   margin: 40px 0 0;
   padding: 0;
   list-style: none;
 }
 html body[data-page="inicio"][data-page] main .home-partners__grid li {
+  flex: 0 0 calc((100% - 36px) / 4);
+  min-width: 0;
   min-height: 150px;
   display: grid;
   place-items: center;
   padding: 18px;
-  border: 2px solid rgba(26, 178, 255, 0.55);
+  border: 1px solid rgba(101, 207, 255, 0.2);
   border-radius: 8px;
-  background: #e6e8eb;
-  color: #E8F1FF;
-  font: 700 13px/1.35 Montserrat, sans-serif;
+  background: transparent;
   text-align: center;
 }
 html body[data-page="inicio"][data-page] main .home-partners__grid svg {
@@ -767,22 +768,20 @@ html body[data-page="inicio"][data-page] main .home-partners__grid svg {
   width: 100%;
   height: 110px;
   overflow: hidden;
-  mix-blend-mode: multiply;
 }
 html body[data-page="inicio"][data-page] main .home-partners .actions {
   margin-top: 32px;
 }
 @media (max-width: 900px) {
-  html body[data-page="inicio"][data-page] main .home-partners__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  html body[data-page="inicio"][data-page] main .home-partners__grid li {
+    flex-basis: calc((100% - 24px) / 3);
   }
 }
 @media (max-width: 620px) {
-  html body[data-page="inicio"][data-page] main .home-partners__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  html body[data-page="inicio"][data-page] main .home-partners__grid li {
+    flex-basis: calc((100% - 12px) / 2);
   }
 }
-
 /* Caixa final: centrada na secção, com a mesma folga em cima e em baixo (como nas outras páginas). */
 html body[data-page="inicio"][data-page] main .home-closing {
   padding-block: clamp(72px, 9vw, 124px);

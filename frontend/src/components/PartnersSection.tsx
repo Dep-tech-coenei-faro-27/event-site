@@ -31,11 +31,23 @@ export default function PartnersSection() {
 
         </div>
         <ul className="home-partners__grid" aria-label="Parceiros e apoios">
-          {supporters.map(({ name, src, width, height, crop }) => (
+          {supporters.map(({ name, src, width, height, crop }, index) => (
             <li key={name}>
               <svg viewBox={crop} role="img" aria-label={name}>
                 <title>{name}</title>
-                <image href={src} width={width} height={height} />
+                <defs>
+                  <filter id={`partner-ink-${index}`} colorInterpolationFilters="sRGB">
+                    {/* Convert the white background to transparency, then tint the ink. */}
+                    <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.2126 -0.7152 -0.0722 0 1" result="ink" />
+                    <feComponentTransfer in="ink" result="cleanInk">
+                      <feFuncA type="linear" slope={1.4} intercept={-0.12} />
+                    </feComponentTransfer>
+                    <feFlood floodColor="#ffffff" result="tint" />
+                    <feComposite in="tint" in2="cleanInk" operator="in" result="tintedInk" />
+                    <feComposite in="tintedInk" in2="SourceAlpha" operator="in" />
+                  </filter>
+                </defs>
+                <image href={src} width={width} height={height} filter={`url(#partner-ink-${index})`} />
               </svg>
             </li>
           ))}

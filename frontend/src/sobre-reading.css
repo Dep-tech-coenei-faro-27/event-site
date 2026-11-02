@@ -108,8 +108,8 @@ html body[data-page="sobre"][data-page] main .about-tile h3 { color: var(--tile-
 html body[data-page="sobre"][data-page] main .about-tile p:not(.eyebrow) { color: var(--tile-body); }
 html body[data-page="sobre"][data-page] main .about-tile p.about-tile__label { color: #6dd4ff; }
 
-/* Variação do painel azul das outras páginas: um bloco contínuo, retangular. */
-.about-practical__panel { padding: clamp(26px,4vw,48px); background: linear-gradient(125deg,#0098ef,#00aaff 58%,#00c5ff); color: #fff; }
+/* Banner prático: a mesma composição simples dos restantes destaques. */
+.about-practical__panel { display: flex; align-items: center; min-height: 320px; padding: clamp(28px,4vw,48px); border: 0; border-radius: clamp(32px,4vw,40px); overflow: hidden; background: linear-gradient(125deg,#006fa6,#00aaff 58%,#00c5ff); color: #fff; }
 .about-practical__panel .about-section-heading { margin-bottom: 32px; }
 html body[data-page="sobre"][data-page] main .about-practical__panel h2,
 html body[data-page="sobre"][data-page] main .about-practical__panel .eyebrow { color: #fff; }
@@ -146,14 +146,15 @@ html body[data-page="sobre"][data-page] main .about-practical .about-practical-t
 .about-tile.azulejo-bg::before,
 .about-highlights .fact-grid.azulejo-bg::before,
 .about-makers__copy.azulejo-bg::before { opacity: .045; }
-.about-practical__panel { box-shadow: 0 18px 36px rgba(0,0,0,.2); }
+html body[data-page="sobre"][data-page] main .about-practical__panel { box-shadow: 0 20px 25px -5px rgba(0,0,0,.3), 0 8px 10px -6px rgba(0,0,0,.3); }
 .about-practical__panel .about-section-heading { min-height: 90px; padding-right: 100px; }
 .about-practical__panel > .about-practical__symbol {
   position: absolute;
-  top: 22px;
+  top: 50%;
+  translate: 0 -50%;
   right: clamp(26px,4vw,48px);
-  width: 72px;
-  height: 116px;
+  width: 110px;
+  height: 220px;
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: .35;
@@ -246,8 +247,7 @@ html body[data-page="sobre"][data-page] main .about-highlights .fact-grid {
 
 /* O mesmo halo nos restantes cartões destacados da página. */
 html body[data-page="sobre"][data-page] main .about-audience,
-html body[data-page="sobre"][data-page] main .about-experience__tiles > .about-tile,
-html body[data-page="sobre"][data-page] main .about-practical__panel {
+html body[data-page="sobre"][data-page] main .about-experience__tiles > .about-tile {
   box-shadow: 0 0 24px rgba(83, 198, 255, .12), 0 0 56px rgba(0, 170, 255, .06);
 }
 
@@ -282,4 +282,25 @@ html body[data-page="sobre"][data-page] main .about-practical .about-practical-t
 }
 html body[data-page="sobre"][data-page] main .about-practical .about-practical-tile > svg {
   filter: none;
+}
+
+/* Uma frase e duas ações, com espaço para o símbolo à direita. */
+.about-practical__content { width: 100%; }
+html body[data-page="sobre"][data-page] main .about-practical__panel h2 {
+  font-size: clamp(30px,4vw,52px);
+}
+html body[data-page="sobre"][data-page] main .about-practical__panel .about-practical__lead {
+  max-width: 48ch;
+  margin: 16px 0 0;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.about-practical__panel .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.about-practical__panel.azulejo-bg::before { opacity: .035; }
+@media (min-width: 761px) {
+  .about-practical__content { padding-right: 180px; }
+}
+@media (max-width: 760px) {
+  .about-practical__panel { min-height: 0; }
 }

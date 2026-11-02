@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import eneiLogo from "../assets/ENEI-logo.svg";
 import "../bilhetes.css";
 import "../bilhetes.overrides.css";
 import { useBodyPage } from "../utils/useBodyPage";
@@ -194,13 +195,7 @@ export default function Bilhetes() {
       <a href="mailto:geral@eneiconf.pt" className="btn btn--secondary">Contactar a equipa</a>
       </div>
       </div>
-      <svg className="ticket-help__illustration" viewBox="0 0 280 240" aria-hidden="true" focusable="false">
-        <path d="M115 24h120a20 20 0 0 1 20 20v66a20 20 0 0 1-20 20h-16l-28 24v-24h-76a20 20 0 0 1-20-20V44a20 20 0 0 1 20-20Z" fill="rgba(255,255,255,.08)" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" />
-        <circle cx="147" cy="76" r="5" fill="currentColor" /><circle cx="175" cy="76" r="5" fill="currentColor" /><circle cx="203" cy="76" r="5" fill="currentColor" />
-        <path d="M42 88h128a22 22 0 0 1 22 22v68a22 22 0 0 1-22 22H88l-32 27v-27H42a22 22 0 0 1-22-22v-68a22 22 0 0 1 22-22Z" fill="#087eae" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" />
-        <path d="M91 126a17 17 0 0 1 32 8c0 12-17 13-17 25" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-        <circle cx="106" cy="177" r="3.5" fill="currentColor" />
-      </svg>
+      <img className="ticket-help__illustration" src={eneiLogo} alt="" aria-hidden="true" />
       </div>
       </div>
       </section>

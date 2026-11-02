@@ -7,7 +7,7 @@ import PreviewPhoto from './PreviewPhoto';
 const items = [
   { title: 'Aprende com quem faz.', text: 'Ouve, pergunta e descobre novas ideias.', label: 'Palestras', image: talks, alt: 'Auditório com participantes numa palestra' },
   { title: 'Põe mãos à obra.', text: 'Sessões práticas para experimentar e aprender.', label: 'Oficinas', image: practical, alt: 'Participantes numa sessão prática' },
-  { title: 'Encontra a tua malta.', text: 'Conhece estudantes e conversa com empresas.', label: 'Encontros', image: people, alt: 'Participantes a conversar numa área de empresas' },
+  { title: 'Conhece a comunidade.', text: 'Conhece estudantes e conversa com empresas.', label: 'Encontros', image: people, alt: 'Participantes a conversar numa área de empresas' },
 ];
 
 export default function ProgramSection() {

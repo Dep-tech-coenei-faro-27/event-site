@@ -5,7 +5,7 @@ export default function CtaBanner() {
   return (
     <section className="section section--surface home-closing">
       <div className="container">
-        <div className="cta azulejo-bg">
+        <div className="cta">
           <div className="home-closing__passer" aria-hidden="true">
             <img src={eneiLogo} alt="" />
           </div>
