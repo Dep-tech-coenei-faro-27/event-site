@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import participants from '../assets/agenda-auditorio.webp';
 import eneiSymbol from '../assets/ENEI-logo.svg';
 import faroEvening from '../assets/faro-baixa.webp';
-import campus from '../assets/ualg-estudantes-biblioteca.webp';
+import teamPhoto from '../assets/equipa.webp';
 import { AGENDA } from '../content/agenda';
 import { useBodyPage } from '../utils/useBodyPage';
 import { usePageMeta } from '../utils/usePageMeta';
@@ -90,7 +90,7 @@ export default function Sobre() {
       </div></section>
 
       <section className="section about-block about-makers" aria-labelledby="about-community-title"><div className="container about-makers__layout">
-        <figure className="about-makers__photo"><img src={campus} alt="Estudantes junto à Biblioteca da Universidade do Algarve, no Campus das Gambelas" width={1800} height={1198} loading="lazy" /><figcaption>Vida no campus · Fotografia: UAlg</figcaption></figure>
+        <figure className="about-makers__photo"><img src={teamPhoto} alt="Fotografia de grupo da equipa organizadora do ENEI 2027" width={5826} height={3884} loading="lazy" /><figcaption>A equipa do ENEI 2027.</figcaption></figure>
         <div className="about-makers__copy azulejo-bg">
           <p className="eyebrow">A organização</p><h2 id="about-community-title">Feito por estudantes.</h2>
           <p>O NEEI da Universidade do Algarve lidera a organização do ENEI em Faro, com uma equipa que reúne membros do núcleo e estudantes de outros cursos.</p>
