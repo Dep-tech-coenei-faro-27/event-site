@@ -25,7 +25,7 @@ const sections: LegalSection[] = [
                     <strong>Exceção conhecida.</strong> Nas caixas finais com fundo azul-claro em degradê (nas
                     páginas Início e Sobre), o texto branco sobre a parte mais clara do degradê tem um contraste
                     medido entre cerca de 1,5:1 e 3,5:1, abaixo do mínimo de 4,5:1. Os destinos dessas caixas
-                    (Bilhetes, Agenda e Informação &amp; Ajuda) estão também no menu principal. Medição feita a 25 de
+                    (Bilhetes, Agenda e Informações e ajuda) estão também no menu principal. Medição feita a 25 de
                     outubro de 2026.
                 </p>
             </>
@@ -54,7 +54,7 @@ const sections: LegalSection[] = [
         title: 'Compatibilidade',
         content: (
             <p>
-                O site adapta-se a desktop, tablet e telemóvel e procura respeitar preferências do dispositivo. A
+                O site adapta-se a diferentes tamanhos de ecrã e respeita as preferências do dispositivo. A
                 experiência pode variar consoante o navegador, a tecnologia de apoio ou serviços externos utilizados
                 no processo de pagamento.
             </p>
@@ -65,7 +65,7 @@ const sections: LegalSection[] = [
         content: (
             <p>
                 Se encontrares uma dificuldade de acesso, indica a página, o dispositivo ou tecnologia de apoio
-                utilizada e descreve o problema através de Informação &amp; Ajuda. Esse detalhe ajuda a organização
+                utilizada e descreve o problema através de Informações e ajuda. Esse detalhe ajuda a organização
                 a investigar e melhorar a experiência.
             </p>
         ),
@@ -79,7 +79,7 @@ export default function Acessibilidade() {
             title="Declaração de acessibilidade"
             lead="Queremos que a informação e os principais percursos do ENEI sejam claros, navegáveis e utilizáveis por todas as pessoas."
             version="1.1"
-            lastUpdated="25 outubro 2026"
+            lastUpdated="25 de outubro de 2026"
             lastUpdatedISO="2026-10-25"
             sections={sections}
         />

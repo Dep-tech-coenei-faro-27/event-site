@@ -102,14 +102,14 @@ export default function CheckoutWaiting() {
             <div className="payment-status__icon" aria-hidden="true">
               <span className="payment-spinner"></span>
             </div>
-            <img className="payment-result-mbway" src={mbwayLogo} alt="MB Way" />
+            <img className="payment-result-mbway" src={mbwayLogo} alt="MB WAY" />
           </div>
           <span className="payment-status__tag">{confirming ? "AINDA A CONFIRMAR" : "A AGUARDAR"}</span>
-          <h1 id="status-title">Confirma no MB Way</h1>
+          <h1 id="status-title">Confirma no MB WAY</h1>
           <p>
             {confirming
-              ? "Ainda estamos a confirmar o pagamento. Se ainda não aprovaste, aprova-o agora na aplicação MB Way; o teu lugar continua reservado."
-              : "Enviámos um pedido para o teu telemóvel. Confirma o pagamento na aplicação MB Way."}
+              ? "Ainda estamos a confirmar o pagamento. Se ainda não aprovaste, aprova-o agora na aplicação MB WAY; o teu lugar continua reservado."
+              : "Enviámos um pedido para o teu telemóvel. Confirma o pagamento na aplicação MB WAY."}
           </p>
           {watch.connectionLost && (
             <p role="status">Perdemos a ligação. Não fechámos o pagamento: estamos a tentar outra vez.</p>

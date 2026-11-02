@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import portraitPlaceholder from "../assets/portrait-placeholder.svg";
+import AgendaVisual from '../components/AgendaVisual';
 import "../agenda-base.css";
 import "../agenda.css";
 import { useBodyPage } from "../utils/useBodyPage";
@@ -25,7 +25,7 @@ type Filter = "all" | "palestras" | "workshops" | "saved";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "Tudo" },
   { key: "palestras", label: "Palestras" },
-  { key: "workshops", label: "Workshops" },
+  { key: "workshops", label: "Oficinas" },
   { key: "saved", label: "Guardados" },
 ];
 
@@ -63,10 +63,11 @@ function dayFromQuery(value: string | null): AgendaDay["key"] {
 
 function Portrait({ item }: { item: AgendaItem }) {
   const photo = item.speaker?.photo ? speakerPhotos[`../assets/speakers/${item.speaker.photo}`] : undefined;
+  if (!photo) return <AgendaVisual item={item} />;
   return (
     <img
-      src={photo ?? portraitPlaceholder}
-      alt={photo ? (item.speaker?.photoAlt ?? "") : "Retrato do orador por anunciar"}
+      src={photo}
+      alt={item.speaker?.photoAlt ?? ""}
       width={168}
       height={188}
       loading="lazy"
@@ -86,8 +87,8 @@ function SessionCard({ item, saved, action, onSave }: CardProps) {
   const end = endOf(item);
   return (
     <li id={item.id} className={`ag-card ag-card--${item.category}${item.tone ? ` ag-card--${item.tone}` : ""}`} data-session={item.id} data-category={item.category}>
-      <div className={`ag-card__media${kind === "speaker" ? "" : " ag-card__media--moment"}`} aria-hidden={kind === "speaker" ? undefined : true}>
-        {kind === "speaker" && <Portrait item={item} />}
+      <div className={`ag-card__media${item.image ? ` ag-card__media--activity${item.image.fit === 'cover' ? ' ag-card__media--photo' : ''}` : kind === "speaker" ? "" : " ag-card__media--moment"}`} aria-hidden={kind === "speaker" || item.image ? undefined : true}>
+        {item.image ? <img src={item.image.src} alt={item.image.alt} width={168} height={168} loading="lazy" /> : kind === "speaker" ? <Portrait item={item} /> : <AgendaVisual item={item} />}
       </div>
       <div className="ag-card__body">
         <div className="ag-card__meta">
@@ -135,6 +136,7 @@ function SessionCard({ item, saved, action, onSave }: CardProps) {
             </div>
           )}
         </div>
+        {item.id === 'sab-2130-rally-tascas' && <p className="ag-registration-note">Atividade paga · Inscrição obrigatória</p>}
       </div>
     </li>
   );
@@ -237,17 +239,15 @@ export default function Agenda({ items = AGENDA, renderAction }: AgendaProps) {
       <header className="page-hero agenda-hero center">
         <div className="container">
           <p className="eyebrow">&lt;AGENDA /&gt;</p>
-          <h1>Encontra a tua próxima ideia.</h1>
-          <p className="lead">Palestras, workshops e encontros que dão forma ao ENEI 2027. Escolhe o teu dia e faz o teu percurso.</p>
-          <div className="date-pill">1–4 abril 2027 · Faro</div>
+          <h1>O programa, dia a dia.</h1>
+          <p className="lead">Escolhe o dia. Guarda as sessões a que queres ir.</p>
+          <div className="date-pill">1 a 4 de abril de 2027 · Faro</div>
         </div>
       </header>
 
       <section className="ag-programme" id="programa" aria-label="Programa por dia">
         <div className="container">
-          <p className="eyebrow">&lt;AGENDA POR DIA /&gt;</p>
-          <h2>Quatro dias, um programa completo.</h2>
-          <p className="lead">Escolhe o dia e filtra por tipo de sessão.</p>
+          <h2 className="sr-only">Sessões por dia</h2>
 
           <div role="tablist" aria-label="Dias do programa" className="ag-days">
             {AGENDA_DAYS.map((d, index) => (
@@ -318,14 +318,15 @@ export default function Agenda({ items = AGENDA, renderAction }: AgendaProps) {
           </div>
 
           <div className="ag-empty" hidden={count > 0}>
-            <h3>A próxima descoberta está noutro filtro.</h3>
+            <h3>Sem sessões nesta seleção.</h3>
             <p>Não há sessões para esta seleção neste dia.</p>
             <button type="button" data-ag-reset onClick={resetFilters}>
               Ver todas as sessões
             </button>
           </div>
 
-          <p className="ag-footnote">Os horários, locais e participantes podem sofrer alterações. Os perfis dos oradores serão publicados após confirmação.</p>
+          <p className="ag-footnote">Programa sujeito a alterações. Locais e oradores por confirmar.</p>
+          <p className="ag-registration-note">Guardar uma sessão não garante lugar. <Link to="/informacao-ajuda">Consulta as condições de inscrição.</Link></p>
         </div>
       </section>
 
@@ -334,10 +335,10 @@ export default function Agenda({ items = AGENDA, renderAction }: AgendaProps) {
           <div className="cta">
             <p className="eyebrow">&lt;VEM FAZER PARTE /&gt;</p>
             <h2 id="ag-closing-title">O melhor do ENEI? Estares lá.</h2>
-            <p>Já encontraste a tua próxima sessão. Agora vem conhecer as pessoas, partilhar ideias e viver os quatro dias.</p>
+            <p>Escolhe o teu bilhete e junta-te a nós em Faro.</p>
             <div className="actions">
               <Link to="/bilhetes" className="btn btn--dark">
-                Descobrir os bilhetes
+                Ver bilhetes
               </Link>
               <Link to="/informacao-ajuda" className="btn btn--secondary">
                 Tenho uma dúvida

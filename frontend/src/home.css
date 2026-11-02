@@ -702,10 +702,10 @@ body[data-page="inicio"] .cta > .home-closing__passer {
   border: 0;
   background: none;
 }
-body[data-page="inicio"] .home-closing__passer img {
-  /* Sem a «respiração» contínua do protótipo (sobe, roda e cresce em ciclo): ficava sempre a
-     mexer ao lado dos botões. O símbolo só se move com o scroll. */
-  animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  body[data-page="inicio"] .home-closing__passer img {
+    animation: motion-logo-breathe 5.2s ease-in-out infinite;
+  }
 }
 body[data-page="inicio"] .cta > .home-closing__passer {
   /* Parado: o símbolo já não se move com o scroll. */
@@ -738,46 +738,65 @@ body[data-page="inicio"] .programme-preview__item:nth-child(4) {
   --tile-color: #E5BF78;
 }
 /* O traço no topo de cada secção, na primeira (logo por baixo do cartão data/local/bilhetes), não aparece (pedido do presidente). */
-body[data-page="inicio"] .home-edition > .motion-section__trace {
+body[data-page="inicio"] .home-programme > .motion-section__trace {
   display: none;
 }
-/* Parceiros e apoios (substitui a página Parcerias). Placeholders com o nome até haver logótipos. */
+/* Original-colour partner artwork, quiet cyan halos and centred incomplete rows. */
 html body[data-page="inicio"][data-page] main .home-partners__grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   margin: 40px 0 0;
   padding: 0;
   list-style: none;
 }
 html body[data-page="inicio"][data-page] main .home-partners__grid li {
-  min-height: 96px;
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 calc((100% - 36px) / 4);
+  min-width: 0;
+  min-height: 150px;
   display: grid;
   place-items: center;
   padding: 18px;
-  border: 1px dashed var(--line-accent);
-  border-radius: 2px;
-  background:
-    linear-gradient(145deg, rgba(26, 178, 255, 0.12), transparent 58%),
-    var(--panel);
-  color: #E8F1FF;
-  font: 700 13px/1.35 Montserrat, sans-serif;
+  border: 1px solid rgba(83, 198, 255, 0.28);
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: 0 0 18px rgba(26, 178, 255, 0.07);
   text-align: center;
+}
+html body[data-page="inicio"][data-page] main .home-partners__grid li::before {
+  content: "";
+  position: absolute;
+  inset: 12% 8%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(83, 198, 255, 0.18), rgba(26, 178, 255, 0.05) 48%, transparent 72%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+html body[data-page="inicio"][data-page] main .home-partners__grid canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
 }
 html body[data-page="inicio"][data-page] main .home-partners .actions {
   margin-top: 32px;
 }
 @media (max-width: 900px) {
-  html body[data-page="inicio"][data-page] main .home-partners__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  html body[data-page="inicio"][data-page] main .home-partners__grid li {
+    flex-basis: calc((100% - 24px) / 3);
   }
 }
 @media (max-width: 620px) {
-  html body[data-page="inicio"][data-page] main .home-partners__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  html body[data-page="inicio"][data-page] main .home-partners__grid li {
+    flex-basis: calc((100% - 12px) / 2);
   }
 }
-
 /* Caixa final: centrada na secção, com a mesma folga em cima e em baixo (como nas outras páginas). */
 html body[data-page="inicio"][data-page] main .home-closing {
   padding-block: clamp(72px, 9vw, 124px);

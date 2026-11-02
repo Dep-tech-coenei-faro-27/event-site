@@ -33,8 +33,8 @@ export function EarlyBirdNotice({ prices }: { prices: TierPrices }) {
   if (prices === null || prices === "erro" || !Object.values(prices).some(isEarlyBird)) return null;
   return (
     <div className="eb-notice" role="note">
-      <strong>Preços Early Bird</strong>
-      <span>Os valores são os de lançamento. Depois passam para o preço normal.</span>
+      <strong>Preços de lançamento</strong>
+      <span>Depois, aplica-se o preço normal.</span>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function TicketPrice({ prices, slug }: { prices: TierPrices; slug: string
       </span>
       <span className="price-meta">
         <span className="price-save">Poupas {formatPrice(tier.normal_price_cents - tier.price_cents)}</span>
-        <span className="price-until">Preço Early Bird</span>
+        <span className="price-until">Preço de lançamento</span>
       </span>
     </div>
   );

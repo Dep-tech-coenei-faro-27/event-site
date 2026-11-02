@@ -3,6 +3,14 @@
  * ocupava o ecrã inteiro e o formulário ficava escondido por baixo: aqui a apresentação encolhe
  * (só o título e a frase) para o formulário aparecer logo.
  */
+html body[data-page="conta"][data-page] main .auth-aside {
+  background: radial-gradient(ellipse at 90% 5%,rgba(26,178,255,.3),transparent 65%),linear-gradient(145deg,rgba(26,178,255,.13),transparent 70%),var(--surface);
+  box-shadow: inset 3px 0 var(--accent);
+}
+html body[data-page="conta"][data-page] main .auth-point span {
+  background: rgba(26,178,255,.1);
+  border-color: rgba(26,178,255,.45);
+}
 @media (max-width: 900px) {
   html body[data-page="conta"][data-page] main .auth-aside {
     min-height: 0;

@@ -22,8 +22,8 @@ function BrandLogo({ className = '', imageClassName = 'w-[27px] h-[34px] md:w-[3
     };
 
     return (
-        <Link to="/" onClick={handleClick} className={`brand inline-flex items-center gap-[11px] font-poppins font-extrabold text-[23px] leading-none text-branco ${className}`} >
-            <img src={logoEnei} alt="Logo Nei" className={`${imageClassName} object-contain`}/> 
+        <Link to="/" aria-label="ENEI — página inicial" onClick={handleClick} className={`brand inline-flex items-center gap-[11px] font-poppins font-extrabold text-[23px] leading-none text-branco ${className}`} >
+            <img src={logoEnei} alt="Logótipo do ENEI" className={`${imageClassName} object-contain`}/>
             <span> ENEI</span>
         </Link>
     );

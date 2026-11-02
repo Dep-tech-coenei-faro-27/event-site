@@ -31,7 +31,7 @@ export default function FaqSection({ query, category, onCategoryChange }: Props)
     <section className="section">
       <div className="container faq-layout">
         <div className="faq-heading">
-          <p className="eyebrow">&lt;FAQ /&gt;</p>
+          <p className="eyebrow">&lt;DÚVIDAS /&gt;</p>
           <h2>Perguntas frequentes</h2>
         </div>
         <label className="faq-mobile-filter">

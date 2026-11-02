@@ -14,17 +14,24 @@ type Props = Member & { department: string };
 
 export default function TeamMember({ name, role, photo, department }: Props) {
   const hasPhoto = Boolean(photo && photos[`../../assets/team/${photo}.webp`]);
+  const caption = department === 'Direção' ? role
+    : role === 'Chefe do Departamento' ? `${role} de ${department}`
+    : role ? `${role} · ${department}` : department;
   return (
-    <article className="team-member">
+    <li className={`team-member${hasPhoto ? '' : ' team-member--placeholder'}`}>
+      <div className="team-member__portrait">
       <img
         src={photoUrl(photo)}
         alt={hasPhoto ? name : `Mascote do NEEI como fotografia temporária de ${name}`}
         loading="lazy"
+        width={480}
+        height={480}
       />
-      <div>
-        <h3>{name}</h3>
-        <p>{role ? `${role} · ${department}` : department}</p>
       </div>
-    </article>
+      <div className="team-member__caption">
+        <h3>{name}</h3>
+        {caption && <p>{caption}</p>}
+      </div>
+    </li>
   );
 }

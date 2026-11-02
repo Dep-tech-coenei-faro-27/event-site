@@ -57,7 +57,7 @@ export default function Seguranca() {
       metaDescription="Definições de segurança da conta ENEI 2027."
       eyebrow="ÁREA PESSOAL"
       title="Segurança da conta."
-      lead="Atualiza a palavra-passe e consulta o estado de proteção do perfil."
+      lead="Altera a palavra-passe e confirma o estado da conta."
     >
       {/* Cabeçalho da vista (.account-view-heading) */}
       <div className="mb-1">

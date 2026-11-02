@@ -37,7 +37,7 @@ describe("estados da conta", () => {
   it("sessão terminada: leva a entrar outra vez e marca a página", () => {
     renderPage(<SessionEnded />);
     expect(screen.getByRole("heading", { name: /a tua sessão terminou/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /iniciar sessão novamente/i })).toHaveAttribute("href", "/conta");
+    expect(screen.getByRole("link", { name: /voltar a entrar/i })).toHaveAttribute("href", "/conta");
     expect(document.body.dataset.page).toBe("estado");
     expect(document.body).toHaveClass("system-state-page");
   });
@@ -53,7 +53,7 @@ describe("estados da conta", () => {
     mocks.http.mockResolvedValue(null);
     renderPage(<UnverifiedAccount />, { pathname: "/x", state: { email: "ana@example.com" } });
     expect(screen.getByText("ana@example.com")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /reenviar email/i }));
+    fireEvent.click(screen.getByRole("button", { name: /reenviar mensagem/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: /email reenviado/i })).toBeDisabled());
     expect(mocks.http).toHaveBeenCalledWith("/auth/resend-verification-email", { method: "POST", body: { email: "ana@example.com" } });
   });
@@ -63,13 +63,13 @@ describe("estados da conta", () => {
       throw new Error("x");
     });
     renderPage(<UnverifiedAccount />, "/x?email=ana@example.com");
-    fireEvent.click(screen.getByRole("button", { name: /reenviar email/i }));
+    fireEvent.click(screen.getByRole("button", { name: /reenviar mensagem/i }));
     expect(await screen.findByText(/não foi possível reenviar agora/i)).toBeInTheDocument();
   });
 
   it("conta por verificar sem email conhecido: não oferece reenviar, só corrigir o endereço", () => {
     renderPage(<UnverifiedAccount />);
-    expect(screen.queryByRole("button", { name: /reenviar email/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /reenviar mensagem/i })).toBeNull();
     expect(screen.getByRole("link", { name: /corrigir endereço/i })).toHaveAttribute("href", "/conta/criar");
   });
 });

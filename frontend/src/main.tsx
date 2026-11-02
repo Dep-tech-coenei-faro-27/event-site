@@ -6,6 +6,7 @@ import './checkout.css'
 import './checkout.overrides.css'
 import './estado.css'
 import './motion.css'
+import './editorial.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 

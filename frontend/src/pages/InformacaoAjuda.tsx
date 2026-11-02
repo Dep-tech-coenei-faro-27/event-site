@@ -10,7 +10,7 @@ import { usePageMeta } from '../utils/usePageMeta';
 /** `ui-ux/informacao-ajuda`: pesquisa, localizações, FAQ e contacto. O CSS é gerado do protótipo (`informacao-ajuda.css`). */
 export default function InformacaoAjudaPage() {
   useBodyPage('informacao-ajuda');
-  usePageMeta('Informação · ENEI 2027', 'Encontra respostas às tuas perguntas sobre o ENEI 2027.');
+  usePageMeta('Informações e ajuda · ENEI 2027', 'Encontra respostas às tuas perguntas sobre o ENEI 2027.');
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('todos');

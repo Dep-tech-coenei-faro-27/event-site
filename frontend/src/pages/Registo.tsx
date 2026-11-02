@@ -10,9 +10,9 @@ import { newPasswordError } from "../utils/passwordChange";
 import { http, ApiError } from "../utils/http";
 
 const points = [
-  "Regista os teus dados essenciais.",
+  "Preenche os teus dados.",
   "Confirma o email da tua conta.",
-  "Completa o perfil quando quiseres.",
+  "Gere a tua inscrição.",
 ];
 
 export default function RegisterPage() {
@@ -38,7 +38,7 @@ export default function RegisterPage() {
       return "O nome contém caracteres não permitidos.";
     }
     if (!/^[\x21-\x7E]+$/.test(email.trim())) {
-      return "O email só pode conter caracteres ASCII.";
+      return "Usa um endereço sem acentos nem espaços.";
     }
     const passwordProblem = newPasswordError(password);
     if (passwordProblem) {
@@ -87,7 +87,7 @@ export default function RegisterPage() {
     <AuthLayout
       eyebrow="NOVO_PARTICIPANTE"
       title="Cria a tua conta ENEI."
-      lead="Um único espaço para preparares a participação e acompanhares todas as etapas."
+      lead="Guarda o teu bilhete e acompanha a inscrição."
       points={points}
       wide
     >

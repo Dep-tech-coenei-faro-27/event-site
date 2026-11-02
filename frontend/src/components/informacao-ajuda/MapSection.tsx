@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EVENT_DATES, EVENT_START } from '../../data/Event';
 import MapEmbed from './MapEmbed';
+import canteen from '../../assets/cantina-gambelas-ualg.webp';
 
 const TARGET = EVENT_START.getTime();
 
@@ -35,10 +36,10 @@ export default function LocationSection() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">&lt;LOCALIZAÇÕES /&gt;</p>
-            <h2>Dois lugares, uma experiência.</h2>
+            <h2>Onde acontece. Onde ficas.</h2>
           </div>
           <p className="lead">
-            O ENEI acontece no Campus de Gambelas e inclui um espaço dedicado ao alojamento dos participantes.
+            As atividades decorrem nas Gambelas. O alojamento coletivo fica na Escola Secundária Tomás Cabreira.
           </p>
         </div>
 
@@ -99,7 +100,7 @@ export default function LocationSection() {
               <dl className="location-card__facts">
                 <div>
                   <dt>Função</dt>
-                  <dd>Dormida e estadia</dd>
+                  <dd>Alojamento coletivo</dd>
                 </div>
                 <div>
                   <dt>Acesso</dt>
@@ -107,7 +108,7 @@ export default function LocationSection() {
                 </div>
               </dl>
               <p className="location-card__notice">
-                Os horários de entrada e as indicações para a estadia serão comunicados aos participantes confirmados.
+                Receberás os horários de entrada e a lista do que deves levar antes do evento.
               </p>
               <a
                 className="btn btn--primary"
@@ -121,9 +122,21 @@ export default function LocationSection() {
           </article>
         </div>
 
+        <article className="meal-location" aria-labelledby="meal-location-title">
+          <figure>
+            <img src={canteen} alt="Sala de refeições da cantina das Gambelas, com mesas e cadeiras azuis" width={2560} height={1440} loading="lazy" />
+            <figcaption>Fotografia: UAlg</figcaption>
+          </figure>
+          <div>
+            <p className="eyebrow">Refeições</p>
+            <h3 id="meal-location-title">À mesa nas Gambelas.</h3>
+            <p>As refeições são servidas na cantina do campus. Consulta o teu bilhete para saberes se estão incluídas.</p>
+          </div>
+        </article>
+
         <div className="countdown location-countdown" role="timer" aria-label="Contagem decrescente para o início do ENEI 2027">
           <div>
-            <p className="eyebrow">&lt;COUNTDOWN /&gt;</p>
+            <p className="eyebrow">&lt;CONTAGEM DECRESCENTE /&gt;</p>
             <p className="countdown__intro">{started ? 'O ENEI 2027 já começou.' : 'Até ao início do ENEI 2027'}</p>
           </div>
           <div className="countdown__grid">

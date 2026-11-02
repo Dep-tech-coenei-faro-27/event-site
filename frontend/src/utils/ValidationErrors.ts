@@ -31,7 +31,7 @@ function messagesFor(item: ValidationItem): string[] {
     case "name_invalid":
       return rules.map((r) => nameRules[r] ?? "O nome não é válido.");
     case "email_not_ascii":
-      return ["O email só pode conter caracteres ASCII (sem acentos)."];
+      return ["Usa um endereço sem acentos nem espaços."];
     case "string_too_short":
       if (field === "password") return ["A palavra-passe tem de ter pelo menos 8 caracteres."];
       if (field === "name") return ["O nome não pode estar vazio."];

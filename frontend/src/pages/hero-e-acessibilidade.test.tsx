@@ -50,6 +50,6 @@ describe("início: o fim do hero", () => {
   });
 
   it("o traço no topo da primeira secção (por baixo do cartão data/local/bilhetes) fica escondido", () => {
-    expect(css("home.css")).toMatch(/\.home-edition > \.motion-section__trace\s*\{\s*display: none;/);
+    expect(css("home.css")).toMatch(/\.home-programme > \.motion-section__trace\s*\{\s*display: none;/);
   });
 });

@@ -27,7 +27,7 @@ export default function LinkExpired() {
       actions={
         <>
           <Link className="btn btn--primary" to={fromVerification ? "/conta/verificar" : "/conta/recuperar"}>
-            {fromVerification ? "Pedir novo email" : "Pedir nova ligação"}
+            {fromVerification ? "Pedir nova mensagem" : "Pedir nova ligação"}
           </Link>
           <Link className="btn btn--secondary" to="/conta">
             Voltar ao início de sessão

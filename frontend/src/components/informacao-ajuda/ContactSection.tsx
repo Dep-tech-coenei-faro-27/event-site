@@ -6,11 +6,8 @@ export default function ContactSection() {
         <div>
           <p className="eyebrow">&lt;CONTACTO /&gt;</p>
           <h2>Ainda tens dúvidas?</h2>
-          <p className="lead">A nossa equipa ajuda-te a encontrar a informação certa.</p>
+          <p className="lead">Escreve-nos. A equipa ajuda-te.</p>
           <div className="actions">
-            <a className="btn btn--secondary" href="mailto:geral@eneiconf.pt">
-              Enviar email
-            </a>
             <a className="btn btn--primary" href="mailto:geral@eneiconf.pt">
               Contactar
             </a>
