@@ -23,6 +23,13 @@ describe("Termos: cancelamento e reembolso", () => {
     expect(text).toMatch(/cancelado pela organização, devolvemos também o valor total/i);
   });
 
+  it("identifica quem vende: AAUalg, NIF e sede", () => {
+    const text = renderTerms()?.textContent ?? "";
+    expect(text).toMatch(/vendido pela AAUalg/i);
+    expect(text).toContain("504035266");
+    expect(text).toContain("Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro");
+  });
+
   it("o pedido de quem não pode vir é caso a caso, parcial, por email, sem prazo nem transferência", () => {
     const section = renderTerms();
     const text = section?.textContent ?? "";
@@ -41,6 +48,6 @@ describe("Termos: cancelamento e reembolso", () => {
   it("a versão dos termos sobe e a data é a da alteração", () => {
     renderTerms();
     expect(document.body.textContent).toMatch(/1\.1/);
-    expect(document.querySelector('time[datetime="2026-11-01"]')).not.toBeNull();
+    expect(document.querySelector('time[datetime="2026-11-04"]')).not.toBeNull();
   });
 });

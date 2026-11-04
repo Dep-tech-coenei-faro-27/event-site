@@ -50,7 +50,7 @@ const sections: LegalSection[] = [
         content: (
             <>
             <p>
-                O bilhete é vendido pela AAUalg. Depois de o pagamento estar concluído e o bilhete emitido, <strong>não há direito a reembolso</strong>.
+                O bilhete é vendido pela AAUalg, NIF 504035266, com sede no Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro. Depois de o pagamento estar concluído e o bilhete emitido, <strong>não há direito a reembolso</strong>.
             </p>
             <p>
                 Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
@@ -80,8 +80,8 @@ export default function Acessibilidade() {
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
             version="1.1"
-            lastUpdated="1 novembro 2026"
-            lastUpdatedISO="2026-11-01"
+            lastUpdated="4 novembro 2026"
+            lastUpdatedISO="2026-11-04"
             sections={sections}
         />
     );
