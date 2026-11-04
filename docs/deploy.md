@@ -97,7 +97,7 @@ deploy sem esperar pelo CI.
 Estão em Settings, Secrets and variables, Actions, e **nunca vão para o Git**. Um segredo em falta fica vazio no `.env`,
 e é o passo 2 acima que o apanha.
 
-- **Acesso à VPS:** `VPS_HOST`, `VPS_USERNAME`, `VPS_PASSWORD`, `VPS_SSH_PORT`.
+- **Acesso à VPS:** `VPS_HOST`, `VPS_USERNAME`, `VPS_SSH_PORT` e a chave privada do CD, `VPS_SSH_KEY` (uma chave `ed25519` só para o CD, sem frase-passe; a pública está no `authorized_keys` do utilizador da VPS).
 - **Túnel:** `TUNNEL_TOKEN`.
 - **Base de dados:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT`.
 - **Sessões e tokens:** `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`,
