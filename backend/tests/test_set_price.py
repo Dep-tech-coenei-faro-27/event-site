@@ -81,3 +81,52 @@ def test_set_price_rejects_a_normal_price_that_is_not_above_the_price(
 ):
     with pytest.raises(ValueError):
         set_price(db_session, TicketTier.ACESSO, 838, normal)
+
+
+def test_show_lists_the_prices_and_warns_about_a_modality_that_will_not_change(
+    db_session,
+):
+    from app.domains.payments import set_price as module
+
+    seed_ticket_tiers(db_session)
+    set_price(db_session, TicketTier.GERAL, 4594, 5102)  # early bird, change saved
+    set_price(db_session, TicketTier.ACESSO, 838)  # no regular price saved
+
+    lines, problems = module.describe_prices(db_session)
+
+    assert "Early bird: in force" in lines[0]
+    geral = next(line for line in lines if line.startswith("geral "))
+    assert "saved   45.94" in geral and "regular   51.02" in geral
+    assert "in force   45.94" in geral and "!!" not in geral
+    acesso = next(line for line in lines if line.startswith("acesso "))
+    assert "will NOT change by itself" in acesso
+    assert problems >= 1
+
+
+def test_show_says_the_early_bird_is_over_and_stops_warning(db_session, monkeypatch):
+    from datetime import UTC, datetime
+
+    from app.core.config import settings
+    from app.domains.payments import set_price as module
+
+    seed_ticket_tiers(db_session)
+    set_price(db_session, TicketTier.GERAL, 4594, 5102)
+    monkeypatch.setattr(
+        settings, "EARLY_BIRD_ENDS_AT", datetime(2020, 1, 1, tzinfo=UTC)
+    )
+
+    lines, problems = module.describe_prices(db_session)
+
+    assert lines[0].startswith("Early bird: OVER")
+    geral = next(line for line in lines if line.startswith("geral "))
+    assert "in force   51.02" in geral
+    assert problems == 0
+
+
+def test_show_refuses_extra_arguments():
+    from app.domains.payments import set_price as module
+
+    with pytest.raises(SystemExit) as exc:
+        module.main(["--show", "geral"])
+
+    assert exc.value.code == 2
