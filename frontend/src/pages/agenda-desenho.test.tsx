@@ -322,22 +322,6 @@ describe("Agenda: o cartão leva tudo e não tem «Ver mais»", () => {
 });
 
 describe("Agenda: filtros em ecrã estreito", () => {
-  const rule = (selector: string) => {
-    const start = agendaCss.indexOf(selector + " {");
-    return agendaCss.slice(start, agendaCss.indexOf("}", start));
-  };
-
-  it("as pílulas dos filtros ficam numa só linha, com scroll horizontal quando não cabem (nunca passam para uma segunda linha)", () => {
-    const filters = rule('body[data-page="agenda"] main .ag-filters');
-    expect(filters).toMatch(/flex-wrap: nowrap/);
-    expect(filters).toMatch(/overflow-x: auto/);
-    expect(filters).toMatch(/min-width: 0/);
-    expect(filters).not.toMatch(/flex-wrap: wrap/);
-    const pill = rule('body[data-page="agenda"] main .ag-filters button');
-    expect(pill).toMatch(/flex: none/);
-    expect(pill).toMatch(/white-space: nowrap/);
-  });
-
   it("no telemóvel a linha dos filtros ocupa a largura toda (e a pesquisa vai para a linha de baixo)", () => {
     const mobile = agendaCss.slice(agendaCss.indexOf("@media (max-width: 700px)"));
     expect(mobile).toMatch(/\.ag-filters \{\s*flex: 1 1 100%;/);

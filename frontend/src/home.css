@@ -741,7 +741,7 @@ body[data-page="inicio"] .programme-preview__item:nth-child(4) {
 body[data-page="inicio"] .home-programme > .motion-section__trace {
   display: none;
 }
-/* Original-colour partner artwork, quiet cyan halos and centred incomplete rows. */
+/* Partner artwork and centred incomplete rows. */
 html body[data-page="inicio"][data-page] main .home-partners__grid {
   display: flex;
   flex-wrap: wrap;
@@ -763,20 +763,10 @@ html body[data-page="inicio"][data-page] main .home-partners__grid li {
   border: 1px solid rgba(83, 198, 255, 0.28);
   border-radius: 12px;
   background: transparent;
-  box-shadow: 0 0 18px rgba(26, 178, 255, 0.07);
+  box-shadow: none;
   text-align: center;
 }
-html body[data-page="inicio"][data-page] main .home-partners__grid li::before {
-  content: "";
-  position: absolute;
-  inset: 12% 8%;
-  z-index: 0;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(83, 198, 255, 0.18), rgba(26, 178, 255, 0.05) 48%, transparent 72%);
-  filter: blur(8px);
-  pointer-events: none;
-}
-html body[data-page="inicio"][data-page] main .home-partners__grid canvas {
+html body[data-page="inicio"][data-page] main .home-partners__grid img {
   position: relative;
   z-index: 1;
   display: block;

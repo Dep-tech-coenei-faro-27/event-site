@@ -6,7 +6,7 @@
 body[data-page="agenda"] main .ag-programme {
   padding: 72px 0 88px;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   /* Um tom mais claro e o azulejo suave: é o que separa o cabeçalho da lista, como no desenho. */
   background: var(--surface);
 }
@@ -40,10 +40,29 @@ body[data-page="agenda"] main .agenda-hero .date-pill {
 
 /* Dias */
 body[data-page="agenda"] main .ag-days {
+  position: sticky;
+  top: 76px;
+  z-index: 20;
+  padding-block: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 16px rgba(3, 7, 16, .18);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 36px;
+}
+/* Fundo opaco até às margens do ecrã, incluindo os lados fora do contentor. */
+body[data-page="agenda"] main .ag-days::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  background: var(--surface);
+  pointer-events: none;
 }
 body[data-page="agenda"] main .ag-day {
   display: flex;
@@ -81,24 +100,22 @@ body[data-page="agenda"] main .ag-day[aria-selected="true"] small {
 /* Filtros e pesquisa */
 body[data-page="agenda"] main .ag-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 12px;
   margin-top: 20px;
 }
-/* As pílulas dos filtros ficam sempre numa só linha: sem largura para todas, a linha tem scroll horizontal (nada de «Guardados»
-   a descer para uma segunda linha). O padding e a margem negativa deixam o contorno do foco sem ser cortado. */
+/* Todos os filtros ficam visíveis; em ecrãs estreitos passam para uma grelha de duas colunas. */
 body[data-page="agenda"] main .ag-filters {
   display: flex;
-  flex-wrap: nowrap;
+  flex: 1 0 auto;
+  flex-wrap: wrap;
   gap: 12px;
   min-width: 0;
   max-width: 100%;
   margin: -3px;
   padding: 3px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
+
 }
 body[data-page="agenda"] main .ag-filters button {
   flex: none;
@@ -120,6 +137,8 @@ body[data-page="agenda"] main .ag-filters button[aria-pressed="true"] {
 }
 body[data-page="agenda"] main .ag-search {
   display: flex;
+  flex: 0 1 236px;
+  min-width: 160px;
   align-items: center;
   gap: 10px;
   height: 40px;
@@ -138,6 +157,8 @@ body[data-page="agenda"] main .ag-search svg {
   fill: none;
 }
 body[data-page="agenda"] main .ag-search input {
+  flex: 1 1 auto;
+  min-width: 0;
   width: 180px;
   border: 0;
   background: transparent;
@@ -513,7 +534,21 @@ body[data-page="agenda"] main .ag-closing .actions {
   margin-top: 24px;
 }
 
+@media (max-width: 480px) {
+  body[data-page="agenda"] main .ag-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body[data-page="agenda"] main .ag-filters button { min-width: 0; }
+}
+@media (max-width: 767px) {
+  body[data-page="agenda"] main .ag-days { top: 64px; }
+}
+
 @media (max-width: 700px) {
+  body[data-page="agenda"] main .ag-toolbar {
+    flex-wrap: wrap;
+  }
   body[data-page="agenda"] main .ag-programme {
     padding: 48px 0 64px;
   }
@@ -521,7 +556,20 @@ body[data-page="agenda"] main .ag-closing .actions {
     gap: 8px;
     margin-top: 28px;
   }
-  body[data-page="agenda"] main .ag-day {
+  /* Fundo opaco até às margens do ecrã, incluindo os lados fora do contentor. */
+body[data-page="agenda"] main .ag-days::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  background: var(--surface);
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-day {
     padding: 10px 12px;
     border-radius: 0;
   }

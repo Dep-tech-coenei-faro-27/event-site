@@ -136,7 +136,7 @@ html body[data-page="agenda"] .ag-closing { padding-top: 28px; padding-bottom: 4
     min-width: 0;
   }
   body[data-page="inicio"] .hero-title {
-    font-size: clamp(48px, 16vw, 64px);
+    font-size: clamp(48px, 17.5vw, 72px);
     margin-right: 0;
   }
   body[data-page="inicio"] .hero-actions {
@@ -265,7 +265,7 @@ html body[data-page="inicio"] main .hero-content {
     gap: 16px;
   }
   html body[data-page="inicio"] .hero-title {
-    font-size: clamp(72px, 10vw, 100px);
+    font-size: clamp(80px, 11vw, 112px);
   }
   html body[data-page="inicio"] .quick-info__item {
     min-width: 0;

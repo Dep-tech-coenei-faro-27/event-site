@@ -70,7 +70,7 @@ export default function Sobre() {
           </More>
         </div>
         <figure className="about-intro__photo">
-          <img src={participants} alt="Participantes a assistir a uma sessão num auditório" width={1024} height={768} loading="lazy" />
+          <img src={participants} alt="Participantes no Vibathon 2026 a trabalhar em grupo com computadores portáteis" width={2560} height={1707} loading="lazy" />
           <figcaption>Conhecimento que se partilha.</figcaption>
         </figure>
       </div></section>

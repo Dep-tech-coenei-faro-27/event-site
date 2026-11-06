@@ -98,7 +98,7 @@ body {
   /* Escala do título do protótipo (ui-ux, página inicial): grande no ecrã largo e proporcional ao
      ecrã no telemóvel. */
   .hero-title {
-    font-size: clamp(64px, 10vw, 132px);
+    font-size: clamp(72px, 11.25vw, 148px);
     /* O texto com degradê só pinta dentro da sua caixa, e com espaçamento negativo o último
        caracter sai dela e fica cortado: damos-lhe espaço à direita sem mexer na posição. */
     padding-right: 0.14em;

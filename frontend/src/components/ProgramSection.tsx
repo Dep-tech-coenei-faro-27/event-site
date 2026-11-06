@@ -5,9 +5,9 @@ import people from '../assets/about-companies.webp';
 import PreviewPhoto from './PreviewPhoto';
 
 const items = [
-  { title: 'Aprende com quem faz.', text: 'Ouve, pergunta e descobre novas ideias.', label: 'Palestras', image: talks, alt: 'Auditório com participantes numa palestra' },
+  { title: 'Aprende com quem faz.', text: 'Ouve, pergunta e descobre novas ideias.', label: 'Palestras', image: talks, alt: 'Apresentação no Vibathon 2026 com participantes a acompanhar a sessão' },
   { title: 'Põe mãos à obra.', text: 'Sessões práticas para experimentar e aprender.', label: 'Oficinas', image: practical, alt: 'Participantes numa sessão prática' },
-  { title: 'Conhece a comunidade.', text: 'Conhece estudantes e conversa com empresas.', label: 'Encontros', image: people, alt: 'Participantes a conversar numa área de empresas' },
+  { title: 'Conhece a comunidade.', text: 'Conhece estudantes e conversa com empresas.', label: 'Encontros', image: people, alt: 'Participantes do Vibathon 2026 a conversar e a trabalhar em grupo, vistos através de uma parede de vidro' },
 ];
 
 export default function ProgramSection() {
