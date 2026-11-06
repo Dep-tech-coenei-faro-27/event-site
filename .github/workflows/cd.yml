@@ -22,6 +22,10 @@ jobs:
   build_deploy:
     runs-on: ubuntu-latest
 
+    # Cada deploy espera pela aprovação de quem estiver nos revisores do environment
+    # «production» (Settings > Environments). Fundir um PR deixa de pôr logo em produção.
+    environment: production
+
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     
     steps:
