@@ -49,7 +49,7 @@ class BlockingGateway:
         self.release = threading.Event()
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description
+        self, *, reference, amount_cents, phone, email, description, nif=None
     ) -> MBWayPayment:
         self.entered.set()
         assert self.release.wait(timeout=10)
@@ -513,7 +513,7 @@ class ConnectionCheckingGateway:
         self.in_transaction: bool | None = None
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description
+        self, *, reference, amount_cents, phone, email, description, nif=None
     ) -> MBWayPayment:
         self.in_transaction = self.session.in_transaction()
         return MBWayPayment(provider_reference="CHECK-1")

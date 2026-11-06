@@ -44,6 +44,24 @@ def intent(status, *, code=None, reference=REFERENCE, **extra):
     return {**data, **extra}
 
 
+def test_the_tax_number_goes_to_stripe_only_when_the_buyer_gave_one():
+    with_nif, calls_with = build_gateway(intent("requires_action"))
+    without, calls_without = build_gateway(intent("requires_action"))
+    args = dict(
+        reference=REFERENCE,
+        amount_cents=2500,
+        phone="912345678",
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+    )
+
+    with_nif.create_payment(**args, nif="504035266")
+    without.create_payment(**args)
+
+    assert calls_with[0][2]["metadata[nif]"] == "504035266"
+    assert "metadata[nif]" not in calls_without[0][2]
+
+
 def test_create_confirms_a_mb_way_payment_intent_with_the_phone_from_our_form():
     gateway, calls = build_gateway(intent("requires_action"))
 
