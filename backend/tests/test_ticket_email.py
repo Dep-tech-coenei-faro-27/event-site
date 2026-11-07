@@ -84,6 +84,15 @@ def test_both_bodies_carry_the_same_data():
     assert "https://enei.pt/perfil" in text
 
 
+def test_both_bodies_say_the_invoice_comes_in_time_if_the_nif_was_given():
+    """Same deadline as the Terms and the checkout help: up to 20 working days."""
+    html, text = build_ticket_email("Ana Silva", "Passe geral", "ENEI-ABC")
+
+    for body in (html, text):
+        assert "se indicaste o NIF na compra" in body
+        assert "até 20 dias úteis após a compra" in body
+
+
 def test_the_greeting_uses_the_first_name_only():
     html, text = build_ticket_email("Ana Maria Silva", "Passe geral", "R")
 

@@ -13,6 +13,8 @@ Referência: [TICKET_REFERENCE]
 Consultar o bilhete:
 [TICKET_URL]
 
+Fatura: se indicaste o NIF na compra, a fatura é emitida pela AAUalg e enviada para este email até 20 dias úteis após a compra.
+
 O bilhete é pessoal e intransmissível. Não partilhes este email nem o código QR.
 
 — ENEI 2027 · Faro, Algarve · 1–4 abril 2027
