@@ -63,7 +63,9 @@ class StripeLike:
             raise self.find_error
         return self.found
 
-    def create_payment(self, *, reference, amount_cents, phone, email, description):
+    def create_payment(
+        self, *, reference, amount_cents, phone, email, description, nif=None
+    ):
         self.created += 1
         return MBWayPayment(provider_reference=f"pi_new{self.created}")
 

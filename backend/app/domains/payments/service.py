@@ -358,6 +358,8 @@ def initiate_payment(
             phone=payload.phone,
             email=payload.email or user.email,
             description=payment_description(payload.ticket_tier),
+            # Only when the buyer gave one: the provider is never sent an empty NIF.
+            **({"nif": transaction.nif} if transaction.nif else {}),
         )
     except PaymentGatewayError:
         _settle_pending(db, transaction, TransactionStatus.FAILED)
