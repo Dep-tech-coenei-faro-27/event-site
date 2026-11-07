@@ -89,6 +89,8 @@ Precisa de sessão. Devolve o perfil do utilizador autenticado, igual ao `/api/a
 emitido (o payload assinado `ENEI27.<id>.<nonce>.<assinatura>`, sem dados pessoais). `qr_code` é `null` enquanto não
 houver um pagamento confirmado.
 
+Se a pessoa tem um pagamento à espera, esta chamada pergunta ao fornecedor pelo estado real (no máximo uma vez a cada `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`) e grava-o: quem saiu da página de espera vê o bilhete assim que o fornecedor o der como pago, sem depender do webhook. Se o fornecedor não responder, ou os pagamentos estiverem desligados, a chamada responde na mesma, com o pagamento ainda à espera.
+
 | | |
 | --- | --- |
 | `200` | `{"id", "name", "email", "role", "is_verified", "student_verification_status", "institution", "course", "qr_code", "ticket", "pending_payment", "refund_due"}` (ver abaixo) |

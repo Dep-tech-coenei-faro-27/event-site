@@ -3,7 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_verified_user
-from app.domains.payments.service import account_payment_overview
+from app.domains.payments.gateway import MBWayGateway, get_mbway_gateway_or_none
+from app.domains.payments.service import (
+    account_payment_overview,
+    refresh_users_pending_payment,
+)
 from app.domains.tickets.models import PaymentStatus
 from app.domains.tickets.service import get_ticket_for_user
 from app.domains.users.models import User
@@ -17,7 +21,11 @@ router = APIRouter(prefix="/users", tags=["users"])
 def get_current_user_info(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_verified_user),
+    gateway: MBWayGateway | None = Depends(get_mbway_gateway_or_none),
 ) -> UserProfileRead:
+    # If they left the waiting page, settle their payment now rather than wait for the
+    # webhook: the ticket shows as soon as the provider says it is paid.
+    refresh_users_pending_payment(db, current_user, gateway)
     ticket = get_ticket_for_user(db, current_user.id)
     paid = ticket is not None and ticket.payment_status == PaymentStatus.PAID
     qr_code = ticket.qr_payload if paid else None
