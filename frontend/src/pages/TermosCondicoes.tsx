@@ -56,10 +56,10 @@ const sections: LegalSection[] = [
                 Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
             </p>
             <p>
-                Se não puderes mesmo participar, podes pedir-nos um reembolso parcial escrevendo para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra. Analisamos cada pedido caso a caso e, se o aceitarmos, avisamos-te por email da aceitação, o bilhete é cancelado e devolvemos o valor aceite pelo mesmo meio de pagamento, <strong>em até 10 dias úteis a contar da data da aceitação</strong>.
+                Se não puderes mesmo participar, podes pedir-nos um reembolso parcial escrevendo para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra, <strong>até 28 de fevereiro de 2027</strong>, inclusive. Conta a data em que nos escreves, e não a data em que tratamos o pedido. Analisamos cada pedido caso a caso e, se o aceitarmos, avisamos-te por email da aceitação, o bilhete é cancelado e devolvemos o valor aceite pelo mesmo meio de pagamento, <strong>em até 10 dias úteis a contar da data da aceitação</strong>.
             </p>
             <p>
-                Só aceitamos reembolsos parciais <strong>até 28 de fevereiro de 2027</strong>, inclusive: a data que conta é a da nossa aceitação, e não a do teu pedido. <strong>A partir de 1 de março de 2027 não aceitamos reembolsos parciais.</strong>
+                <strong>A partir de 1 de março de 2027 não aceitamos pedidos de reembolso parcial.</strong>
             </p>
             <p>
                 Estas condições não afetam os direitos que a lei te reconhece.

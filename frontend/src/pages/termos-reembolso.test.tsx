@@ -30,13 +30,13 @@ describe("Termos: cancelamento e reembolso", () => {
     expect(text).toContain("Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro");
   });
 
-  it("o pedido de quem não pode vir é caso a caso, parcial, por email, aceite até 28 de fevereiro de 2027, sem transferência", () => {
+  it("o pedido de quem não pode vir é caso a caso, parcial, por email até 28 de fevereiro de 2027, sem transferência", () => {
     const section = renderTerms();
     const text = section?.textContent ?? "";
     expect(text).toMatch(/caso a caso/i);
     expect(text).toMatch(/reembolso parcial/i);
     expect(text).toMatch(/até 28 de fevereiro de 2027, inclusive/i);
-    expect(text).toMatch(/a data que conta é a da nossa aceitação, e não a do teu pedido/i);
+    expect(text).toMatch(/conta a data em que nos escreves, e não a data em que tratamos o pedido/i);
     expect(text).not.toMatch(/transfer/i);
     expect(section?.querySelector('a[href="mailto:geral@eneiconf.pt"]')).not.toBeNull();
   });
@@ -46,7 +46,7 @@ describe("Termos: cancelamento e reembolso", () => {
     expect(text).toMatch(/avisamos-te por email da aceitação/i);
     expect(text).toMatch(/em até 10 dias úteis a contar da data da aceitação/i);
     expect(text).not.toMatch(/banco|alguns dias/i);
-    expect(text).toMatch(/A partir de 1 de março de 2027 não aceitamos reembolsos parciais/i);
+    expect(text).toMatch(/A partir de 1 de março de 2027 não aceitamos pedidos de reembolso parcial/i);
   });
 
   it("tem o endereço #cancelamento-e-reembolso (o checkout liga para ele) e consta do índice", () => {

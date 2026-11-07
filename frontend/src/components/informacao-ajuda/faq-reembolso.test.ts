@@ -16,7 +16,8 @@ describe("FAQ: reembolso", () => {
     expect(item?.answer).toMatch(/avisamos-te por email/i);
     expect(item?.answer).toMatch(/em até 10 dias úteis depois da aceitação/i);
     expect(item?.answer).toMatch(/até 28 de fevereiro de 2027, inclusive/i);
-    expect(item?.answer).toMatch(/a partir de 1 de março de 2027 não aceitamos/i);
+    expect(item?.answer).toMatch(/conta a data do teu email/i);
+    expect(item?.answer).toMatch(/a partir de 1 de março de 2027 não aceitamos pedidos/i);
     expect(item?.answer).not.toMatch(/transfer/i);
   });
 

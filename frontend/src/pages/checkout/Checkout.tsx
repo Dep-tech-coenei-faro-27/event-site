@@ -369,7 +369,7 @@ function CheckoutForm() {
               </label>
 
               <p className="checkout-refund-note">
-                Depois de pagares, o bilhete não é reembolsável. Se houver um erro nosso, ou se cancelarmos o evento, devolvemos-te o valor total. Reembolso parcial excecional: pedido por email, aceite até 28/02/2027. Dúvidas:{" "}
+                Depois de pagares, o bilhete não é reembolsável. Se houver um erro nosso, ou se cancelarmos o evento, devolvemos-te o valor total. Reembolso parcial excecional: pedido por email até 28/02/2027. Dúvidas:{" "}
                 <a className="auth-legal-link" href="mailto:geral@eneiconf.pt">
                   geral@eneiconf.pt
                 </a>
