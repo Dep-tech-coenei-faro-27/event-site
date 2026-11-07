@@ -12,8 +12,12 @@ describe("FAQ: reembolso", () => {
     expect(item?.answer).toContain("geral@eneiconf.pt");
   });
 
-  it("não promete prazo nem transferência do bilhete", () => {
-    expect(item?.answer).not.toMatch(/\d+\s*dias|transfer/i);
+  it("diz as datas e os prazos e não promete transferência do bilhete", () => {
+    expect(item?.answer).toMatch(/avisamos-te por email/i);
+    expect(item?.answer).toMatch(/em até 10 dias úteis depois da aceitação/i);
+    expect(item?.answer).toMatch(/até 28 de fevereiro de 2027, inclusive/i);
+    expect(item?.answer).toMatch(/a partir de 1 de março de 2027 não aceitamos/i);
+    expect(item?.answer).not.toMatch(/transfer/i);
   });
 
   it("os identificadores das perguntas continuam únicos", () => {

@@ -49,7 +49,8 @@ describe("checkout: condições de reembolso", () => {
 
     const note = document.querySelector(".checkout-refund-note");
     expect(note?.textContent).toMatch(/o bilhete não é reembolsável/i);
-    expect(note?.textContent).toMatch(/erro nosso, devolvemos-te o valor total/i);
+    expect(note?.textContent).toMatch(/erro nosso, ou se cancelarmos o evento, devolvemos-te o valor total/i);
+    expect(note?.textContent).toMatch(/pedido por email, aceite até 28\/02\/2027/i);
     expect(screen.getByRole("link", { name: "geral@eneiconf.pt" })).toHaveAttribute("href", "mailto:geral@eneiconf.pt");
     expect(screen.getByRole("link", { name: "Ver as condições" })).toHaveAttribute("href", "/termos#cancelamento-e-reembolso");
 

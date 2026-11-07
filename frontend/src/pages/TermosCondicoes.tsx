@@ -56,7 +56,10 @@ const sections: LegalSection[] = [
                 Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
             </p>
             <p>
-                Se não puderes mesmo participar, escreve para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra. Analisamos o pedido caso a caso e, se o aceitarmos, o reembolso é parcial e o bilhete é cancelado. O reembolso é feito pelo mesmo meio de pagamento e pode demorar alguns dias a aparecer na tua conta.
+                Se não puderes mesmo participar, podes pedir-nos um reembolso parcial escrevendo para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra. Analisamos cada pedido caso a caso e, se o aceitarmos, avisamos-te por email da aceitação, o bilhete é cancelado e devolvemos o valor aceite pelo mesmo meio de pagamento, <strong>em até 10 dias úteis a contar da data da aceitação</strong>.
+            </p>
+            <p>
+                Só aceitamos reembolsos parciais <strong>até 28 de fevereiro de 2027</strong>, inclusive: a data que conta é a da nossa aceitação, e não a do teu pedido. <strong>A partir de 1 de março de 2027 não aceitamos reembolsos parciais.</strong>
             </p>
             <p>
                 Estas condições não afetam os direitos que a lei te reconhece.
@@ -80,8 +83,8 @@ export default function Acessibilidade() {
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
             version="1.1"
-            lastUpdated="4 novembro 2026"
-            lastUpdatedISO="2026-11-04"
+            lastUpdated="6 novembro 2026"
+            lastUpdatedISO="2026-11-06"
             sections={sections}
         />
     );
