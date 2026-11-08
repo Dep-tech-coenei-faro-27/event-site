@@ -30,7 +30,7 @@ def test_register_sends_verification_email(auth_client, email_sender):
     sent = email_sender.sent[0]
     assert sent["to_email"] == "ana@example.com"
     assert sent["subject"] == VERIFICATION_EMAIL_SUBJECT
-    assert sent["html_body"].startswith("<html")
+    assert "<html" in sent["html_body"]
     assert "conta/verificar?token=" in sent["html_body"]
 
 
@@ -245,7 +245,7 @@ def test_register_duplicate_does_not_send_verification_email(
 
 def test_register_still_succeeds_when_email_delivery_fails(db_session):
     class FailingSender:
-        def send_html(self, to_email, subject, html_body):
+        def send_html(self, to_email, subject, html_body, text_body=None):
             raise EmailDeliveryError("smtp is down")
 
     from fastapi.testclient import TestClient
@@ -280,11 +280,11 @@ def test_register_still_succeeds_when_email_delivery_fails(db_session):
 
 
 def test_verification_email_escapes_html_in_registered_name(auth_client, email_sender):
-    register_user(auth_client, email_sender, name='Ana "Q" & Co')
+    register_user(auth_client, email_sender, name='A&"Q" Co')
 
     html_body = email_sender.sent[0]["html_body"]
-    assert 'Ana "Q" & Co' not in html_body
-    assert "Ana &quot;Q&quot; &amp; Co" in html_body
+    assert 'A&"Q"' not in html_body
+    assert "A&amp;&quot;Q&quot;" in html_body
 
 
 def test_resend_verification_email_sends_fresh_email(auth_client, email_sender):

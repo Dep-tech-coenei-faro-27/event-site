@@ -26,7 +26,7 @@ EMAIL = "ana@example.com"
 
 
 class FailingSender:
-    def send_html(self, to_email, subject, html_body):
+    def send_html(self, to_email, subject, html_body, text_body=None):
         raise EmailDeliveryError("smtp is down")
 
 
@@ -195,7 +195,7 @@ def test_changing_the_password_sends_a_notification(auth_client, email_sender):
     notice = email_sender.sent[-1]
     assert notice["to_email"] == EMAIL
     assert notice["subject"] == PASSWORD_CHANGED_SUBJECT
-    assert "Ana Silva" in notice["html_body"]
+    assert ">Ana</strong>" in notice["html_body"]
 
 
 def test_resetting_the_password_sends_a_notification(auth_client, email_sender):

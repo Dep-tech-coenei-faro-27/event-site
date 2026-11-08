@@ -41,9 +41,21 @@ class FakeEmailSender(EmailSender):
     def __init__(self) -> None:
         self.sent: list[dict] = []
 
-    def send_html(self, to_email: str, subject: str, html_body: str) -> None:
+    def send_html(
+        self,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        inline_images: dict[str, bytes] | None = None,
+        text_body: str | None = None,
+    ) -> None:
         self.sent.append(
-            {"to_email": to_email, "subject": subject, "html_body": html_body}
+            {
+                "to_email": to_email,
+                "subject": subject,
+                "html_body": html_body,
+                "text_body": text_body,
+            }
         )
 
 
