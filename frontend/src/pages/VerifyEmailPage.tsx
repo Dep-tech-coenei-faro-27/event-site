@@ -35,7 +35,7 @@ const alertIcon = (
 );
 
 export default function VerifyEmailPage() {
-  usePageMeta("Confirmar endereço · ENEI 2027", "Verificação de email da conta ENEI 2027.");
+  usePageMeta("Verificar email · ENEI 2027", "Verificação de email da conta ENEI 2027.");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,9 +128,9 @@ export default function VerifyEmailPage() {
     },
     success: {
       icon: mailIcon,
-      eyebrow: "ENDEREÇO_CONFIRMADO",
+      eyebrow: "EMAIL_CONFIRMADO",
       title: "Conta confirmada.",
-      text: "Endereço confirmado. Já podes entrar na tua conta.",
+      text: "Email confirmado. Já podes entrar na tua conta.",
     },
     error: {
       icon: alertIcon,
@@ -144,9 +144,9 @@ export default function VerifyEmailPage() {
 
   return (
     <AuthLayout
-      eyebrow="CONFIRMAÇÃO"
+      eyebrow="EMAIL"
       title="Falta apenas um passo."
-      lead="Abre a mensagem de confirmação para ativares a conta."
+      lead="Abre o email de confirmação para ativares a conta."
       points={points}
     >
       <div role="status" aria-live="polite">
@@ -174,7 +174,7 @@ export default function VerifyEmailPage() {
             Abrir a minha conta
           </button>
           <button className="btn btn--secondary" type="submit" disabled={pending} aria-busy={pending}>
-            {pending ? "A enviar…" : "Reenviar mensagem"}
+            {pending ? "A enviar…" : "Reenviar email"}
           </button>
           <AuthAlert message={errors.message} alertRef={alertRef} />
           {resent && (

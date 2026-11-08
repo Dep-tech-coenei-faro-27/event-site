@@ -18,22 +18,32 @@ const normalize = (value: string) =>
 
 /** Perguntas frequentes (`ui-ux/informacao-ajuda`): categorias à esquerda, lista à direita, pesquisa no cabeçalho. */
 export default function FaqSection({ query, category, onCategoryChange }: Props) {
+  const searching = normalize(query) !== '';
   const items = useMemo(() => {
     const q = normalize(query);
+    // Enquanto se pesquisa, procura-se em todas as perguntas, seja qual for a categoria escolhida.
     return FAQ_DATA.filter(
       (item) =>
-        (category === 'todos' || item.category === category) &&
+        (q !== '' || category === 'todos' || item.category === category) &&
         (!q || normalize(`${item.question} ${item.answer}`).includes(q)),
     );
   }, [query, category]);
 
   return (
-    <section className="section">
-      <div className="container faq-layout">
+    <section className={`section faq-section${searching ? " faq-section--searching" : ""}`}>
+      <div className={`container faq-layout${searching ? " faq-layout--searching" : ""}`}>
         <div className="faq-heading">
           <p className="eyebrow">&lt;DÚVIDAS /&gt;</p>
-          <h2>Perguntas frequentes</h2>
+          <h2>{searching ? "Resultados da pesquisa" : "Perguntas frequentes"}</h2>
+          {searching && (
+            <p className="faq-status" role="status" aria-live="polite">
+              {items.length === 0
+                ? `Sem resultados para «${query.trim()}».`
+                : `${items.length} ${items.length === 1 ? "resultado" : "resultados"} para «${query.trim()}».`}
+            </p>
+          )}
         </div>
+        {!searching && (
         <label className="faq-mobile-filter">
           <span>Categoria</span>
           <select value={category} onChange={(event) => onCategoryChange(event.target.value)}>
@@ -44,6 +54,8 @@ export default function FaqSection({ query, category, onCategoryChange }: Props)
             ))}
           </select>
         </label>
+        )}
+        {!searching && (
         <div className="faq-nav" role="group" aria-label="Categorias de ajuda">
           {CATEGORIES.map((c) => (
             <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => onCategoryChange(c.id)}>
@@ -51,6 +63,7 @@ export default function FaqSection({ query, category, onCategoryChange }: Props)
             </button>
           ))}
         </div>
+        )}
         <div className="faq-list">
           {items.map((item, index) => (
             // A chave inclui a categoria e a pesquisa: o primeiro item abre sempre por omissão, como no protótipo.
@@ -64,7 +77,8 @@ export default function FaqSection({ query, category, onCategoryChange }: Props)
           ))}
           {items.length === 0 && (
             <div className="faq-empty">
-              Não encontrámos uma resposta. Experimenta outra pesquisa ou contacta a equipa.
+              Não encontrámos uma resposta. Experimenta outra pesquisa ou escreve-nos para{' '}
+              <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a>.
             </div>
           )}
         </div>

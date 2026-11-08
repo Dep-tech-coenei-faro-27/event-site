@@ -28,7 +28,7 @@ describe("Declaração de acessibilidade", () => {
     expect(body).toMatch(/Exceção conhecida/);
     expect(body).toMatch(/caixas finais/i);
     expect(body).toMatch(/abaixo do mínimo de 4,5:1/);
-    expect(body).toMatch(/Versão do texto\s*1\.1/);
+    expect(body).toMatch(/Versão do texto\s*1\.2/);
   });
 });
 

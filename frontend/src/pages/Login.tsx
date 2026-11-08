@@ -61,12 +61,12 @@ export default function LoginPage() {
   return (
     <AuthLayout
       eyebrow="CONTA_ENEI"
-      title="O teu ENEI, aqui."
+      title="A tua experiência começa aqui."
       lead="Consulta o bilhete e gere os teus dados."
       points={points}
     >
       <AuthEyebrow text="ENTRAR" />
-      <h2>Entra na tua conta.</h2>
+      <h2>Bem-vindo de volta.</h2>
       <p className="auth-intro">Usa o email associado à tua conta ENEI.</p>
 
       {sessionEnded && (

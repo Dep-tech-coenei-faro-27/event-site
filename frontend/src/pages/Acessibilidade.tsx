@@ -1,4 +1,5 @@
 import LegalPageLayout, { type LegalSection } from '../components/LegalPageLayout';
+import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 
 const sections: LegalSection[] = [
     {
@@ -23,10 +24,11 @@ const sections: LegalSection[] = [
                 </p>
                 <p>
                     <strong>Exceção conhecida.</strong> Nas caixas finais com fundo azul-claro em degradê (nas
-                    páginas Início e Sobre), o texto branco sobre a parte mais clara do degradê tem um contraste
-                    medido entre cerca de 1,5:1 e 3,5:1, abaixo do mínimo de 4,5:1. Os destinos dessas caixas
-                    (Bilhetes, Agenda e Informações e ajuda) estão também no menu principal. Medição feita a 25 de
-                    outubro de 2026.
+                    páginas Início, Sobre, Agenda e Bilhetes), o texto branco sobre a parte mais clara do degradê
+                    tem um contraste medido entre cerca de 2,2:1 e 5:1: os parágrafos descem a cerca de 2,2:1 e os
+                    títulos a cerca de 2,9:1, abaixo do mínimo de 4,5:1 (3:1 para texto grande). Os destinos dessas
+                    caixas (Bilhetes, Agenda e Informações e ajuda) estão também no menu principal. Medição feita
+                    a 8 de novembro de 2026.
                 </p>
             </>
         ),
@@ -78,9 +80,7 @@ export default function Acessibilidade() {
             eyebrow="ACESSIBILIDADE"
             title="Declaração de acessibilidade"
             lead="Queremos que a informação e os principais percursos do ENEI sejam claros, navegáveis e utilizáveis por todas as pessoas."
-            version="1.1"
-            lastUpdated="25 de outubro de 2026"
-            lastUpdatedISO="2026-10-25"
+            {...legalMeta(LEGAL_DOCS.acessibilidade)}
             sections={sections}
         />
     );

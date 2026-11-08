@@ -5,7 +5,7 @@ export default function CtaBanner() {
   return (
     <section className="section section--surface home-closing">
       <div className="container">
-        <div className="cta">
+        <div className="cta azulejo-bg">
           <div className="home-closing__passer" aria-hidden="true">
             <img src={eneiLogo} alt="" />
           </div>
@@ -13,7 +13,7 @@ export default function CtaBanner() {
             &lt;ENEI_2027 /&gt;
           </p>
           <h2>Falta só estares lá.</h2>
-          <p className="home-closing__lead">Traz a curiosidade. Leva novas ideias, novas amizades e quatro dias para recordar.</p>
+          <p>Traz a curiosidade. Leva novas ideias, novas amizades e quatro dias para recordar.</p>
           <div className="actions">
             <Link className="btn btn--dark" to="/bilhetes">
               Comprar bilhete

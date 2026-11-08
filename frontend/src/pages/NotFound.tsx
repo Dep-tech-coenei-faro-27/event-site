@@ -19,8 +19,8 @@ export default function NotFound() {
         </>
       }
       kicker="Página não encontrada"
-      title="Não encontrámos esta página."
-      lead="Confirma o endereço ou volta à página inicial."
+      title="Perdeste-te pelo caminho?"
+      lead="A página que procuras não existe, mudou de endereço ou já não está disponível. O resto do ENEI continua exatamente onde o deixaste."
       actions={
         <>
           <Link className="btn btn--primary" to="/">
@@ -36,7 +36,7 @@ export default function NotFound() {
       detail={{
         code: '404',
         heading: 'Não encontrámos este endereço.',
-        text: 'Usa o menu para escolher outra página.',
+        text: 'Confirma a ligação ou utiliza a navegação para regressar a uma área disponível.',
         facts: [
           { label: 'Código', value: '404' },
           { label: 'Conta', value: 'Sem alterações' },

@@ -1,4 +1,5 @@
 import LegalPageLayout, { type LegalSection } from '../components/LegalPageLayout';
+import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 
 // Só o conteúdo: o índice, os ids (secao-1...), as caixas e o estilo do texto vêm do layout.
 const sections: LegalSection[] = [
@@ -58,9 +59,7 @@ export default function Acessibilidade() {
             eyebrow="PRIVACIDADE"
             title="Política de privacidade"
             lead="Informação clara sobre os dados necessários para gerir a conta, o bilhete e a participação no encontro."
-            version="1.0"
-            lastUpdated="8 de outubro de 2026"
-            lastUpdatedISO="2026-10-08"
+            {...legalMeta(LEGAL_DOCS.privacidade)}
             sections={sections}
         />
     );

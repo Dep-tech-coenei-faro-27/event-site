@@ -88,8 +88,6 @@ export const departments: Department[] = [
     members: [
       { name: "Mohammed Rohaim", role: "Diretor" },
       dir("Matilde Saldanha", "matilde-saldanha"),
-      { name: "Márcio" },
-      { name: "José Tico" },
       { name: "Duarte Cunha" },
       { name: "Tarsila Krigger" },
     ],

@@ -76,7 +76,7 @@ describe("Equipa", () => {
     expect(trigger).toHaveAccessibleName('Departamento Tecnologia');
     fireEvent.click(screen.getByRole('button', { name: /^Tudo/ }));
     expect(document.querySelectorAll('.team-department')).toHaveLength(6);
-    expect(document.querySelectorAll('.team-member')).toHaveLength(46);
+    expect(document.querySelectorAll('.team-member')).toHaveLength(44);
 
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
@@ -99,7 +99,7 @@ describe("Equipa", () => {
     fireEvent.click(trigger);
     fireEvent.click(within(options).getByRole('button', { name: /^Tudo/ }));
     expect(document.querySelectorAll('.team-department')).toHaveLength(6);
-    expect(document.querySelectorAll('.team-member')).toHaveLength(46);
+    expect(document.querySelectorAll('.team-member')).toHaveLength(44);
     expect(trigger).toHaveAccessibleName('Departamento Tudo');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveFocus();

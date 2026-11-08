@@ -9,16 +9,16 @@ export default function CheckoutAccountGate() {
           <aside className="auth-aside">
             <div>
               <p className="eyebrow">&lt;COMPRA /&gt;</p>
-              <h1>O bilhete fica na tua conta.</h1>
+              <h1>Antes de comprar, cria a tua conta.</h1>
               <p className="lead">
-                Cria uma conta ou entra para comprares o bilhete.
+                A conta permite associar o bilhete aos teus dados e acompanhar a inscrição até ao evento.
               </p>
             </div>
             <div className="auth-points">
               {[
                 "Cria a tua conta ou inicia sessão.",
                 "Escolhe a modalidade do bilhete.",
-                "Conclui o pagamento por MB WAY.",
+                "Conclui o pagamento por MB Way.",
                 "Consulta o bilhete na tua área pessoal.",
               ].map((text, index) => (
                 <div className="auth-point" key={text}>
@@ -36,9 +36,9 @@ export default function CheckoutAccountGate() {
               </svg>
             </div>
             <p className="eyebrow">&lt;CONTA_NECESSÁRIA /&gt;</p>
-            <h2>Vamos guardar o teu bilhete.</h2>
+            <h2>Precisamos de associar o bilhete a uma conta.</h2>
             <p className="auth-intro">
-              Entra ou cria uma conta para continuar.
+              Cria uma conta ENEI para guardares o bilhete e gerires a tua participação.
             </p>
             <div className="auth-actions">
               <Link className="btn btn--primary" to="/conta/criar">

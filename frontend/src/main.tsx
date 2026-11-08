@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './cta-card.css'
 import './home.css'
 import './checkout.css'
 import './checkout.overrides.css'

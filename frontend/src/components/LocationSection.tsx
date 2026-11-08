@@ -10,7 +10,7 @@ export default function LocationSection() {
           <figcaption><span>O ponto de encontro</span><small>Fotografia: UAlg</small></figcaption>
         </figure>
         <div>
-          <p className="eyebrow">Prepara a viagem</p>
+          <p className="eyebrow">&lt;PREPARA A VIAGEM /&gt;</p>
           <h2>Próxima paragem: Faro.</h2>
           <p className="home-practical__intro">O ENEI chega a sul. Quatro dias para trocar ideias, conhecer outros participantes e viver a cidade.</p>
           <dl className="home-practical__facts">

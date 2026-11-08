@@ -1,4 +1,5 @@
 import LegalPageLayout, { type LegalSection } from '../components/LegalPageLayout';
+import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 
 const sections: LegalSection[] = [
     {
@@ -45,6 +46,29 @@ const sections: LegalSection[] = [
         ),
     },
     {
+        id: 'cancelamento-e-reembolso',
+        title: 'Cancelamento e reembolso',
+        content: (
+            <>
+            <p>
+                O bilhete é vendido pela AAUalg, NIF 504035266, com sede no Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro. Depois de o pagamento estar concluído e o bilhete emitido, <strong>não há direito a reembolso</strong>.
+            </p>
+            <p>
+                Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
+            </p>
+            <p>
+                Se não puderes mesmo participar, podes pedir-nos um reembolso parcial escrevendo para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra, <strong>até 28 de fevereiro de 2027</strong>, inclusive. Conta a data em que nos escreves, e não a data em que tratamos o pedido. Analisamos cada pedido caso a caso e, se o aceitarmos, avisamos-te por email da aceitação, o bilhete é cancelado e devolvemos o valor aceite pelo mesmo meio de pagamento, <strong>em até 10 dias úteis a contar da data da aceitação</strong>.
+            </p>
+            <p>
+                <strong>A partir de 1 de março de 2027 não aceitamos pedidos de reembolso parcial.</strong>
+            </p>
+            <p>
+                Estas condições não afetam os direitos que a lei te reconhece.
+            </p>
+            </>
+        ),
+    },
+    {
         title: 'Utilização responsável',
         content: (
             <p>
@@ -59,9 +83,7 @@ export default function Acessibilidade() {
             eyebrow="INFORMAÇÃO LEGAL"
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
-            version="1.0"
-            lastUpdated="8 de outubro de 2026"
-            lastUpdatedISO="2026-10-08"
+            {...legalMeta(LEGAL_DOCS.termos)}
             sections={sections}
         />
     );

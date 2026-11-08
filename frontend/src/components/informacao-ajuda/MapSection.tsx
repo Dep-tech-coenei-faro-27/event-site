@@ -27,11 +27,11 @@ function useCountdown() {
 const directions = (query: string) => `https://www.google.com/maps/search/?api=1&query=${query}`;
 
 /** Os dois lugares do ENEI e a contagem decrescente (`ui-ux/informacao-ajuda`). */
-export default function LocationSection() {
+export default function LocationSection({ animateIn = false }: { animateIn?: boolean }) {
   const { started, units } = useCountdown();
 
   return (
-    <section className="section section--surface event-location" id="localizacoes">
+    <section className={`section section--surface event-location${animateIn ? " info-return" : ""}`} id="localizacoes">
       <div className="container">
         <div className="section-heading">
           <div>

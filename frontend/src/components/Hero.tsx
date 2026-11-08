@@ -37,7 +37,7 @@ export default function Hero() {
 
       <div className="hero-content container relative z-10 py-[90px] flex flex-col items-start gap-4">
         <div className="inline-flex items-center">
-          <Eyebrow text="FARO_2027" />
+          <Eyebrow text="LOCAL_HOST: FARO_2027" />
         </div>
 
         {/* Título Principal com escala fluida forçada */}
@@ -47,7 +47,6 @@ export default function Hero() {
         <p className="max-w-[680px] text-lg sm:text-xl text-[#AAB7C9] font-montserrat font-normal leading-relaxed">
           Encontro Nacional de Estudantes de Informática
         </p>
-        <p className="hero-edition">18.ª edição. Pela primeira vez em Faro.</p>
 
         <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-[2px] border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
           <span>{EVENT_DATES} · Faro, Algarve</span>

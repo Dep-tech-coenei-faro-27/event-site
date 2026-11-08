@@ -38,7 +38,7 @@ export default function RegisterPage() {
       return "O nome contém caracteres não permitidos.";
     }
     if (!/^[\x21-\x7E]+$/.test(email.trim())) {
-      return "Usa um endereço sem acentos nem espaços.";
+      return "Usa um email sem acentos nem espaços.";
     }
     const passwordProblem = newPasswordError(password);
     if (passwordProblem) {
@@ -159,7 +159,7 @@ export default function RegisterPage() {
             <Link className="auth-legal-link" to="/privacidade">
               política de privacidade
             </Link>
-            .<small className="auth-legal-version">Documentos legais · versão 1.0 · 8 outubro 2026</small>
+            .
           </span>
         </label>
 

@@ -113,7 +113,7 @@ describe("Agenda: filtros e pesquisa", () => {
     const speakerCards = cards().filter((c) => c.dataset.category !== "encontro").length;
     expect(cards()).toHaveLength(speakerCards);
     expect(cards().length).toBeLessThan(all);
-    fireEvent.click(filter("Oficinas"));
+    fireEvent.click(filter("Workshops"));
     expect(cards().length).toBeGreaterThan(0);
     expect(cards().every((c) => c.dataset.category === "workshops")).toBe(true);
     expect(cards().length).toBeLessThan(speakerCards);
@@ -136,6 +136,17 @@ describe("Agenda: filtros e pesquisa", () => {
     expect(titles()).toEqual(["Atividades"]);
   });
 
+  it("a barra de pesquisa tem um «x» que limpa o texto (só quando há texto) e deixa o foco na barra", () => {
+    open();
+    const search = screen.getByRole("searchbox", { name: "Pesquisar sessões" });
+    expect(screen.queryByRole("button", { name: "Limpar pesquisa" })).toBeNull();
+    fireEvent.change(search, { target: { value: "almoco" } });
+    fireEvent.click(screen.getByRole("button", { name: "Limpar pesquisa" }));
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Limpar pesquisa" })).toBeNull();
+  });
+
   it("a pesquisa encontra também pela hora de fim", () => {
     open();
     // o almoço de sexta acaba às 14:00 e nenhum item começa a essa hora: só se acha pela hora de fim
@@ -155,7 +166,7 @@ describe("Agenda: filtros e pesquisa", () => {
     open();
     const empty = document.querySelector<HTMLElement>(".ag-empty")!;
     expect(empty.hidden).toBe(true);
-    fireEvent.click(filter("Oficinas"));
+    fireEvent.click(filter("Workshops"));
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
     expect(empty.hidden).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Ver todas as sessões" }));
@@ -168,9 +179,9 @@ describe("Agenda: filtros e pesquisa", () => {
 
   it("o filtro e a pesquisa ficam ao mudar de dia", () => {
     open();
-    fireEvent.click(filter("Oficinas"));
+    fireEvent.click(filter("Workshops"));
     fireEvent.click(screen.getByRole("tab", { name: /SÁBADO/ }));
-    expect(filter("Oficinas")).toHaveAttribute("aria-pressed", "true");
+    expect(filter("Workshops")).toHaveAttribute("aria-pressed", "true");
     expect(cards().every((c) => c.dataset.category === "workshops")).toBe(true);
   });
 });
@@ -282,7 +293,7 @@ describe("Agenda: o cartão leva tudo e não tem «Ver mais»", () => {
     for (const card of cards()) expect(card.querySelector("button[aria-expanded]")).toBeNull();
   });
 
-  it("as sessões sem fotografia têm pictogramas decorativos e mantêm a informação por confirmar", () => {
+  it("os momentos têm pictograma decorativo e as sessões com orador a anunciar têm a silhueta de uma pessoa", () => {
     open();
     const moment = cards().find((c) => c.dataset.category === "encontro")!;
     expect(within(moment).queryByRole("img")).toBeNull();
@@ -292,7 +303,8 @@ describe("Agenda: o cartão leva tudo e não tem «Ver mais»", () => {
     expect(moment.querySelector('.ag-visual')).toHaveAttribute('aria-hidden', 'true');
     expect(moment).toHaveTextContent("Local a confirmar");
     const speaker = cards().find((c) => c.dataset.category !== "encontro")!;
-    expect(speaker.querySelector('.ag-visual svg')).not.toBeNull();
+    expect(speaker.querySelector('.ag-visual')).toBeNull();
+    expect(within(speaker).getByRole('img', { name: 'Retrato do orador por anunciar' })).toBeInTheDocument();
     expect(speaker).toHaveTextContent('Orador a anunciar');
   });
 
@@ -338,9 +350,75 @@ describe("Agenda: filtros em ecrã estreito", () => {
     expect(pill).toMatch(/white-space: nowrap/);
   });
 
-  it("no telemóvel a linha dos filtros ocupa a largura toda (e a pesquisa vai para a linha de baixo)", () => {
-    const mobile = agendaCss.slice(agendaCss.indexOf("@media (max-width: 700px)"));
-    expect(mobile).toMatch(/\.ag-filters \{\s*flex: 1 1 100%;/);
+  it("no telemóvel as pílulas dão lugar a um seletor de categoria e a pesquisa fica na mesma fila", () => {
+    const mobile = agendaCss.slice(agendaCss.indexOf("@media (max-width: 767px) {\n  /* Uma só fila"));
+    expect(mobile).toMatch(/\.ag-filters \{\s*display: none;/);
+    expect(mobile).toMatch(/\.ag-filter-select \{\s*display: block;/);
+    expect(mobile).toMatch(/\.ag-search \{\s*flex: 1 1 0;/);
+    expect(rule('body[data-page="agenda"] main .ag-filter-select')).toMatch(/display: none/);
+  });
+
+  it("«Guardados» é um filtro à parte e combina com a categoria (palestras guardadas)", () => {
+    const talk = itemsOfDay(AGENDA, AGENDA_DAYS[1]).find((i) => i.category === "palestras")!;
+    const workshop = itemsOfDay(AGENDA, AGENDA_DAYS[1]).find((i) => i.category === "workshops")!;
+    const meal = itemsOfDay(AGENDA, AGENDA_DAYS[1]).find((i) => i.category === "encontro")!;
+    localStorage.setItem(SAVED_KEY, JSON.stringify([talk.id, workshop.id, meal.id]));
+    open();
+    expect(screen.queryByRole("button", { name: /^Guardados$/ })).toBeNull();
+    fireEvent.click(filter("Guardados"));
+    expect(filter("Guardados")).toHaveAttribute("aria-pressed", "true");
+    expect(cards().map((c) => c.id).sort()).toEqual([talk.id, workshop.id, meal.id].sort());
+    fireEvent.click(filter("Workshops"));
+    expect(cards().map((c) => c.id)).toEqual([workshop.id]);
+    expect(filter("Guardados")).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(filter("Palestras"));
+    expect(cards().map((c) => c.id).sort()).toEqual([talk.id, workshop.id].sort());
+    fireEvent.click(filter("Guardados"));
+    expect(filter("Guardados")).toHaveAttribute("aria-pressed", "false");
+    expect(cards().length).toBeGreaterThan(2);
+  });
+
+  it("o seletor de categoria mostra o filtro atual, abre a lista e filtra", () => {
+    open();
+    const box = screen.getByRole("combobox", { name: "Categoria das sessões" });
+    expect(box).toHaveTextContent("Tudo");
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(box);
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    const options = screen.getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["Tudo", "Palestras", "Workshops"]);
+    fireEvent.click(screen.getByRole("option", { name: "Palestras" }));
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(box).toHaveTextContent("Palestras");
+    expect(filter("Palestras")).toHaveAttribute("aria-pressed", "true");
+    expect(cards().length).toBeGreaterThan(0);
+    expect(cards().every((c) => c.dataset.category !== "encontro")).toBe(true);
+  });
+
+  it("o seletor de categoria funciona com o teclado: setas, Enter, Escape", () => {
+    open();
+    const box = screen.getByRole("combobox", { name: "Categoria das sessões" });
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    fireEvent.keyDown(box, { key: "Enter" });
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(box).toHaveTextContent("Workshops");
+    expect(filter("Workshops")).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(box, { key: "ArrowDown" });
+    fireEvent.keyDown(box, { key: "Escape" });
+    expect(box).toHaveAttribute("aria-expanded", "false");
+    expect(box).toHaveTextContent("Workshops");
+  });
+
+  it("o seletor de categoria fecha ao clicar fora", () => {
+    open();
+    const box = screen.getByRole("combobox", { name: "Categoria das sessões" });
+    fireEvent.click(box);
+    expect(box).toHaveAttribute("aria-expanded", "true");
+    fireEvent.pointerDown(document.body);
+    expect(box).toHaveAttribute("aria-expanded", "false");
   });
 });
 
@@ -357,6 +435,19 @@ describe("Agenda: o espaço da ação (inscrição, compra…)", () => {
     expect(document.querySelector("[data-slot=action]")).toBeNull();
     expect(document.querySelector(".ag-list--actions")).toBeNull();
     for (const card of cards()) expect(card.querySelector(".ag-card__foot")).not.toBeNull();
+  });
+
+  it("o Rally Tascas, que é pago à parte, tem o aviso e um botão de inscrição indisponível; nenhum outro cartão tem botão", () => {
+    open("/agenda?dia=sabado");
+    const rally = cards().find((c) => c.textContent?.includes("Rally Tascas"));
+    expect(rally).toBeDefined();
+    expect(rally).toHaveTextContent("Atividade paga · Inscrição obrigatória");
+    const button = rally!.querySelector<HTMLButtonElement>("[data-slot=action] button.ag-action");
+    expect(button).toHaveTextContent("Indisponível");
+    expect(button).toBeDisabled();
+    const others = cards().filter((c) => c !== rally);
+    expect(others.length).toBeGreaterThan(0);
+    for (const card of others) expect(card.querySelector("[data-slot=action]")).toBeNull();
   });
 
   it("o botão de um item aparece no canto do pé desse cartão e só nele", () => {

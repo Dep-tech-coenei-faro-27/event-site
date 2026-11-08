@@ -9,16 +9,17 @@ interface BrandLogoProps {
 function BrandLogo({ className = '', imageClassName = 'w-[27px] h-[34px] md:w-[36px] md:h-[46px]' }: BrandLogoProps) {
     const { pathname, search, hash } = useLocation();
 
-    // Já na página inicial o router não faz nada (o endereço é o mesmo), por isso o logótipo
-    // «não saltava» para o início: aqui sobe-se à mão. Com Ctrl, Cmd, Shift ou o botão do meio
-    // deixa-se o browser abrir a ligação como sempre.
+    // Já na página inicial o router não faz nada (o endereço é o mesmo), por isso o logótipo não
+    // «atualizava» nada: aqui volta-se ao topo e recarrega-se a página. Com Ctrl, Cmd, Shift ou o
+    // botão do meio deixa-se o browser abrir a ligação como sempre.
     const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
         const alreadyHome = pathname === '/' && !search && !hash;
         const modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
         if (!alreadyHome || modified) return;
         event.preventDefault();
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        window.scrollTo({ top: 0, left: 0, behavior: reduced ? 'auto' : 'smooth' });
+        // Sobe antes de recarregar: o browser volta a pôr a página onde estava ao carregar.
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        window.location.reload();
     };
 
     return (
