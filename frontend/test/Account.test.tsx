@@ -114,7 +114,8 @@ describe("perfil: o bilhete vem da API", () => {
     const { container } = renderPage(<Profile />);
     await screen.findByText(/ainda não tens uma inscrição/i);
     expect(screen.getAllByText("Email por verificar").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Email verificado")).toBeNull();
+    // A lista do perfil traz sempre o passo «Email verificado»; o estado (feito ou por fazer) vai no texto para leitores de ecrã.
+    expect(screen.getByTestId("email-check")).toHaveTextContent(/ainda por abrir/i);
     expect(container.querySelectorAll("main").length).toBe(0); // o <main> é o do App (#125)
   });
 });

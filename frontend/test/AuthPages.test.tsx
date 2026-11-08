@@ -138,7 +138,7 @@ const pages: Page[] = [
     name: 'Verificar email (reenvio)',
     entry: '/conta/verificar',
     path: '/auth/resend-verification-email',
-    button: 'Reenviar mensagem',
+    button: 'Reenviar email',
     busy: 'A enviar…',
     fill: () => type('Email da conta', 'ana@example.com'),
     kept: ['Email da conta', 'ana@example.com'],
@@ -371,7 +371,7 @@ describe('Recuperar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar ligação' }));
 
     const email = screen.getByLabelText('Email');
-    await waitFor(() => expect(email).toHaveAccessibleDescription(/usa um endereço sem acentos nem espaços/i));
+    await waitFor(() => expect(email).toHaveAccessibleDescription(/usa um email sem acentos nem espaços/i));
     await waitFor(() => expect(email).toHaveFocus());
   });
 });
@@ -457,7 +457,7 @@ describe('Verificar email', () => {
     mocks.http.mockRejectedValue(new ApiError(400, 'Invalid verification token'));
     open('/conta/verificar?token=abc');
     expect(await screen.findByRole('heading', { name: 'Esta ligação já não está disponível.' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Pedir nova mensagem' })).toHaveAttribute('href', '/conta/verificar');
+    expect(screen.getByRole('link', { name: 'Pedir novo email' })).toHaveAttribute('href', '/conta/verificar');
   });
 
   test('com token e 429: vai para demasiadas tentativas, com o tempo do Retry-After', async () => {
@@ -480,7 +480,7 @@ describe('Verificar email', () => {
   test('reenvio sem email: o erro aparece no campo, com o foco', async () => {
     open('/conta/verificar');
     expect(screen.getByLabelText('Email da conta')).toHaveAttribute('autocomplete', 'email');
-    fireEvent.click(screen.getByRole('button', { name: 'Reenviar mensagem' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar email' }));
 
     const field = screen.getByLabelText('Email da conta');
     await waitFor(() => expect(field).toHaveAccessibleDescription('Indica o email da conta.'));
@@ -491,7 +491,7 @@ describe('Verificar email', () => {
   test('reenvio com sucesso: confirma sem dizer se a conta existe', async () => {
     mocks.http.mockResolvedValue(null);
     open({ pathname: '/conta/verificar', state: { email: 'ana@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Reenviar mensagem' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar email' }));
 
     expect(await screen.findByText(/se a conta estiver por verificar/i)).toBeInTheDocument();
     expect(mocks.http).toHaveBeenCalledWith('/auth/resend-verification-email', {
