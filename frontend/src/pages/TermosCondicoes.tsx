@@ -1,4 +1,5 @@
 import LegalPageLayout, { type LegalSection } from '../components/LegalPageLayout';
+import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 
 const sections: LegalSection[] = [
     {
@@ -11,7 +12,7 @@ const sections: LegalSection[] = [
     {
         title: 'Conta e acesso',
         content: (
-            <p>A conta é pessoal. És responsável por manter as credenciais seguras, confirmar que o email indicado te pertence e atualizar os dados necessários para a inscrição. Se detetares acesso indevido, utiliza a área de recuperação ou procura apoio através da página Informação & Ajuda.
+            <p>A conta é pessoal. És responsável por manter as credenciais seguras, confirmar que o email indicado te pertence e atualizar os dados necessários para a inscrição. Se detetares acesso indevido, utiliza a área de recuperação ou procura apoio através da página Informações e ajuda.
             </p>
         ),
     },
@@ -28,10 +29,10 @@ const sections: LegalSection[] = [
         content: (
             <>
             <p>
-                O pagamento é iniciado através do método apresentado no checkout. A inscrição apenas fica confirmada depois de o pagamento ser validado. Em caso de recusa, expiração ou falha, não é efetuada uma cobrança confirmada e podes repetir o processo.
+                O pagamento é iniciado através do método apresentado na compra. A inscrição apenas fica confirmada depois de o pagamento ser validado. Em caso de recusa, expiração ou falha, não é efetuada uma cobrança confirmada e podes repetir o processo.
             </p>
             <p>
-                A fatura é emitida manualmente pela AAUalg, a entidade vendedora, e enviada para o email da tua conta até 20 dias úteis após a compra. Se a quiseres com número de contribuinte, indica o NIF (campo opcional) no checkout.
+                A fatura é emitida manualmente pela AAUalg, a entidade vendedora, e enviada para o email da tua conta até 20 dias úteis após a compra. Se a quiseres com número de contribuinte, indica o NIF (campo opcional) na compra.
             </p>
             </>
         ),
@@ -82,9 +83,7 @@ export default function Acessibilidade() {
             eyebrow="INFORMAÇÃO LEGAL"
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
-            version="1.1"
-            lastUpdated="6 novembro 2026"
-            lastUpdatedISO="2026-11-06"
+            {...legalMeta(LEGAL_DOCS.termos)}
             sections={sections}
         />
     );

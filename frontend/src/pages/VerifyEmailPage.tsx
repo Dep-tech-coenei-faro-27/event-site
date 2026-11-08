@@ -130,7 +130,7 @@ export default function VerifyEmailPage() {
       icon: mailIcon,
       eyebrow: "EMAIL_CONFIRMADO",
       title: "Conta confirmada.",
-      text: "O teu email foi verificado com sucesso. Já podes entrar na tua conta ENEI.",
+      text: "Email confirmado. Já podes entrar na tua conta.",
     },
     error: {
       icon: alertIcon,
@@ -146,7 +146,7 @@ export default function VerifyEmailPage() {
     <AuthLayout
       eyebrow="EMAIL"
       title="Falta apenas um passo."
-      lead="A confirmação mantém a tua conta segura e garante que recebes a informação certa."
+      lead="Abre o email de confirmação para ativares a conta."
       points={points}
     >
       <div role="status" aria-live="polite">

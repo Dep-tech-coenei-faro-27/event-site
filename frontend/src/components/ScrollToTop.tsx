@@ -10,7 +10,9 @@ const ACCOUNT_TABS = ['/perfil', '/conta/dados', '/conta/seguranca'];
  * empurram a secção depois do primeiro scroll) e pára logo que a pessoa mexe no scroll ou passa 1,5 s.
  */
 export default function ScrollToTop() {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, state } = useLocation();
+  // Uma ligação dentro do conteúdo (não o menu lateral) pode pedir que a página volte ao topo ao mudar de separador.
+  const backToTop = (state as { scrollTop?: boolean } | null)?.scrollTop === true;
   const previousPath = useRef<string | null>(null);
 
   useEffect(() => {
@@ -18,8 +20,8 @@ export default function ScrollToTop() {
     previousPath.current = pathname;
 
     if (!hash) {
-      // Mudar de separador na área pessoal só troca o conteúdo: a página fica onde estava.
-      if (previous !== null && previous !== pathname && ACCOUNT_TABS.includes(previous) && ACCOUNT_TABS.includes(pathname)) return;
+      // Mudar de separador na área pessoal só troca o conteúdo: a página fica onde estava (salvo `scrollTop`).
+      if (!backToTop && previous !== null && previous !== pathname && ACCOUNT_TABS.includes(previous) && ACCOUNT_TABS.includes(pathname)) return;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return;
     }
@@ -42,7 +44,7 @@ export default function ScrollToTop() {
     window.addEventListener('touchstart', stop, { passive: true });
     window.addEventListener('keydown', stop);
     return stop;
-  }, [pathname, hash]);
+  }, [pathname, hash, backToTop]);
 
   return null;
 }

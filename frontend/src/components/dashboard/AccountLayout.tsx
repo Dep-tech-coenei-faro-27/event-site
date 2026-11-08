@@ -101,9 +101,11 @@ function AccountFrame({ hero, children, heroRef, contentRef }: AccountFrameProps
   const logoutAtBottom =
     'flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-3 border border-acento-principal/50 bg-acento-principal/10 px-5 text-[13px] font-bold text-white transition-colors hover:bg-acento-principal/20';
 
+  // `overflow-clip` (e não `hidden`, que o `.azulejo-bg` traz) nos dois contentores: `hidden` cria uma área de
+  // scroll e a barra lateral (`sticky`) deixava de acompanhar a página.
   return (
-    <div className="azulejo-bg min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
-      <div className="account-shell relative overflow-hidden">
+    <div className="azulejo-bg !overflow-clip min-h-screen bg-azul-base pt-16 font-poppins leading-[1.65] text-white min-[621px]:pt-[76px] max-[620px]:pb-[84px]">
+      <div className="account-shell relative overflow-clip">
         <div
           aria-hidden="true"
           className="azulejo-bg pointer-events-none absolute inset-0 bg-acento-principal opacity-[0.025]"
@@ -121,7 +123,7 @@ function AccountFrame({ hero, children, heroRef, contentRef }: AccountFrameProps
         {/* Barra lateral + conteúdo */}
         <section className="relative z-[1] py-[clamp(36px,5vw,64px)]">
           <div className="mx-auto grid w-[min(calc(100%-28px),1180px)] gap-6 min-[621px]:w-[min(calc(100%-40px),1180px)] min-[901px]:grid-cols-[340px_minmax(0,1fr)]">
-            <div className={`account-sidebar flex h-fit flex-col border ${BORDER} bg-azul-painel`}>
+            <div className={`account-sidebar flex h-fit flex-col border ${BORDER} bg-azul-painel min-[901px]:sticky min-[901px]:top-[100px]`}>
               <div className={`flex items-center gap-3.5 border-b ${BORDER} p-5`}>
                 <div className="flex size-12 shrink-0 items-center justify-center border border-acento-principal/50 bg-acento-principal/10 text-[15px] font-bold text-acento-principal">
                   {initialsOf(name, email)}

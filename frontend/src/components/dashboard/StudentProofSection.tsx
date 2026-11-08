@@ -57,7 +57,7 @@ export default function StudentProofSection({ status, onStatusChange, onStale }:
       id="comprovativo"
       eyebrow="PREÇO DE ESTUDANTE"
       title="Comprovativo de estudante"
-      description="Sem email de aluno, envia o comprovativo de matrícula para teres acesso aos bilhetes de estudante."
+      description="Ainda não és um estudante verificado? Envia o comprovativo de matrícula para teres acesso aos bilhetes de estudante."
       action={
         badge && (
           <span

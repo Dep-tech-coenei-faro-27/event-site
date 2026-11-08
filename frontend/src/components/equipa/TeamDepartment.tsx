@@ -5,20 +5,20 @@ import TeamMember from "./TeamMember";
 export default function TeamDepartment({ id, label, eyebrow, title, description, members }: Department) {
   const titleId = `${id}-title`;
   return (
-    <section className="section team-department" aria-labelledby={titleId}>
-      <div className="container">
+    <section id={id} className="section team-department" aria-labelledby={titleId}>
+      <div className="container team-department__layout">
         <header className="team-department__header">
           <div>
-            <p className="eyebrow">{eyebrow}</p>
+            <p className="eyebrow">Departamento de {eyebrow}</p>
             <h2 id={titleId}>{title}</h2>
           </div>
           <p>{description}</p>
         </header>
-        <div className="team-members">
+        <ul className="team-members" aria-label={label}>
           {members.map((member) => (
             <TeamMember key={`${id}-${member.name}`} {...member} department={label} />
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );
