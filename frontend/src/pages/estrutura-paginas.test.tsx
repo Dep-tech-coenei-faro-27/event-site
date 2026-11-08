@@ -64,6 +64,7 @@ describe("Equipa", () => {
 
   it("filtra nos botões e no menu móvel, e Tudo repõe a equipa completa", () => {
     at(<Equipa />, '/equipa');
+    const completeTeam = Array.from(document.querySelectorAll('.team-member h3'), (heading) => heading.textContent);
     const trigger = screen.getByRole('button', { name: 'Departamento Tudo' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(document.querySelectorAll('.team-department')).toHaveLength(6);
@@ -76,7 +77,7 @@ describe("Equipa", () => {
     expect(trigger).toHaveAccessibleName('Departamento Tecnologia');
     fireEvent.click(screen.getByRole('button', { name: /^Tudo/ }));
     expect(document.querySelectorAll('.team-department')).toHaveLength(6);
-    expect(document.querySelectorAll('.team-member')).toHaveLength(46);
+    expect(Array.from(document.querySelectorAll('.team-member h3'), (heading) => heading.textContent)).toEqual(completeTeam);
 
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
@@ -99,7 +100,7 @@ describe("Equipa", () => {
     fireEvent.click(trigger);
     fireEvent.click(within(options).getByRole('button', { name: /^Tudo/ }));
     expect(document.querySelectorAll('.team-department')).toHaveLength(6);
-    expect(document.querySelectorAll('.team-member')).toHaveLength(46);
+    expect(Array.from(document.querySelectorAll('.team-member h3'), (heading) => heading.textContent)).toEqual(completeTeam);
     expect(trigger).toHaveAccessibleName('Departamento Tudo');
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(trigger).toHaveFocus();
