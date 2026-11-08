@@ -21,6 +21,8 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".home-edition .split > *", "up"],
   [".pathway", "up"],
   [".programme-preview__item", "up"],
+  [".home-programme__item", "up"],
+  [".home-practical .split > *", "up"],
   [".home-faro-photo", "left"],
   [".home-experience .split > *", "up"],
   // Estes dois não vêm do protótipo: no React a «Experiência» e o texto de Faro têm outra estrutura e

@@ -10,7 +10,7 @@ from app.domains.auth.models import ResetPasswordToken
 from app.domains.users.models import StudentVerificationStatus, User
 from app.domains.users.schemas import UserRegister, UserUpdate
 
-CURRENT_TERMS_VERSION = "1.0"
+CURRENT_TERMS_VERSION = "1.1"
 
 
 class ResetTokenUsedError(Exception):

@@ -1,0 +1,51 @@
+/*
+ * O preço normal riscado e a etiqueta «Early Bird» no checkout, para ninguém achar que o preço
+ * que vê já é o final. Só aparece enquanto há Early Bird (o servidor manda um preço normal acima
+ * do preço em vigor). Ficheiro à parte para não mexer no `checkout.css` (gerado).
+ */
+body[data-page="checkout"] main .checkout-ticket-option__price {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+body[data-page="checkout"] main .checkout-early {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+body[data-page="checkout"] main .checkout-early s {
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration-color: rgba(255, 120, 120, 0.8);
+  text-decoration-thickness: 1.5px;
+}
+body[data-page="checkout"] main .checkout-early em {
+  padding: 2px 6px;
+  border: 1px solid var(--accent-strong);
+  border-radius: 3px;
+  color: var(--accent-strong);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+body[data-page="checkout"] main .checkout-early-note {
+  margin: -8px 0 20px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--accent-strong);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+body[data-page="checkout"] main .checkout-early-note strong {
+  color: var(--accent-strong);
+}
+body[data-page="checkout"] main .checkout-early-note s {
+  text-decoration-color: rgba(255, 120, 120, 0.8);
+}
+@media (max-width: 720px) {
+  body[data-page="checkout"] main .checkout-ticket-option__price {
+    justify-items: start;
+  }
+}

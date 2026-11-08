@@ -1,6 +1,7 @@
 import { useContext, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Eyebrow from "../components/EyeBrow";
+import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
 import AccountLayout from "../components/dashboard/AccountLayout";
 import AccountPanel from "../components/dashboard/AccountPanel";
@@ -13,6 +14,7 @@ import TicketQr from "../components/TicketQr";
 import { EVENT_DATES } from "../data/Event";
 import PageStatus from "../components/PageStatus";
 import { loadErrorMessage } from "../utils/loadError";
+import { studentStatus } from "../utils/studentProof";
 
 /** Visão geral: bilhete digital e preparação para o encontro. */
 export default function ProfilePage() {
@@ -30,6 +32,7 @@ export default function ProfilePage() {
   // O nome da conta (atualizado logo ao guardar os dados pessoais) manda: `me` pode estar uma visita atrasado.
   const firstName = (authUser?.name ?? me?.name ?? "").trim().split(/\s+/)[0] || "Participante";
 
+  const student = studentStatus(me?.student_verification_status);
   const qrCode = me?.qr_code ?? null;
   const ticket = me?.ticket ?? null;
   // Estados da compra que a API devolve em /users/me: pagamento à espera ou reembolso a caminho.
@@ -38,8 +41,8 @@ export default function ProfilePage() {
 
   return (
     <AccountLayout
-      metaTitle="Dashboard · ENEI 2027"
-      metaDescription="Dashboard pessoal, bilhete digital e definições de perfil do ENEI 2027."
+      metaTitle="Área pessoal · ENEI 2027"
+      metaDescription="Área pessoal, bilhete digital e definições de perfil do ENEI 2027."
       eyebrow="ÁREA PESSOAL"
       title={`Olá, ${firstName}.`}
       lead="Consulta o bilhete digital e mantém os dados da tua conta atualizados."
@@ -175,7 +178,7 @@ export default function ProfilePage() {
                   O teu pagamento está pendente de confirmação.
                 </h3>
                 <p className="mx-auto mb-5 mt-2.5 max-w-[520px] text-[14px] text-cinza-texto">
-                  {pending.tier_name} · Referência {pending.reference}. Assim que o pagamento for validado, o teu bilhete digital e o código QR ficarão disponíveis aqui automaticamente.
+                  {pending.tier_name} · Referência {pending.reference}. Quando o pagamento for confirmado, o bilhete e o código QR aparecem aqui.
                 </p>
                 <SecondaryButton text="Precisas de ajuda?" to="/informacao-ajuda/" />
               </div>
@@ -213,7 +216,10 @@ export default function ProfilePage() {
                 <p className="mb-5 mt-2.5 text-[14px] text-cinza-texto">
                   Escolhe o teu bilhete para iniciares o processo de participação.
                 </p>
-                <SecondaryButton text="Consultar bilhetes" to="/bilhetes/" />
+                <div className="grid gap-3 min-[521px]:flex min-[521px]:flex-wrap min-[521px]:items-center min-[521px]:justify-center">
+                  <SecondaryButton text="Consultar bilhetes" to="/bilhetes/" className="max-[520px]:w-full" />
+                  <PrimaryButton text="Comprar bilhete" to="/bilhetes/checkout" className="max-[520px]:w-full" />
+                </div>
               </div>
             </AccountPanel>
           )}
@@ -263,13 +269,38 @@ export default function ProfilePage() {
                 <div>
                   <p className="m-0 text-[13px] font-bold text-white">Preparação</p>
                   <ul className="mt-4 flex list-none flex-col gap-4 p-0">
-                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto">
-                      <span
-                        className={`size-3 shrink-0 rounded-full ${me.is_verified ? "bg-[#10b981]" : "border border-cinza-texto/60"}`}
-                      />
-                      {me.is_verified ? "Email verificado" : "Email por verificar"}
+                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto" data-testid="email-check">
+                      {/* Areia: o email de confirmação já foi enviado no registo e a conta espera que seja aberto; verde: confirmado. */}
+                      <span className={`size-3 shrink-0 rounded-full ${me.is_verified ? "bg-[#10b981]" : "bg-areia"}`} />
+                      Email verificado
+                      <span className="sr-only">{me.is_verified ? ": sim" : ": confirmação enviada, ainda por abrir"}</span>
                     </li>
-                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto">
+                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto" data-testid="student-check">
+                      {/* Vazia: sem comprovativo; amarela: enviado, à espera; verde: aprovado; vermelha: recusado. */}
+                      <span
+                        className={`size-3 shrink-0 rounded-full ${
+                          student === "verified"
+                            ? "bg-[#10b981]"
+                            : student === "submitted"
+                              ? "bg-areia"
+                              : student === "rejected"
+                                ? "bg-[#f87171]"
+                                : "border border-cinza-texto/60"
+                        }`}
+                      />
+                      Estudante verificado
+                      <span className="sr-only">
+                        {student === "verified"
+                          ? ": sim"
+                          : student === "submitted"
+                            ? ": comprovativo em revisão"
+                            : student === "rejected"
+                              ? ": comprovativo recusado"
+                              : ": ainda não"}
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto" data-testid="ticket-check">
+                      {/* Vazia: sem compra; amarela: a confirmar o pagamento; verde: compra feita. */}
                       <span
                         className={`size-3 shrink-0 rounded-full ${
                           qrCode
@@ -279,17 +310,15 @@ export default function ProfilePage() {
                               : "border border-cinza-texto/60"
                         }`}
                       />
-                      {pending ? "Pagamento em validação" : "Bilhete confirmado"}
-                    </li>
-                    <li className="flex items-center gap-3 text-[13px] text-cinza-texto">
-                      <span className="size-3 shrink-0 rounded-full border border-cinza-texto/60" />
-                      Confirmar os dados pessoais
+                      Bilhete confirmado
+                      <span className="sr-only">{qrCode ? ": sim" : pending ? ": a confirmar o pagamento" : ": ainda não"}</span>
                     </li>
                   </ul>
                 </div>
 
                 <Link
                   to="/conta/dados"
+                  state={{ scrollTop: true }}
                   className="mt-6 inline-flex items-center gap-1.5 text-[12px] font-bold text-acento-principal transition-opacity hover:opacity-80"
                 >
                   Rever dados pessoais →

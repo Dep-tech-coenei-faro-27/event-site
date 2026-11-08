@@ -78,7 +78,7 @@ describe("dados da agenda (esquema)", () => {
     for (const day of AGENDA_DAYS) {
       expect(day.short, day.key).toBe(`${Number(day.date.slice(8, 10))} Abr`);
       expect(day.tab, day.key).toBe(day.tab.toUpperCase());
-      expect(day.label, day.key).toMatch(new RegExp(`, ${Number(day.date.slice(8, 10))} abril$`));
+      expect(day.label, day.key).toMatch(new RegExp(`, ${Number(day.date.slice(8, 10))} de abril$`));
     }
   });
 

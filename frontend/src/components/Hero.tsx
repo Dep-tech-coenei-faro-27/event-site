@@ -35,7 +35,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="hero-content container relative z-10 py-[90px] flex flex-col items-start gap-6">
+      <div className="hero-content container relative z-10 py-[90px] flex flex-col items-start gap-4">
         <div className="inline-flex items-center">
           <Eyebrow text="LOCAL_HOST: FARO_2027" />
         </div>
@@ -52,7 +52,7 @@ export default function Hero() {
           <span>{EVENT_DATES} · Faro, Algarve</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 pt-4">
+        <div className="hero-actions flex flex-wrap items-center gap-4 pt-2">
           <Link className="btn btn--secondary" to="/sobre">
             Saber mais
           </Link>

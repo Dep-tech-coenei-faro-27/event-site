@@ -13,6 +13,8 @@ import PageStatus from "../../components/PageStatus";
 import { loadErrorMessage } from "../../utils/loadError";
 import { cleanNif, nifError } from "../../utils/nif";
 import { ORGANIZATION_EMAIL, studentStatus, type StudentStatus } from "../../utils/studentProof";
+import { isEarlyBird } from "../bilhetes/earlyBird";
+import "../../checkout.early-bird.css";
 import { formatOpeningTime, formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 /**
@@ -271,7 +273,18 @@ function CheckoutForm() {
                           <strong>{tier.name}</strong>
                           <span>{tierNote(tier, student)}</span>
                         </span>
-                        <span className="checkout-ticket-option__price">{formatPrice(tier.price_cents, tier.currency)}</span>
+                        <span className="checkout-ticket-option__price">
+                          {formatPrice(tier.price_cents, tier.currency)}
+                          {isEarlyBird(tier) && (
+                            <span className="checkout-early">
+                              <s>
+                                <span className="sr-only">Preço normal </span>
+                                {formatPrice(tier.normal_price_cents, tier.currency)}
+                              </s>
+                              <em>Early Bird</em>
+                            </span>
+                          )}
+                        </span>
                       </label>
                     );
                   })}
@@ -403,6 +416,13 @@ function CheckoutForm() {
               <span>Total</span>
               <strong>{current ? formatPrice(current.price_cents, current.currency) : "—"}</strong>
             </div>
+            {isEarlyBird(current ?? undefined) && (
+              <p className="checkout-early-note">
+                <strong>Preço Early Bird.</strong> O preço normal é{" "}
+                <s>{formatPrice(current?.normal_price_cents ?? null, current?.currency)}</s>: poupas{" "}
+                {formatPrice((current?.normal_price_cents ?? 0) - (current?.price_cents ?? 0), current?.currency)}. Depois passa para o preço normal.
+              </p>
+            )}
             <ul className="checkout-trust-list">
               <li>Pagamento através de MB Way</li>
               <li>Bilhete disponível na área pessoal</li>
@@ -438,7 +458,7 @@ function StudentHint({ status }: { status: StudentStatus }) {
       ? "O teu comprovativo de estudante está em revisão. As modalidades de estudante abrem quando for aprovado."
       : status === "rejected"
         ? "O teu comprovativo de estudante foi recusado. Vê o motivo e envia outro na tua conta."
-        : "Não tens email de aluno? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
+        : "Ainda não és um estudante verificado? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
   return (
     <p style={{ margin: "12px 0 0", fontSize: 13 }}>
       {text}{" "}
