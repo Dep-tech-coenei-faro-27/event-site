@@ -231,3 +231,16 @@ def test_live_payments_require_the_provider_credentials():
 def test_unknown_payments_mode_is_rejected():
     with pytest.raises(ValidationError):
         make(PAYMENTS_MODE="sandbox")
+
+
+def test_the_password_hash_cost_defaults_to_twelve():
+    assert Settings.model_fields["BCRYPT_ROUNDS"].default == 12
+
+
+def test_prod_refuses_a_cheap_password_hash():
+    with pytest.raises(ValidationError, match="BCRYPT_ROUNDS"):
+        make_prod(BCRYPT_ROUNDS=4)
+
+
+def test_dev_accepts_a_cheap_password_hash():
+    assert make(BCRYPT_ROUNDS=4).BCRYPT_ROUNDS == 4
