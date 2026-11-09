@@ -31,7 +31,6 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".ops-item", "up"],
   [".home-faro .split > *", "up"],
   [".home-closing .container > *", "up"],
-  [".fact", "up"],
   [".timeline-item", "up"],
   [".photo", "up"],
   [".speaker-profile", "up"],
@@ -77,7 +76,8 @@ const PAGE_GROUPS: [string, Direction][] = [
   [`main section > div > .flex-col > *${CONTENT}`, "up"],
 ];
 
-// Os cartões dos mapas (`.location-card`, em Informação e Ajuda) ficam de fora de propósito: não se revelam com o scroll.
+// Ficam de fora de propósito, sem revelação com o scroll: os cartões dos mapas (`.location-card`, em Informação e Ajuda)
+// e os números da secção «Contexto» da página Sobre (`.fact`).
 const MEDIA_SELECTOR =
   ".photo, .campus-photo, .home-faro-photo, .team-member__photo, .speaker-profile__media";
 
