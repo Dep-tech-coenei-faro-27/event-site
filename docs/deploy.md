@@ -575,12 +575,14 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
   fica em 60 por minuto por omissão: cada tentativa gasta 0,2 a 0,3 s de CPU de `bcrypt` e a VPS tem 2 vCPU, por isso
   300 por minuto de um só IP ocupariam mais de um núcleo (`scripts/loadtest/RESULTADOS.md` mede que 300 pessoas atrás do
-  mesmo IP entram no mesmo minuto com 300). As leituras de `/api/payment/tiers` ficam em 600 por minuto por IP (cada
+  mesmo IP entram no mesmo minuto com 300). As leituras de `/api/payment/tiers` ficam em 1500 por minuto por IP (cada
   uma custa cerca de 10 ms). Se no dia for preciso mais login por IP, sobe-o com a Variable
   `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (por exemplo 300). Para mudar o do login, cria a Variable `RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE` (Settings → Secrets and
   variables → Actions → Variables) e faz deploy; para voltar ao valor do código, apaga-a. O limite por conta (5 por
-  minuto por email e IP) não muda com isto. O registo continua a 2 por minuto por IP: numa sessão de inscrições em sala,
-  sobe `RATE_LIMIT_REGISTER_PER_MINUTE` no `.env` da VPS nesse dia.
+  minuto por email e IP) não muda com isto. Por omissão (9/11/2026, depois de se ver que a rede da universidade sai por um só IP):
+  registos 30 por minuto por IP (`RATE_LIMIT_REGISTER_PER_MINUTE`), reenvios e recuperações de palavra-passe 30 por minuto por IP
+  (`RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE`), leituras de `/api/payment/tiers` 1500 por minuto por IP e comprovativos de estudante
+  200 por hora por IP (`RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR`). Há ainda um teto para todos os IPs juntos no registo (`RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE`, 300 por minuto): cada registo gasta cerca de 0,2 s de CPU de `bcrypt`, e muitos IPs a 30 por minuto cada um podiam saturar a VPS; passado o teto o registo responde 429 e o login, as modalidades e os pagamentos continuam a funcionar. Só conta o que o limite por IP deixou passar. Os limites por conta e por email não mudam.
 - [ ] Teste de carga repetido numa VPS de staging com base própria (nunca na produção, que partilha a base com o
   staging): `scripts/loadtest/README.md`. Os números de referência foram medidos num portátil e não na VPS.
 - [ ] Um só processo do uvicorn (o `CMD` do `Dockerfile`): o registo do SSE e a reconciliação estão em memória. Mais

@@ -275,7 +275,7 @@ Não há stock por modalidade: os bilhetes à venda são um número só para tod
 | `PAYMENT_INITIATE_THREADS` | `40` | threads que iniciam pagamentos, à parte das 40 que respondem aos outros pedidos: um fornecedor lento só atrasa as compras (ver `scripts/loadtest/RESULTADOS.md`). |
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |
-| `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `600` | consultas de `GET /tiers` por minuto por IP |
+| `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `1500` | consultas de `GET /tiers` por minuto por IP |
 
 Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 

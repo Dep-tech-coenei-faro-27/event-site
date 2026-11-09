@@ -327,6 +327,45 @@ def test_the_visitor_is_identified_by_the_address_of_the_connection():
     assert client_ip(unknown) == "unknown"
 
 
+def register_from(address, number):
+    client = TestClient(app, base_url="https://testserver", client=(address, 1000))
+    return client.post(
+        REGISTER_URL,
+        json={
+            "name": "Ana Silva",
+            "email": f"ana{number}@example.com",
+            "password": "Password123!",
+            "accept_terms": True,
+        },
+    ).status_code
+
+
+def test_registration_has_a_budget_for_all_addresses_together(auth_client, monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_PER_MINUTE", 100)
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE", 3)
+
+    statuses = [register_from(f"203.0.113.{n}", n) for n in range(1, 5)]
+
+    assert statuses == [201, 201, 201, 429]
+
+
+def test_a_blocked_address_does_not_use_up_the_budget_of_the_others(
+    auth_client, monkeypatch
+):
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_PER_MINUTE", 1)
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE", 3)
+
+    first = register_from("203.0.113.1", 1)
+    hammering = [register_from("203.0.113.1", n) for n in range(2, 8)]
+    others = [register_from("203.0.113.2", 8), register_from("203.0.113.3", 9)]
+    over = register_from("203.0.113.4", 10)
+
+    assert first == 201
+    assert hammering == [429] * 6
+    assert others == [201, 201]
+    assert over == 429
+
+
 def test_two_visitors_do_not_share_a_limit(auth_client):
     payload = {"email": "ana@example.com", "password": "Wrong-Passw0rd!"}
     first = TestClient(app, base_url="https://testserver", client=("203.0.113.1", 1000))
@@ -346,14 +385,17 @@ APPROVED_DEFAULTS = {
     "RATE_LIMIT_LOGIN_PER_MINUTE": 5,
     "RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE": 20,
     "RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE": 60,
-    "RATE_LIMIT_REGISTER_PER_MINUTE": 2,
+    "RATE_LIMIT_REGISTER_PER_MINUTE": 30,
+    "RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE": 300,
     "RATE_LIMIT_EMAIL_PER_MINUTE": 1,
     "RATE_LIMIT_EMAIL_PER_HOUR": 5,
-    "RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE": 10,
+    "RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE": 30,
     "RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES": 2,
     "RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE": 20,
     # The same campus opening the shop page (load test).
-    "RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE": 600,
+    "RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE": 1500,
+    # Many students behind one address sending their proof.
+    "RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR": 200,
 }
 
 
@@ -363,7 +405,9 @@ def test_the_default_limits_are_the_approved_ones():
     assert defaults == APPROVED_DEFAULTS
 
 
-def test_registration_allows_two_a_minute_per_ip(auth_client, clock):
+def test_registration_is_blocked_past_the_limit_per_ip(auth_client, clock, monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_PER_MINUTE", 2)
+
     def register(number):
         return auth_client.post(
             REGISTER_URL,
