@@ -1,0 +1,240 @@
+/*
+ * Ajustes à mão sobre o `bilhetes.css` (gerado: não se edita). Diferenças ao protótipo decididas com o utilizador:
+ * (o prefixo `html body[...][data-page]` iguala o peso das regras da própria página no ficheiro gerado)
+ * o cartão de bilhete nunca passa de 400 px (a 597 px e a 1071 px, com as colunas do protótipo, ficava com 570 e 500 px).
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+  justify-content: center;
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 400px));
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: minmax(0, 400px);
+  }
+}
+
+/*
+ * Quinta modalidade (passe geral + refeições): o protótipo desenha quatro. A quinta, sozinha numa linha, fica centrada
+ * com a largura de um cartão; a partir de 1481 px (contentor de 1440 px) cabem as cinco numa linha.
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 54px) / 4); /* quatro colunas e três intervalos de 18 px */
+}
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    width: min(calc((100% - 18px) / 2), 400px); /* a largura de uma das duas colunas */
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+@media (min-width: 1481px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+
+/*
+ * De 1241 a 1480 px (por exemplo 1440 x 900): três cartões em cima e dois em baixo, centrados, em vez de quatro e um
+ * sozinho (decidido a 30/10). Seis colunas, cada cartão ocupa duas; os de baixo começam na 2.ª e na 4.ª coluna.
+ * A grelha não passa de três cartões de 360 px (3 x 360 + 2 x 18 = 1116): a 400 px ficavam largos a esta resolução (30/10).
+ */
+@media (min-width: 1241px) and (max-width: 1480px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: min(100%, 1116px);
+    margin-inline: auto;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card {
+    grid-column: span 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    grid-column: 4 / span 2;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+
+/* Preparação: o desenho em colunas com linhas (o da página original), com o ícone ao lado do título. */
+html body[data-page="bilhetes"][data-page] main .checklist-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+html body[data-page="bilhetes"][data-page] main .checklist-head h3 { margin: 0; }
+html body[data-page="bilhetes"][data-page] main .registration-prep__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: #25caff;
+}
+html body[data-page="bilhetes"][data-page] main .registration-checklist a {
+  color: #5cd5ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* Caixa luminosa «Precisas de ajuda?»: a mesma das outras páginas (Sobre, Equipa). */
+body[data-page="bilhetes"] main > .section:has(.cta) {
+  background: var(--bg);
+}
+body[data-page="bilhetes"] main > .section:has(.cta)::before {
+  content: none;
+}
+
+/*
+ * Early Bird: aviso por cima dos cartões e, em cada cartão, o preço (o espaço que o protótipo usava para repetir o nome).
+ * O preço normal fica riscado ao lado; por baixo, quanto se poupa e até quando.
+ */
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice {
+  margin-top: 30px;
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  border: 1px solid var(--line-accent);
+  border-left: 5px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+  background:
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.12), transparent 70%),
+    var(--panel);
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice strong {
+  font: 800 13px/1.2 Montserrat, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice span {
+  color: var(--muted);
+  font-size: 14px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .eb-notice + .grid--4 {
+  margin-top: 24px !important;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .price--stack {
+  min-height: 0;
+  margin: 14px 0 6px;
+  padding-block: 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border-block: 1px dashed var(--line-accent);
+  font-variant-numeric: tabular-nums;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-now {
+  font: 800 46px/1 Montserrat, sans-serif;
+  letter-spacing: -0.01em;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-cents {
+  font-size: 0.7em;
+  letter-spacing: 0;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-was {
+  color: var(--muted);
+  font: 600 18px/1 Montserrat, sans-serif;
+  text-decoration-color: rgba(255, 120, 120, 0.8);
+  text-decoration-thickness: 2px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-save {
+  padding: 5px 9px;
+  border-radius: 2px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent-strong);
+  font: 700 11px/1 Montserrat, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-until {
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (min-width: 1241px) and (max-width: 1480px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .eb-notice {
+    width: min(100%, 1116px);
+    margin-inline: auto;
+  }
+}
+
+/* Nome da modalidade maior (26 px) e a etiqueta de cima um pouco maior, para o cartão se ler pelo nome e pelo preço. */
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card h3 {
+  font: 800 26px/1.14 Montserrat, sans-serif;
+  letter-spacing: -0.01em;
+  min-height: 2.3em;
+}
+html body[data-page="bilhetes"][data-page] main #tipos .ticket-card .eyebrow {
+  font-size: 12px;
+}
+
+/*
+ * Tablet e telemóvel (até 1240 px, onde a grelha já é de 2 colunas ou de 1): o recomendado vem primeiro e, a seguir,
+ * por esta ordem: acesso + refeições, apenas acesso, passe geral + refeições, passe geral. No computador (de 1241 px
+ * para cima) fica a ordem do código. A ordem só muda no ecrã: o teclado e os leitores de ecrã seguem a do código.
+ * Com 5 cartões e 2 colunas, o último (passe geral, o 4.º no código) fica sozinho na última linha, centrado.
+ */
+@media (max-width: 1240px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(3) {
+    order: 1;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(2) {
+    order: 2;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(1) {
+    order: 3;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(5) {
+    order: 4;
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    order: 5;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(calc((100% - 18px) / 2), 400px);
+  }
+}
+@media (max-width: 620px) {
+  html body[data-page="bilhetes"][data-page] main #tipos .grid--4 > .ticket-card:nth-child(4) {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+html body[data-page="bilhetes"][data-page] main #tipos .price-pending {
+  color: var(--muted);
+  font: 600 15px/1.3 Poppins, sans-serif;
+}

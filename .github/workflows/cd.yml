@@ -1,0 +1,261 @@
+name: "CD"
+
+on:
+  workflow_run:
+    workflows: ["CI - Backend"]
+    types:
+      - completed
+    # Só a `main` vai para produção. O `dev` integra e testa: fundir lá já não faz deploy.
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Nunca dois deploys ao mesmo tempo.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build_deploy:
+    runs-on: ubuntu-latest
+
+    # Cada deploy espera pela aprovação de quem estiver nos revisores do environment
+    # «production» (Settings > Environments). Fundir um PR deixa de pôr logo em produção.
+    environment: production
+
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: "Download code"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Com workflow_run o checkout normal traz o ramo por omissão, não o commit que passou no CI.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: "Copy files via SSH"
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: "."
+          target: "/home/debian/enei/event-site"
+
+      - name: "Create .env file for backend on VPS"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site/backend
+            cat << 'EOF' > .env
+            PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+            DEBUG=${{ secrets.DEBUG }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
+            JWT_ALGORITHM=${{ secrets.JWT_ALGORITHM }}
+            JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
+            JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES=${{ secrets.JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES }}
+            PASSWORD_RESET_TOKEN_EXPIRE_MINUTES=${{ secrets.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            EMAIL_SENDER=${{ secrets.EMAIL_SENDER }}
+            SMTP2_HOST=${{ secrets.SMTP2_HOST }}
+            SMTP2_USER=${{ secrets.SMTP2_USER }}
+            SMTP2_PASSWORD=${{ secrets.SMTP2_PASSWORD }}
+            SMTP2_EMAIL_SENDER=${{ secrets.SMTP2_EMAIL_SENDER }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES=${{ secrets.JWT_ACCESS_TOKEN_LONG_EXPIRE_MINUTES }}
+            CORS_ALLOW_ORIGINS=${{ secrets.CORS_ALLOW_ORIGINS }}
+            STUDENT_EMAIL_DOMAINS=${{ vars.STUDENT_EMAIL_DOMAINS }}
+            MBWAY_KEY=${{ secrets.MBWAY_KEY }}
+            MBWAY_AUTH_TOKEN=${{ secrets.MBWAY_AUTH_TOKEN }}
+            MBWAY_CALLBACK_KEY=${{ secrets.MBWAY_CALLBACK_KEY }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            EOF
+            # Limite de pedidos de pagamento por minuto; só entra quando a Variable existe
+            # (vazio reprova a validação e o código tem o seu valor por omissão).
+            if [ -n "${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" ]; then
+              echo "RATE_LIMIT_PAYMENT_PER_MINUTE=${{ vars.RATE_LIMIT_PAYMENT_PER_MINUTE }}" >> .env
+            fi
+            # Inícios de sessão por minuto por IP (o recinto partilha poucos IPs); só entra
+            # quando a Variable existe: o código tem 60 por omissão.
+            if [ -n "${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" ]; then
+              echo "RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE=${{ vars.RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE }}" >> .env
+            fi
+            # Porta do segundo SMTP e limite diário do primeiro; só entram quando existem
+            # (vazio reprova a validação e o código tem 587 e 0, sem limite).
+            if [ -n "${{ secrets.SMTP2_PORT }}" ]; then
+              echo "SMTP2_PORT=${{ secrets.SMTP2_PORT }}" >> .env
+            fi
+            if [ -n "${{ vars.SMTP_DAILY_LIMIT }}" ]; then
+              echo "SMTP_DAILY_LIMIT=${{ vars.SMTP_DAILY_LIMIT }}" >> .env
+            fi
+            # Bilhetes à venda no site, um número só para todas as modalidades; só entra
+            # quando a Variable existe (vazio reprova a validação e o código tem 600).
+            if [ -n "${{ vars.TICKET_STOCK_LIMIT }}" ]; then
+              echo "TICKET_STOCK_LIMIT=${{ vars.TICKET_STOCK_LIMIT }}" >> .env
+            fi
+            # PAYMENTS_MODE só entra quando a Variable existe: vazio reprova a validação
+            # e o default do código é "off".
+            if [ -n "${{ vars.PAYMENTS_MODE }}" ]; then
+              echo "PAYMENTS_MODE=${{ vars.PAYMENTS_MODE }}" >> .env
+            fi
+            # Abertura da bilheteira: data ISO 8601 com fuso (por exemplo 2026-11-02T09:00:00+00:00).
+            # Antes dela tudo fica fechado, mesmo com preços e chaves reais; só entra quando a
+            # Variable existe (sem ela não há data de abertura). Sem fuso, o backend não arranca.
+            if [ -n "${{ vars.SALES_OPEN_AT }}" ]; then
+              echo "SALES_OPEN_AT=${{ vars.SALES_OPEN_AT }}" >> .env
+            fi
+            # Gateway real (stripe ou ifthenpay); só entra quando a Variable existe: o código tem "stripe" por omissão.
+            if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
+              echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env
+            fi
+            # Só no staging: deixa arrancar com uma chave Stripe de teste. Sem a Variable o backend recusa
+            # sk_test_ em produção.
+            if [ -n "${{ vars.STRIPE_ALLOW_TEST_KEY }}" ]; then
+              echo "STRIPE_ALLOW_TEST_KEY=${{ vars.STRIPE_ALLOW_TEST_KEY }}" >> .env
+            fi
+            # Confirmação simulada (só com PAYMENTS_MODE=simulated); só entra se a Variable existir.
+            if [ -n "${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" ]; then
+              echo "PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS=${{ vars.PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS }}" >> .env
+            fi
+            chmod 600 .env
+            # O token do túnel fica num ficheiro à parte, que só o serviço do túnel lê.
+            cat << 'EOF' > ../tunnel.env
+            TUNNEL_TOKEN=${{ secrets.TUNNEL_TOKEN }}
+            EOF
+            chmod 600 ../tunnel.env
+
+            # Monitorização: segredos em ficheiros fora do repositório, que o compose monta no Alertmanager.
+            # Têm de existir antes do up: o Docker cria uma PASTA onde falta um ficheiro montado.
+            mkdir -p /home/debian/enei/alerts /home/debian/enei/metrics
+            for f in discord_webhook smtp_password watchdog_url; do
+              if [ -d "/home/debian/enei/alerts/$f" ]; then rmdir "/home/debian/enei/alerts/$f"; fi
+            done
+            if [ -n "${{ secrets.ALERT_DISCORD_WEBHOOK }}" ]; then
+              printf '%s' "${{ secrets.ALERT_DISCORD_WEBHOOK }}" > /home/debian/enei/alerts/discord_webhook
+            fi
+            if [ -n "${{ secrets.WATCHDOG_URL }}" ]; then
+              printf '%s' "${{ secrets.WATCHDOG_URL }}" > /home/debian/enei/alerts/watchdog_url
+            fi
+            SMTP_PW="$(grep '^SMTP_PASSWORD=' .env | cut -d= -f2-)"
+            if [ -n "$SMTP_PW" ]; then
+              printf '%s' "$SMTP_PW" > /home/debian/enei/alerts/smtp_password
+            fi
+            chmod 644 /home/debian/enei/alerts/* 2>/dev/null || true
+            chmod 700 /home/debian/enei/alerts
+      
+      - name: "Build and Run with Docker Compose"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site
+            COMPOSE="docker compose --env-file backend/.env --env-file tunnel.env"
+            # Antes de parar o que está a correr: constrói as imagens novas e confirma que o backend
+            # aceita este .env (segredos em falta ou inseguros). Se falhar, o site atual fica de pé.
+            $COMPOSE build backend frontend || { echo "A preparação do deploy falhou (ver o erro acima). Nada foi parado."; exit 1; }
+            if ! CHECK=$($COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/python backend -c "from app.core.config import settings" 2>&1); then
+              echo "$CHECK" | grep -v input_value || true
+              echo "A configuração (.env) não é válida para esta versão. Nada foi parado: o site atual continua a correr."
+              exit 1
+            fi
+            # Migrations antes de trocar o código. A base de dados sobe primeiro (no primeiro deploy é
+            # criada aqui) e a imagem nova corre o alembic num contentor descartável. Se falhar, o site
+            # que está a correr não foi parado e a base de dados ficou como estava (as migrations são
+            # atómicas). Por isso cada migration tem de ser compatível com a versão anterior do código.
+            $COMPOSE up -d --wait postgres || { echo "A base de dados não arrancou. Nada foi parado."; exit 1; }
+            if ! $COMPOSE run --rm -T --no-deps --entrypoint /app/.venv/bin/alembic backend upgrade head; then
+              echo "As migrations falharam. A base de dados ficou como estava e o site atual não foi parado."
+              exit 1
+            fi
+            # Monitorização: só liga se os segredos existirem; se existirem e algo estiver mal, pára aqui.
+            MONITORING=""
+            if [ -s /home/debian/enei/alerts/discord_webhook ] && [ -s /home/debian/enei/alerts/smtp_password ] && [ -s /home/debian/enei/alerts/watchdog_url ] && [ -n "${{ vars.ALERT_EMAIL_TO }}" ]; then
+              ALERT_EMAIL_TO="${{ vars.ALERT_EMAIL_TO }}" sh scripts/render-alertmanager.sh backend/.env monitoring/alertmanager.yml \
+                || { echo "Não foi possível gerar o alertmanager.yml. Nada foi parado."; exit 1; }
+              docker run --rm \
+                -v "$PWD/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+                -v /home/debian/enei/alerts/discord_webhook:/etc/alertmanager/discord_webhook:ro \
+                -v /home/debian/enei/alerts/smtp_password:/etc/alertmanager/smtp_password:ro \
+                -v /home/debian/enei/alerts/watchdog_url:/etc/alertmanager/watchdog_url:ro \
+                --entrypoint amtool prom/alertmanager:v0.28.1 check-config /etc/alertmanager/alertmanager.yml \
+                || { echo "O alertmanager.yml não é válido. Nada foi parado."; exit 1; }
+              COMPOSE="$COMPOSE --profile monitoring"
+              $COMPOSE config -q || { echo "O docker-compose.yml não é válido. Nada foi parado."; exit 1; }
+              $COMPOSE pull prometheus alertmanager node-exporter blackbox \
+                || { echo "Não foi possível puxar as imagens da monitorização. Nada foi parado."; exit 1; }
+              MONITORING=1
+            else
+              MISSING=""
+              [ -s /home/debian/enei/alerts/discord_webhook ] || MISSING="$MISSING ALERT_DISCORD_WEBHOOK"
+              [ -s /home/debian/enei/alerts/smtp_password ] || MISSING="$MISSING SMTP_PASSWORD"
+              [ -s /home/debian/enei/alerts/watchdog_url ] || MISSING="$MISSING WATCHDOG_URL"
+              [ -n "${{ vars.ALERT_EMAIL_TO }}" ] || MISSING="$MISSING ALERT_EMAIL_TO"
+              echo "AVISO: faltam estes segredos da monitorização:$MISSING. Deploy sem monitorização."
+            fi
+            $COMPOSE down
+            $COMPOSE up -d --build
+            if [ -n "$MONITORING" ]; then
+              for i in $(seq 1 15); do
+                if $COMPOSE exec -T alertmanager wget -qO- http://127.0.0.1:9093/-/ready > /dev/null 2>&1; then echo "alertmanager OK"; break; fi
+                sleep 2
+              done
+              sleep 5
+              $COMPOSE exec -T prometheus wget -qO- http://127.0.0.1:9090/api/v1/alertmanagers 2>/dev/null \
+                | grep -q '"activeAlertmanagers":\[{' && echo "prometheus vê o alertmanager" \
+                || echo "AVISO: o prometheus não vê o alertmanager"
+              $COMPOSE exec -T prometheus wget -qO- http://127.0.0.1:9090/api/v1/targets 2>/dev/null \
+                | grep -o '"health":"[a-z]*"' | sort | uniq -c
+              $COMPOSE logs --tail 15 alertmanager 2>&1 | grep -iE 'error|level=err' || true
+            fi
+            # O deploy só conta como bom se o backend responder (testa por dentro do contentor,
+            # por isso não depende de portas publicadas no servidor).
+            for i in $(seq 1 30); do
+              if $COMPOSE exec -T backend curl -fsS http://127.0.0.1:8000/api/health > /dev/null; then
+                echo "backend OK"
+                # Teste de fumo (scripts/smoke-test.sh): só lê. Nunca regista contas nem compra,
+                # porque aqui o staging e a produção são a mesma base de dados e um registo
+                # mandaria um email a sério. Se falhar, o deploy fica a vermelho.
+                if ! SMOKE_CURL="$COMPOSE exec -T backend curl" sh scripts/smoke-test.sh; then
+                  $COMPOSE logs --tail 50 backend
+                  exit 1
+                fi
+                exit 0
+              fi
+              sleep 2
+            done
+            $COMPOSE logs --tail 50 backend
+            exit 1
+
+      - name: "Ensure monitoring metrics cron is scheduled"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            cd /home/debian/enei/event-site
+            sh scripts/add_cronjob.sh
+            crontab -l | grep -F 'scripts/export-metrics.sh'
+
+      

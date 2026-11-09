@@ -1,0 +1,12 @@
+ENEI 2027 — CONFIRMA O TEU EMAIL
+
+Olá [FIRST_NAME].
+
+Confirma que este endereço te pertence para ativares a conta e poderes comprar o teu bilhete para o ENEI 2027.
+
+Confirmar email:
+[VERIFICATION_URL]
+
+Este link é válido durante [VERIFICATION_VALIDITY_MINUTES] minutos. Se não criaste esta conta, ignora este email: nada acontece sem a confirmação.
+
+— ENEI 2027 · Faro, Algarve · 1–4 abril 2027

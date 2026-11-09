@@ -1,0 +1,213 @@
+name: CI - Backend
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: event_site_test
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: event_site_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # A história toda, para comparar as migrations de um PR com o ramo de destino.
+          fetch-depth: 0
+
+      # O job corre em backend/ por omissão; as regras estão em monitoring/, na raiz.
+      - name: Alert rules
+        working-directory: .
+        run: |
+          docker run --rm -v "$PWD/monitoring:/m:ro" --entrypoint promtool prom/prometheus:v2.55.1 check rules /m/alerts.yml
+          docker run --rm -v "$PWD/monitoring:/m:ro" --entrypoint sh prom/prometheus:v2.55.1 -c 'promtool test rules /m/tests/*.yml'
+
+      - name: New migrations are safe for the previous code
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: python3 scripts/check_migrations.py "origin/${{ github.base_ref }}"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: A single migration head
+        env:
+          ENVIRONMENT: dev
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+        run: |
+          heads="$(uv run alembic heads | grep -c '(head)')"
+          if [ "$heads" -ne 1 ]; then
+            echo "Expected exactly one migration head, found $heads:"
+            uv run alembic heads
+            exit 1
+          fi
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Run unit tests
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg2://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@${{ env.POSTGRES_HOST }}:${{ env.POSTGRES_PORT }}/${{ env.POSTGRES_DB }}
+        run: uv run pytest -v
+
+      - name: Create migrations database
+        run: PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql -h ${{ env.POSTGRES_HOST }} -U ${{ env.POSTGRES_USER }} -c "CREATE DATABASE event_site_migrations"
+
+      - name: Check migrations (upgrade, drift, downgrade, upgrade)
+        env:
+          ENVIRONMENT: dev
+          POSTGRES_DB: event_site_migrations
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+      # O servidor a sério (uvicorn) sobre a base de dados já migrada. O script só lê: nunca
+      # regista contas nem compra, e não há servidor de email (SMTP_HOST vazio), por isso
+      # nenhum email sai deste passo nem dos testes.
+      - name: Smoke test (real server, read-only, no email)
+        env:
+          ENVIRONMENT: dev
+          POSTGRES_DB: event_site_migrations
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+          PAYMENTS_MODE: simulated
+          SMTP_HOST: ""
+          EMAIL_OUTBOX_WORKER: "0"
+        run: |
+          uv run uvicorn app.main:app --port 8000 > /tmp/uvicorn.log 2>&1 &
+          server=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/health > /dev/null && break
+            sleep 1
+          done
+          status=0
+          sh ../scripts/smoke-test.sh || status=$?
+          kill "$server" || true
+          if [ "$status" -ne 0 ]; then cat /tmp/uvicorn.log; fi
+          exit "$status"
+
+      # O fluxo completo contra o servidor a sério, na mesma base migrada (deita-se fora
+      # com o job): registo, verificação, login, compra nas cinco modalidades com o
+      # gateway simulado, QR, email do bilhete e saída, mais as falhas. Sem SMTP, os
+      # emails ficam na fila e no log, e nenhum sai. Ver docs/testes-e2e.md.
+      - name: End-to-end flow (real server, simulated payments, no email)
+        timeout-minutes: 5
+        env:
+          ENVIRONMENT: dev
+          POSTGRES_DB: event_site_migrations
+          E2E_DISPOSABLE_DB: event_site_migrations
+          JWT_SECRET_KEY: ci-only-secret-not-used-anywhere-else
+          PAYMENTS_MODE: simulated
+          PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS: "60"
+          PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS: "0"
+          STUDENT_EMAIL_DOMAINS: ualg.pt
+          # Todas as contas do teste vêm do mesmo IP.
+          RATE_LIMIT_REGISTER_PER_MINUTE: "100"
+          RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: "200"
+          RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: "100"
+          SMTP_HOST: ""
+          SMTP2_HOST: ""
+          EMAIL_OUTBOX_WORKER: "0"
+          # O servidor do teste de fumo pode ainda estar a fechar na porta 8000.
+          E2E_PORT: "8001"
+        run: sh ../scripts/e2e-full-flow.sh
+
+  # Vulnerabilidades conhecidas nas dependências que vão para a imagem (sem o grupo dev).
+  # As exceções estão em audit-exceptions.toml, cada uma com motivo e data de revisão.
+  audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: pip-audit
+        run: python3 scripts/audit_deps.py backend
+
+  # A imagem do backend (backend/Dockerfile) arranca como no servidor: o entrypoint aplica
+  # as migrations numa base vazia e o uvicorn sobe com ENVIRONMENT=prod. Falha, com os
+  # registos do contentor, se não responder a /api/health em 30 s ou se o teste de fumo
+  # falhar. Nenhum email sai (ver scripts/check-backend-container.sh).
+  container:
+    name: Backend image starts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          # A validação de produção recusa a palavra-passe "postgres".
+          POSTGRES_PASSWORD: ci-container-only-password
+          POSTGRES_DB: event_site_container
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build, start and check the container
+        env:
+          POSTGRES_PASSWORD: ci-container-only-password
+          POSTGRES_DB: event_site_container
+        run: sh scripts/check-backend-container.sh

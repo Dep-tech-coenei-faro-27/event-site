@@ -1,0 +1,45 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m                       # 1) o script não conseguiu ler a fila (status_ok = 0)
+    input_series:
+      - series: 'enei_email_status_ok{job="node", instance="node-exporter:9100"}'
+        values: '0+0x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: EmailStatusUnavailable
+        exp_alerts: []
+      - eval_time: 7m
+        alertname: EmailStatusUnavailable
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "Não consigo ler a fila de emails (backend em baixo ou o script parou)" }
+  - interval: 1m                       # 2) o cron nunca correu: a métrica não existe
+    input_series:
+      - series: 'up{job="node", instance="node-exporter:9100"}'
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: EmailStatusUnavailable
+        exp_alerts: []
+      - eval_time: 7m
+        alertname: EmailStatusUnavailable
+        exp_alerts:
+          - exp_labels: { severity: warning }
+            exp_annotations: { summary: "Não consigo ler a fila de emails (backend em baixo ou o script parou)" }
+  - interval: 1m                       # 3) o ficheiro de métricas parou de ser atualizado
+    input_series:
+      - series: 'enei_email_status_ok{job="node", instance="node-exporter:9100"}'
+        values: '1+0x20'
+      - series: 'node_textfile_mtime_seconds{job="node", instance="node-exporter:9100", file="/textfile/enei.prom"}'
+        values: '0+0x20'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: EmailStatusUnavailable
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: EmailStatusUnavailable
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100", file: "/textfile/enei.prom" }
+            exp_annotations: { summary: "Não consigo ler a fila de emails (backend em baixo ou o script parou)" }

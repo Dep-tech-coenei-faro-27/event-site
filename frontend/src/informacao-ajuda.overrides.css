@@ -1,0 +1,267 @@
+/*
+ * Ajustes à mão sobre o `informacao-ajuda.css` (gerado: não se edita). Diferença ao protótipo decidida pela equipa:
+ * o mapa do OpenStreetMap só se carrega depois de a pessoa o pedir (partilha o endereço IP com um terceiro).
+ */
+body[data-page="informacao-ajuda"] .map-consent {
+  min-height: inherit;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 40px 24px;
+  text-align: center;
+}
+body[data-page="informacao-ajuda"] .map-consent svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+body[data-page="informacao-ajuda"] .map-consent p {
+  max-width: 380px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+body[data-page="informacao-ajuda"] .map-consent a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+body[data-page="informacao-ajuda"] .map-consent a:hover {
+  color: #fff;
+}
+/* Os estados ativos e o apoio usam os mesmos apontamentos ciano das restantes páginas. */
+html body[data-page="informacao-ajuda"][data-page] main .faq-item:has(.faq-question[aria-expanded="true"]) {
+  border-color: rgba(26,178,255,.45);
+  background: linear-gradient(110deg,rgba(26,178,255,.08),transparent 75%),var(--panel);
+}
+/* Canais de apoio: linhas com ícone, etiqueta e valor (a etiqueta e o valor com a letra das linhas de antes); o email e o
+   mapa são ligações. Sem caixa: cada linha é separada por um traço fino. */
+html body[data-page="informacao-ajuda"][data-page] main .contact-channels h3 {
+  margin: 0;
+  padding-bottom: 14px;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channels ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-accent);
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-inline: -12px;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel > svg {
+  color: var(--accent);
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel__text small {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent);
+  font: 700 11px/1.4 Montserrat, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel__text span {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-strong);
+  font: 700 11px/1 Montserrat, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+html body[data-page="informacao-ajuda"][data-page] main .contact-channel__action svg {
+  width: 15px;
+  height: 15px;
+  transition: transform 0.2s ease;
+}
+html body[data-page="informacao-ajuda"][data-page] main a.contact-channel:hover,
+html body[data-page="informacao-ajuda"][data-page] main a.contact-channel:focus-visible {
+  background: rgba(26, 178, 255, 0.08);
+}
+html body[data-page="informacao-ajuda"][data-page] main a.contact-channel:hover .contact-channel__action svg,
+html body[data-page="informacao-ajuda"][data-page] main a.contact-channel:focus-visible .contact-channel__action svg {
+  transform: translateX(3px);
+}
+html body[data-page="informacao-ajuda"][data-page] main a.contact-channel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  /* Telemóvel: a ação passa para baixo do valor, na mesma coluna, e as linhas não saem da margem da página. */
+  html body[data-page="informacao-ajuda"][data-page] main .contact-channel {
+    grid-template-columns: 22px minmax(0, 1fr);
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+  html body[data-page="informacao-ajuda"][data-page] main .contact-channel__action {
+    grid-column: 2;
+    margin-top: -4px;
+  }
+}
+body[data-page="informacao-ajuda"] main .meal-location {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  align-items: center;
+  gap: clamp(24px,4vw,48px);
+  margin-top: 40px;
+}
+body[data-page="informacao-ajuda"] main .meal-location figure { margin: 0; position: relative; }
+body[data-page="informacao-ajuda"] main .meal-location img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+body[data-page="informacao-ajuda"] main .meal-location figcaption { position: absolute; right: 10px; bottom: 8px; padding: 3px 7px; background: #050d21c9; color: #d7e3f4; font-size: 10px; }
+body[data-page="informacao-ajuda"] main .meal-location h3 { font-size: clamp(24px,3vw,32px); }
+body[data-page="informacao-ajuda"] main .meal-location > div > p:last-child { color: var(--muted); max-width: 42ch; font-size: 15px; }
+@media (max-width: 620px) {
+  body[data-page="informacao-ajuda"] main .meal-location { grid-template-columns: 1fr; }
+}
+
+/* Pesquisa: sem a coluna das categorias, o título e a lista ocupam a largura toda. */
+html body[data-page="informacao-ajuda"][data-page] main .faq-layout--searching {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "heading" "list";
+}
+html body[data-page="informacao-ajuda"][data-page] main .faq-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+html body[data-page="informacao-ajuda"][data-page] main .faq-empty a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
+/* Com resultados, a lista sobe: menos folga em cima e um título mais pequeno, para a primeira resposta aparecer logo. */
+html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching { padding-top: 40px; }
+html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching .faq-heading .eyebrow { display: none; }
+html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching .faq-heading h2 { font-size: clamp(26px, 3vw, 34px); }
+
+/* Animações: os resultados sobem e aparecem quando a pesquisa começa (uma só vez, não a cada letra), e a zona
+   dos mapas e da contagem volta com o mesmo movimento quando a pesquisa se limpa. */
+@media (prefers-reduced-motion: no-preference) {
+  html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching .faq-heading,
+  html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching .faq-list {
+    animation: info-rise 320ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  html body[data-page="informacao-ajuda"][data-page] main .faq-section--searching .faq-list { animation-delay: 70ms; }
+  /* Só o conteúdo anima, não a faixa de fundo da secção (senão aparecia por instantes o fundo mais escuro). */
+  html body[data-page="informacao-ajuda"][data-page] main .info-return > .container {
+    animation: info-rise 420ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  @keyframes info-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+/* O fundo de cada secção não depende da posição: sem os mapas (pesquisa), as perguntas e o contacto
+   mantêm o fundo que têm sempre, em vez de trocarem de fundo uma com a outra. */
+html body[data-page="informacao-ajuda"][data-page] main > .faq-section { background: var(--bg); }
+html body[data-page="informacao-ajuda"][data-page] main > .faq-section::before { content: none; }
+html body[data-page="informacao-ajuda"][data-page] main > .contact-section { background: var(--surface); }
+html body[data-page="informacao-ajuda"][data-page] main > .contact-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 96px 96px repeat;
+  opacity: 0.026;
+}
+/* Entre o banner e a secção seguinte só fica a linha de separação azul: a borda cinzenta do banner deixava
+   por cima dela uma fila de 1 px com um pedaço da fotografia. */
+html body[data-page="informacao-ajuda"][data-page] main .page-hero { border-bottom: 0; }
+
+/* O botão «Obter direções» fica sempre ao fundo do cartão, no mesmo sítio nos dois mapas
+   (o cartão da direita tem mais uma frase e ficava mais alto o do da esquerda). */
+html body[data-page="informacao-ajuda"][data-page] main .location-card__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+html body[data-page="informacao-ajuda"][data-page] main .location-card__content .btn {
+  margin-top: auto;
+}
+
+/* O «x» no fim da barra de pesquisa: aparece quando há texto e limpa-o. O do navegador sai para não haver dois. */
+html body[data-page="informacao-ajuda"][data-page] main .search input::-webkit-search-cancel-button,
+html body[data-page="informacao-ajuda"][data-page] main .search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+html body[data-page="informacao-ajuda"][data-page] main .search input {
+  padding-right: 64px;
+}
+html body[data-page="informacao-ajuda"][data-page] main .search__clear {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+html body[data-page="informacao-ajuda"][data-page] main .search__clear svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+html body[data-page="informacao-ajuda"][data-page] main .search__clear:hover {
+  background: rgba(26, 178, 255, 0.14);
+  color: #fff;
+}
+html body[data-page="informacao-ajuda"][data-page] main .search__clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Duas colunas: os canais de apoio começam à altura da etiqueta de secção («<CONTACTO />»), no topo da coluna da esquerda,
+   e não centrados na vertical. */
+@media (min-width: 701px) {
+  html body[data-page="informacao-ajuda"][data-page] main .contact-section .split {
+    align-items: start;
+  }
+  html body[data-page="informacao-ajuda"][data-page] main .contact-section .contact-channels {
+    margin-top: 0;
+  }
+}

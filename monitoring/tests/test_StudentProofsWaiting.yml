@@ -1,0 +1,25 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s                      # 8000 s à espera: dispara passados 5 min
+    input_series:
+      - series: 'enei_student_proofs_oldest_waiting_seconds{job="node", instance="node-exporter:9100"}'
+        values: '0+0x4 8000+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: StudentProofsWaiting
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: StudentProofsWaiting
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "Há um comprovativo de estudante por decidir há 2h 13m 20s: rever com `python -m app.domains.students.review list`" }
+  - interval: 30s                      # 7199 s fica abaixo do limite de 2 h
+    input_series:
+      - series: 'enei_student_proofs_oldest_waiting_seconds{job="node", instance="node-exporter:9100"}'
+        values: '7199+0x20'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: StudentProofsWaiting
+        exp_alerts: []

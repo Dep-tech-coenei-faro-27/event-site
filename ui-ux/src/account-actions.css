@@ -1,0 +1,179 @@
+/* Account privacy actions and protected destructive flow */
+.account-privacy-panel,
+.account-danger-zone {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+  padding: clamp(24px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.account-privacy-panel {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), transparent 46%),
+    var(--panel);
+}
+
+.account-privacy-panel h2,
+.account-danger-zone h2 {
+  margin-top: 7px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+
+.account-privacy-panel p:not(.eyebrow),
+.account-danger-zone p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.account-privacy-panel__action,
+.account-danger-zone__action {
+  display: grid;
+  min-width: 210px;
+  gap: 9px;
+}
+
+.account-privacy-panel__action .btn,
+.account-danger-zone__action .btn {
+  width: 100%;
+  border-radius: 2px;
+}
+
+.account-action-status {
+  margin: 0 !important;
+  color: var(--success) !important;
+  font-size: 10px !important;
+  text-align: center;
+}
+
+.account-action-status[hidden] {
+  display: none;
+}
+
+.account-danger-zone {
+  border-color: color-mix(in srgb, theme("colors.enei.error") 48%, var(--line));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, theme("colors.enei.error") 7%, transparent),
+      transparent 50%
+    ),
+    var(--panel);
+}
+
+.account-danger-zone .eyebrow,
+.account-danger-zone__action .btn {
+  color: theme("colors.enei.error");
+}
+
+.account-danger-zone__action .btn {
+  border-color: color-mix(in srgb, theme("colors.enei.error") 62%, transparent);
+  background: color-mix(in srgb, theme("colors.enei.error") 7%, transparent);
+}
+
+.account-danger-zone__action .btn:hover {
+  border-color: theme("colors.enei.error");
+  background: color-mix(in srgb, theme("colors.enei.error") 14%, transparent);
+  color: white;
+}
+
+.account-confirm-dialog {
+  width: min(560px, calc(100% - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, theme("colors.enei.error") 58%, var(--line));
+  border-radius: 16px;
+  background: var(--panel);
+  color: white;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.6);
+}
+
+.account-confirm-dialog::backdrop {
+  background: rgba(0, 7, 20, 0.82);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.account-confirm-dialog__content {
+  padding: clamp(26px, 5vw, 42px);
+}
+
+.account-confirm-dialog__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid
+    color-mix(in srgb, theme("colors.enei.error") 65%, transparent);
+  color: theme("colors.enei.error");
+  font:
+    800 22px Montserrat,
+    sans-serif;
+}
+
+.account-confirm-dialog h2 {
+  margin-top: 22px;
+  font-size: clamp(28px, 4vw, 38px);
+  text-wrap: balance;
+}
+
+.account-confirm-dialog p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.account-confirm-dialog .auth-field {
+  margin-top: 24px;
+}
+
+.account-confirm-dialog__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.account-confirm-dialog__actions .btn {
+  width: 100%;
+  border-radius: 2px;
+}
+
+.account-confirm-dialog__delete {
+  border: 1px solid theme("colors.enei.error");
+  background: theme("colors.enei.error");
+  color: var(--bg-deep);
+}
+
+.account-confirm-dialog__delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@media (max-width: 680px) {
+  .account-privacy-panel,
+  .account-danger-zone {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .account-privacy-panel__action,
+  .account-danger-zone__action {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .account-confirm-dialog__actions {
+    grid-template-columns: 1fr;
+  }
+}

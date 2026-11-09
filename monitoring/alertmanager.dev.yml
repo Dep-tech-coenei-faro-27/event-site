@@ -1,0 +1,15 @@
+route:
+  receiver: team
+  group_wait: 30s
+  repeat_interval: 6h
+
+receivers:
+  - name: team
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/discord_webhook
+    email_configs:
+      - to: dev@localhost
+        from: alertmanager@localhost
+        smarthost: mailpit:1025
+        require_tls: false
+        send_resolved: true

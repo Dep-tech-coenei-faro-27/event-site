@@ -1,0 +1,125 @@
+import asyncio
+import contextlib
+import logging
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings, stripe_key_mode
+from app.core.email.factory import start_email_worker, stop_email_worker
+from app.core.errors import register_exception_handlers
+from app.core.log_redaction import install_access_log_redaction
+from app.core.media import MediaFiles
+from app.core.middleware import (
+    RequestSizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+    UnhandledExceptionMiddleware,
+)
+from app.domains.admin.router import router as admin_router
+from app.domains.auth.router import router as auth_router
+from app.domains.health.router import router as health_router
+from app.domains.payments.events import events
+from app.domains.payments.router import router as payments_router
+from app.domains.payments.stream import reconcile_forever, sweep_forever
+from app.domains.students.router import router as students_router
+from app.domains.users.router import router as users_router
+
+logger = logging.getLogger(__name__)
+
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+def only_loopback(trusted: str | None) -> bool:
+    if not trusted:
+        return True
+    hosts = {host.strip() for host in trusted.split(",") if host.strip()}
+    return hosts <= LOOPBACK
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Sends the queued emails, including any left over from before a restart.
+    start_email_worker()
+    events.bind_loop(asyncio.get_running_loop())
+    reconciler = asyncio.create_task(reconcile_forever())
+    sweeper = asyncio.create_task(sweep_forever())
+    try:
+        yield
+    finally:
+        for task in (reconciler, sweeper):
+            task.cancel()
+        for task in (reconciler, sweeper):
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+        stop_email_worker()
+
+
+def create_app() -> FastAPI:
+    logging.basicConfig(level=logging.INFO)
+    install_access_log_redaction()
+    if settings.ENVIRONMENT == "prod" and only_loopback(
+        os.environ.get("FORWARDED_ALLOW_IPS")
+    ):
+        logger.warning(
+            "FORWARDED_ALLOW_IPS is not set or only trusts localhost. Behind a proxy "
+            "every visitor shares the proxy's IP, so the per-IP rate limits would "
+            "apply to everyone."
+        )
+    if settings.ENVIRONMENT == "prod" and settings.PAYMENTS_MODE == "simulated":
+        logger.warning(
+            "PAYMENTS_MODE=simulated in production: MB WAY payments are not real. "
+            "Set PAYMENTS_MODE=live and the provider credentials to charge users."
+        )
+    if settings.PAYMENTS_MODE == "live" and settings.PAYMENTS_PROVIDER == "stripe":
+        mode = stripe_key_mode(settings.STRIPE_SECRET_KEY)
+        logger.info("Stripe payments run with a %s key", mode)
+        if (
+            mode == "test"
+            and settings.ENVIRONMENT == "prod"
+            and settings.STRIPE_ALLOW_TEST_KEY
+        ):
+            logger.warning(
+                "STRIPE_ALLOW_TEST_KEY is on: payments use the Stripe sandbox and "
+                "nobody is charged. Remove it, and use the live key, before real sales."
+            )
+    docs = settings.ENVIRONMENT != "prod"
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        debug=settings.DEBUG,
+        docs_url="/docs" if docs else None,
+        redoc_url="/redoc" if docs else None,
+        openapi_url="/openapi.json" if docs else None,
+        lifespan=lifespan,
+    )
+
+    settings.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+    app.mount("/media", MediaFiles(directory=settings.MEDIA_DIR), name="media")
+
+    app.include_router(health_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(users_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(students_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(payments_router, prefix=settings.API_V1_PREFIX)
+
+    register_exception_handlers(app)
+
+    app.add_middleware(UnhandledExceptionMiddleware)
+    app.add_middleware(RequestSizeLimitMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ALLOW_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    return app
+
+
+app = create_app()

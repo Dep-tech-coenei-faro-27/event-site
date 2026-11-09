@@ -1,0 +1,98 @@
+groups:
+  - name: vps
+    rules:
+      - alert: DiskUsage80
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 80
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Disk usage at {{ $value | printf \"%.0f\" }}%"
+
+      - alert: DiskUsage90
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 90
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Disk usage at {{ $value | printf \"%.0f\" }}% (critical)"
+
+      - alert: ExporterDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "The node-exporter has stopped responding"
+  
+  - name: servico
+    rules:
+      - alert: BackendNotReady
+        expr: probe_success{job="probe-backend"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "O backend não responde em /api/health/ready (ou a base de dados falhou)"
+
+      - alert: DatabaseUnreachable
+        expr: probe_success{job="probe-db"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "O Postgres não aceita ligações"
+
+      - alert: TunnelDown
+        expr: probe_success{job="probe-tunnel"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "O túnel da Cloudflare está em baixo: o site não é acessível de fora"
+          
+  - name: aplicacao
+    rules:
+      - alert: EmailQueueStuck
+        expr: enei_email_oldest_pending_seconds > 900
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Há emails pendentes há {{ $value | humanizeDuration }}"
+
+      - alert: PaymentsStuck
+        expr: enei_payment_stuck_pending_seconds > 600
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "Há um pagamento à espera há {{ $value | humanizeDuration }} depois do prazo: nem o webhook nem a varredura o resolveram"
+
+      - alert: StudentProofsWaiting
+        expr: enei_student_proofs_oldest_waiting_seconds > 7200
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Há um comprovativo de estudante por decidir há {{ $value | humanizeDuration }}: rever com `python -m app.domains.students.review list`"
+
+      - alert: EmailFailed
+        expr: delta(enei_email_failed[1h]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Há emails novos que falharam definitivamente"
+
+      - alert: EmailStatusUnavailable
+        expr: enei_email_status_ok == 0 or absent(enei_email_status_ok) or time() - node_textfile_mtime_seconds{file=~".*enei.prom"} > 300
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Não consigo ler a fila de emails (backend em baixo ou o script parou)"
+
+      - alert: BackupTooOld
+        expr: time() - enei_backup_last_success_timestamp_seconds > 93600 or absent(enei_backup_last_success_timestamp_seconds)
+        for: 30m
+        labels: { severity: critical }
+        annotations:
+          summary: "A última cópia para fora da VPS tem mais de 26 h (ou nunca houve)"
+
+
+  - name: watchdog
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none }
+        annotations:
+          summary: "Alerta sempre ativo: se o serviço externo deixar de o receber, o Prometheus ou o Alertmanager caiu"

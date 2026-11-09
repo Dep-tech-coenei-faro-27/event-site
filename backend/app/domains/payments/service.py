@@ -1,0 +1,1481 @@
+import hmac
+import logging
+import secrets
+import threading
+import time
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
+
+from sqlalchemy import String, and_, cast, func, or_, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.email.models import EmailOutbox
+from app.core.email.outbox import enqueue_email
+from app.core.email.templates import (
+    TICKET_EMAIL_SUBJECT,
+    TICKET_QR_CID,
+    build_ticket_email,
+)
+from app.core.qr import render_qr_png
+from app.domains.payments.events import notify
+from app.domains.payments.gateway import (
+    AlreadyRefundedError,
+    AmountCheckingGateway,
+    CancellingGateway,
+    LookupGateway,
+    MBWayGateway,
+    PaymentGatewayError,
+    RefundingGateway,
+    UnrecognisedStatusError,
+    stripe_status,
+)
+from app.domains.payments.models import (
+    TicketTier,
+    TicketTierPrice,
+    Transaction,
+    TransactionStatus,
+)
+from app.domains.payments.schemas import (
+    PaymentInitiateRequest,
+    TicketTierRead,
+    TransactionRead,
+)
+from app.domains.payments.tiers import TIER_SPECS
+from app.domains.tickets.models import PaymentStatus, Ticket
+from app.domains.tickets.service import (
+    PaymentNotConfirmedError,
+    TicketNotFoundError,
+    issue_ticket_for_paid_transaction,
+)
+from app.domains.users.models import StudentVerificationStatus, User
+
+logger = logging.getLogger(__name__)
+
+REFERENCE_PREFIX = "ENEI-"
+REFERENCE_LENGTH = 15
+
+
+class PaymentError(RuntimeError):
+    status_code = 400
+
+
+class TicketOfficeClosedError(PaymentError):
+    status_code = 503
+
+
+class TicketUnavailableError(PaymentError):
+    status_code = 409
+
+
+class TicketSoldOutError(PaymentError):
+    status_code = 409
+
+
+class PriceChangedError(PaymentError):
+    status_code = 409
+
+
+class StudentVerificationRequiredError(PaymentError):
+    status_code = 403
+
+
+class AlreadyHasTicketError(PaymentError):
+    status_code = 409
+
+
+class InvalidCallbackKeyError(PaymentError):
+    status_code = 403
+
+
+class CallbackTransactionNotFoundError(PaymentError):
+    status_code = 404
+
+
+class CallbackAmountMismatchError(PaymentError):
+    status_code = 400
+
+
+class NothingToRefundError(PaymentError):
+    """The payment was not paid, or does not exist."""
+
+    status_code = 409
+
+
+class RefundNotSupportedError(PaymentError):
+    """The payment was made through a provider that cannot refund through its API."""
+
+    status_code = 409
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def _callback_key_matches(provided: str | None) -> bool:
+    """Constant-time check of the ifthenpay anti-phishing key."""
+    expected = settings.MBWAY_CALLBACK_KEY
+    if not provided or not expected:
+        return False
+    return hmac.compare_digest(provided, expected)
+
+
+def _callback_amount_matches(raw_amount: str | None, amount_cents: int) -> bool:
+    if raw_amount is None:
+        return False
+    try:
+        return Decimal(raw_amount) * 100 == amount_cents
+    except (InvalidOperation, ValueError):
+        return False
+
+
+def generate_reference(db: Session) -> str:
+    """A short, human-readable, unique payment reference (max 15 chars)."""
+    for _ in range(10):
+        # "ENEI-" + 10 hex chars == 15 characters, matching the UI mockup.
+        reference = REFERENCE_PREFIX + secrets.token_hex(5).upper()
+        if REFERENCE_LENGTH != len(reference):
+            raise RuntimeError("reference length must stay at 15 characters")
+        exists = db.scalar(
+            select(Transaction.id).where(Transaction.reference == reference)
+        )
+        if exists is None:
+            return reference
+    raise RuntimeError("could not generate a unique payment reference")
+
+
+def _taken_seats(db: Session) -> int:
+    """Seats taken, in every modality together: paid ones, and the ones reserved for a
+    payment that is waiting.
+
+    A waiting payment keeps its seat for as long as it is ``pending``, however long
+    that takes: the seat is released only when the provider says the payment is over
+    (paid payments stay counted, failed, expired and refunded ones are not). That is
+    what makes it impossible to sell a seat that someone is about to pay for.
+    """
+    holds = db.scalar(
+        select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
+            Transaction.status.in_(
+                (TransactionStatus.CONFIRMED, TransactionStatus.PENDING)
+            ),
+        )
+    )
+    return int(holds or 0)
+
+
+def _seats_left(db: Session) -> int:
+    """What is left of ``TICKET_STOCK_LIMIT``: one limit for all the modalities."""
+    return settings.TICKET_STOCK_LIMIT - _taken_seats(db)
+
+
+def _lock_stock(db: Session) -> list[TicketTierPrice]:
+    """Lock every modality row, always in the same order, and return them.
+
+    The limit is shared by all the modalities, so the check and the reservation of a
+    seat must be one step for the whole stock, not for one modality: two buyers of
+    different modalities would otherwise both see the last seat. Every caller locks
+    all the rows in ascending ``id``, so none of them can deadlock with another.
+    """
+    return list(
+        db.scalars(
+            select(TicketTierPrice).order_by(TicketTierPrice.id).with_for_update()
+        )
+    )
+
+
+def _refuse_if_user_already_buying(db: Session, user: User) -> None:
+    """Refuse a second purchase: a ticket already exists, or a payment is in flight.
+
+    Without this, a person who starts two payments and pays both is charged twice
+    but can only hold one ticket (the unique index on ``tickets``), and the second
+    confirmation fails after the money has moved.
+    """
+    has_ticket = db.scalar(
+        select(Ticket.id)
+        .where(
+            Ticket.user_id == user.id, Ticket.payment_status != PaymentStatus.CANCELLED
+        )
+        .limit(1)
+    )
+    has_open_payment = db.scalar(
+        select(Transaction.id)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        .limit(1)
+    )
+    if has_ticket is not None or has_open_payment is not None:
+        db.rollback()
+        raise AlreadyHasTicketError(
+            "You already have a ticket or a payment in progress"
+        )
+
+
+def _settle_pending(
+    db: Session, transaction: Transaction, status: TransactionStatus
+) -> None:
+    """Move a pending transaction to ``failed`` or ``expired``.
+
+    The row is locked and read again first: a callback may have confirmed the
+    payment while we were talking to the provider, and a confirmed payment must
+    never be overwritten by a stale ``expired`` or ``failed``.
+    """
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status is TransactionStatus.PENDING:
+        transaction.status = status
+    db.commit()
+    db.refresh(transaction)
+    notify(transaction.reference, transaction.status)
+
+
+ABANDONED_CHECKS_PER_REQUEST = 10
+# Shorter than the week a sent email stays in the queue (see delete_old_emails).
+TICKET_EMAIL_SWEEP_DAYS = 3
+
+
+def _free_abandoned_seats(db: Session, gateway: MBWayGateway) -> None:
+    """Before refusing a sale for lack of stock, settle the payments nobody follows.
+
+    A waiting payment holds its seat until the provider ends it. One that was
+    abandoned (the person closed the page) is only settled when someone asks the
+    provider, so when the stock looks full we ask about the oldest overdue ones
+    first. Done outside any lock, a few at a time.
+    """
+    if _seats_left(db) >= 1:
+        return
+    overdue = db.scalars(
+        select(Transaction)
+        .where(
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.expires_at <= datetime.now(UTC),
+        )
+        .order_by(Transaction.expires_at)
+        .limit(ABANDONED_CHECKS_PER_REQUEST)
+    ).all()
+    for old in overdue:
+        _sync_provider_status(db, old, gateway)
+
+
+def payment_description(tier: TicketTier) -> str:
+    """What the provider shows for the payment: ``ENEI - <product name>``.
+
+    The Stripe account is shared with other events, so every charge has to say
+    which event and which product it is for.
+    """
+    return f"ENEI - {TIER_SPECS[tier].name}"
+
+
+def sales_have_opened(now: datetime | None = None) -> bool:
+    """True once SALES_OPEN_AT has passed (or when there is no opening date)."""
+    opens_at = settings.SALES_OPEN_AT
+    return opens_at is None or (now or datetime.now(UTC)) >= opens_at
+
+
+def early_bird_places_taken(db: Session, now: datetime | None = None) -> int:
+    """The early-bird places in use: paid tickets and payments still inside their time.
+
+    Counted like the seats of the stock, with one difference: a payment that is still
+    ``pending`` after its deadline does not count. Whoever closed the page without
+    approving leaves a payment ``pending`` until someone asks the provider about it,
+    and the end of the early bird cannot be undone, so abandoned checkouts must not be
+    able to use up its places. (If such a payment turns out to have been paid, it is
+    confirmed and counts again.)
+    """
+    taken = db.scalar(
+        select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
+            or_(
+                Transaction.status == TransactionStatus.CONFIRMED,
+                and_(
+                    Transaction.status == TransactionStatus.PENDING,
+                    Transaction.expires_at > (now or datetime.now(UTC)),
+                ),
+            )
+        )
+    )
+    return int(taken or 0)
+
+
+def early_bird_is_over(db: Session, now: datetime | None = None) -> bool:
+    """Whether the early-bird price has ended: its date passed, or its places are gone.
+
+    Whichever comes first (``EARLY_BIRD_ENDS_AT``, ``EARLY_BIRD_TICKET_LIMIT``). The
+    places are those of ``early_bird_places_taken``, in every modality together, so the
+    early price is never given to more people than the limit however many start to pay
+    at once. This only says what is true at this moment; ``_end_early_bird_for_good``
+    is what makes the end permanent.
+    """
+    ends_at = settings.EARLY_BIRD_ENDS_AT
+    if ends_at is not None and (now or datetime.now(UTC)) >= ends_at:
+        return True
+    return early_bird_places_taken(db, now) >= settings.EARLY_BIRD_TICKET_LIMIT
+
+
+def _end_early_bird_for_good(db: Session, rows: list[TicketTierPrice]) -> bool:
+    """Make the end of the early bird permanent: the regular price becomes the price.
+
+    Once the early bird is over (its date, or its places), every modality that has a
+    regular price saved is written as ``price_cents = normal_price_cents`` with no
+    ``normal_price_cents``: exactly what ``set_price <tier> <regular price>`` does, so
+    the price never goes back to the early one, not even if a payment fails or a
+    ticket is refunded and a place is free again, and the site stops showing any
+    early-bird text. Nothing is stored apart from the prices themselves.
+
+    It runs inside the purchase, with the modality rows already locked, and is
+    committed or rolled back together with it, so it needs no connection and no
+    transaction of its own and two purchases at once cannot both write it. It runs
+    when the purchase starts (the date has passed, or the places were already gone)
+    and again once the purchase has taken its place, so the purchase that takes the
+    last early place closes the early bird in the same commit. A purchase that is
+    refused rolls it back; the next one writes it. Reading the prices writes nothing.
+    """
+    if all(row.normal_price_cents is None for row in rows) or not early_bird_is_over(
+        db
+    ):
+        return False
+    for row in rows:
+        if row.normal_price_cents is not None:
+            row.price_cents = row.normal_price_cents
+            row.normal_price_cents = None
+    logger.warning(
+        "Early bird ended: the modalities now sell at the regular price (%d places "
+        "taken)",
+        early_bird_places_taken(db),
+    )
+    return True
+
+
+def price_in_force(
+    row: TicketTierPrice, early_bird_over: bool
+) -> tuple[int | None, int | None]:
+    """``(price, struck-through normal price)`` a modality is sold at right now.
+
+    The database keeps the early-bird price in ``price_cents`` and the regular one in
+    ``normal_price_cents``. Once the early bird is over the regular one is the price
+    and there is nothing to strike through; a modality with no ``normal_price_cents``
+    never changes.
+    """
+    if early_bird_over and row.normal_price_cents is not None:
+        return row.normal_price_cents, None
+    return row.price_cents, row.normal_price_cents
+
+
+def initiate_payment(
+    db: Session,
+    user: User,
+    payload: PaymentInitiateRequest,
+    gateway: MBWayGateway,
+) -> tuple[Transaction, TicketTierPrice]:
+    # Before the opening date nothing is reserved or asked of the provider.
+    if not sales_have_opened():
+        raise TicketOfficeClosedError("Ticket sales are not open yet")
+
+    # A payment of this person that is past its deadline may already be over (or
+    # paid) at the provider. Ask before deciding anything, outside any lock.
+    user_id = user.id
+    stale = db.scalars(
+        select(Transaction).where(
+            Transaction.user_id == user_id,
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.expires_at <= datetime.now(UTC),
+        )
+    ).all()
+    for old in stale:
+        _sync_provider_status(db, old, gateway)
+    _free_abandoned_seats(db, gateway)
+
+    # One ticket per person. The user row is locked first so two simultaneous requests
+    # from the same person cannot both pass the check below; the order (user, then
+    # the modality rows) is the same everywhere, so it cannot deadlock.
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
+    _refuse_if_user_already_buying(db, user)
+
+    # Lock every modality row so that the stock check and the reservation are a single
+    # atomic step. Without it, two concurrent buyers (of the same modality or not) can
+    # both read the same remaining seats and sell the stock twice.
+    rows = _lock_stock(db)
+    tier = next((row for row in rows if row.tier == payload.ticket_tier), None)
+    if tier is None:
+        db.rollback()
+        raise TicketUnavailableError("Ticket tier is not available")
+
+    if tier.price_cents is None:
+        db.rollback()
+        raise TicketOfficeClosedError("Ticket sales are not open yet")
+    # If the early bird is already over, the regular price is written down now (in this
+    # same transaction), so this purchase is priced from the stored prices.
+    _end_early_bird_for_good(db, rows)
+    unit_price_cents, _ = price_in_force(tier, early_bird_is_over(db))
+
+    if tier.is_student and (
+        user.student_verification_status is not StudentVerificationStatus.VERIFIED
+    ):
+        db.rollback()
+        raise StudentVerificationRequiredError(
+            "Student verification is required to buy this ticket"
+        )
+
+    now = datetime.now(UTC)
+    if _seats_left(db) < payload.quantity:
+        db.rollback()
+        raise TicketSoldOutError(
+            "This ticket tier is sold out"
+        )  # text kept: the site reads it
+
+    if (
+        payload.expected_price_cents is not None
+        and payload.expected_price_cents != unit_price_cents
+    ):
+        # Nothing was reserved or asked of the provider: the buyer reads the new price
+        # (GET /payment/tiers) and decides again.
+        db.rollback()
+        raise PriceChangedError("The price of this ticket changed")
+
+    amount_cents = unit_price_cents * payload.quantity
+    transaction = Transaction(
+        reference=generate_reference(db),
+        user_id=user.id,
+        ticket_tier_id=tier.id,
+        amount_cents=amount_cents,
+        quantity=payload.quantity,
+        status=TransactionStatus.PENDING,
+        phone=payload.phone,
+        nif=payload.nif,
+        provider=gateway.name,
+        expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
+    )
+    db.add(transaction)
+    # This purchase may have taken the last early-bird place: with it counted, close the
+    # early bird in the same commit, before anyone else is priced. It keeps the early
+    # price it was given above, whatever happens to the payment afterwards.
+    db.flush()
+    _end_early_bird_for_good(db, rows)
+    # Persist the reservation before talking to the provider: the seat is held
+    # while the user confirms, and the row lock is released without waiting on the
+    # network call.
+    db.commit()
+    db.refresh(transaction)
+    # The refresh opened a new read: end it so no connection waits on the provider
+    # (with a slow one every request held its connection and the pool ran out).
+    db.commit()
+
+    try:
+        payment = gateway.create_payment(
+            reference=transaction.reference,
+            amount_cents=amount_cents,
+            phone=payload.phone,
+            email=payload.email or user.email,
+            description=payment_description(payload.ticket_tier),
+            # Only when the buyer gave one: the provider is never sent an empty NIF.
+            **({"nif": transaction.nif} if transaction.nif else {}),
+        )
+    except PaymentGatewayError:
+        _settle_pending(db, transaction, TransactionStatus.FAILED)
+        raise
+
+    transaction.provider_reference = payment.provider_reference
+    db.commit()
+    db.refresh(transaction)
+    return transaction, tier
+
+
+def _holds_another_active_ticket(db: Session, transaction: Transaction) -> bool:
+    return (
+        db.scalar(
+            select(Ticket.id)
+            .where(
+                Ticket.user_id == transaction.user_id,
+                Ticket.payment_status != PaymentStatus.CANCELLED,
+                Ticket.transaction_reference != transaction.reference,
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
+def _has_room(db: Session, transaction: Transaction) -> bool:
+    """Whether a payment that is not ``pending`` any more can still get its seat.
+
+    A waiting payment always has its seat, so this is only asked for one that was
+    marked ``failed`` or ``expired`` and is then paid after all (the provider
+    answered in the meantime, or its creation reported an error that was not one).
+    The seat was released, so the stock is checked again with every modality row
+    locked, like ``initiate_payment`` does: we never sell what we do not have.
+    """
+    if transaction.status is TransactionStatus.PENDING:
+        return True
+    _lock_stock(db)
+    return _seats_left(db) >= transaction.quantity
+
+
+def _record_refund_due(
+    db: Session, transaction: Transaction, reason: str
+) -> Transaction:
+    """The money arrived but there is no ticket to give: the payment is refunded.
+
+    A last resort that should not happen: a waiting payment holds its seat and
+    blocks a second payment of the same person. It can still follow an unexpected
+    sequence (a payment marked ``failed`` that is paid after all, with the modality
+    sold out meanwhile, or the person already holding a ticket). The payment is kept
+    as ``refund_due``, which holds no stock, and logged loudly. List them with the
+    query in ``docs/deploy.md``.
+    """
+    transaction.status = TransactionStatus.REFUND_DUE
+    transaction.confirmed_at = transaction.confirmed_at or datetime.now(UTC)
+    db.commit()
+    db.refresh(transaction)
+    notify(transaction.reference, transaction.status)
+    logger.error(
+        "Payment %s needs a refund: %s. Refund it by hand.",
+        transaction.reference,
+        reason,
+    )
+    return transaction
+
+
+def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
+    """Record a successful payment and issue its ticket.
+
+    Single source of truth for "the payment went through": both the provider
+    callback and the status poll go through here, so the ticket is issued no
+    matter how the confirmation arrives. Idempotent: a repeated call returns the
+    same transaction and never duplicates the ticket.
+
+    The transaction row stays locked until the ticket is committed, so two
+    confirmations of the same payment (poll and poll, or poll and callback) run one
+    after the other. The status and the ticket are saved together. No ticket is
+    issued, and the payment is kept for a refund, when the person already holds a
+    ticket from another payment or when a late payment finds the modality sold out.
+    """
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status in (TransactionStatus.REFUND_DUE, TransactionStatus.REFUNDED):
+        return transaction  # already decided: a repeated callback changes nothing
+
+    if _holds_another_active_ticket(db, transaction):
+        return _record_refund_due(db, transaction, "the person already has a ticket")
+
+    if transaction.status is not TransactionStatus.CONFIRMED:
+        if not _has_room(db, transaction):
+            return _record_refund_due(db, transaction, "the modality sold out")
+        transaction.status = TransactionStatus.CONFIRMED
+        transaction.confirmed_at = datetime.now(UTC)
+
+    try:
+        ticket = issue_ticket_for_paid_transaction(
+            db,
+            user_id=transaction.user_id,
+            transaction_reference=transaction.reference,
+            ticket_tier=ticket_tier_of(db, transaction),
+        )
+    except IntegrityError:
+        # Lost a race: either the same payment was confirmed by someone else in
+        # the meantime, or the person's other payment got its ticket first.
+        db.rollback()
+        db.refresh(transaction)
+        issued = db.scalar(
+            select(Ticket.id).where(
+                Ticket.transaction_reference == transaction.reference
+            )
+        )
+        if issued is not None:
+            return transaction
+        if _holds_another_active_ticket(db, transaction):
+            return _record_refund_due(
+                db, transaction, "the person already has a ticket"
+            )
+        raise
+    except PaymentNotConfirmedError:
+        # The ticket of this payment was cancelled (a refund). A repeated callback
+        # must not bring it back, and ifthenpay must stop retrying.
+        db.commit()
+        logger.warning(
+            "Payment %s confirmed again but its ticket is cancelled; left as is",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+        return transaction
+    # Saves the status when the ticket already existed and nothing else committed.
+    db.commit()
+    db.refresh(transaction)
+    _queue_ticket_email_best_effort(db, transaction, ticket)
+    notify(transaction.reference, transaction.status)
+    return transaction
+
+
+def _queue_ticket_email_best_effort(
+    db: Session, transaction: Transaction, ticket: Ticket
+) -> None:
+    """Queue the ticket email without ever failing the confirmation.
+
+    By now the payment is confirmed and the ticket issued and committed: a failure
+    of the queue, of the QR image or of the modality name must not turn into a 500
+    (ifthenpay would keep retrying and the status poll would fail). The error is
+    logged and ``queue_missing_ticket_emails`` queues the email on its next run.
+    """
+    try:
+        _queue_ticket_email(db, transaction, ticket)
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Could not queue the ticket email of payment %s; the sweep will retry",
+            transaction.reference,
+        )
+        db.refresh(transaction)
+
+
+def queue_missing_ticket_emails(
+    db: Session, *, paid_within_days: int = TICKET_EMAIL_SWEEP_DAYS
+) -> int:
+    """Queue the email of recent paid tickets that have none; returns how many.
+
+    Safe to run any time: the dedupe key stops a second email for the same ticket.
+    Only tickets paid in the last ``paid_within_days`` are considered, because the
+    queue deletes sent emails after a week and an older ticket would otherwise get
+    its email again.
+    """
+    since = datetime.now(UTC) - timedelta(days=paid_within_days)
+    queued = select(EmailOutbox.dedupe_key).where(EmailOutbox.dedupe_key.is_not(None))
+    tickets = db.scalars(
+        select(Ticket).where(
+            Ticket.payment_status == PaymentStatus.PAID,
+            Ticket.qr_payload.is_not(None),
+            Ticket.paid_at >= since,
+            ("ticket:" + cast(Ticket.id, String)).not_in(queued),
+        )
+    ).all()
+    count = 0
+    for ticket in tickets:
+        transaction = db.scalar(
+            select(Transaction).where(
+                Transaction.reference == ticket.transaction_reference
+            )
+        )
+        if transaction is None:
+            continue
+        try:
+            _queue_ticket_email(db, transaction, ticket)
+            count += 1
+        except Exception:
+            db.rollback()
+            logger.exception("Sweep could not queue the email of ticket %s", ticket.id)
+    return count
+
+
+def _queue_ticket_email(db: Session, transaction: Transaction, ticket: Ticket) -> None:
+    """Queue the email with the ticket QR, once per ticket.
+
+    The dedupe key makes a repeated callback or poll a no-op. The ticket row is
+    locked first: the transaction lock is gone once the ticket is
+    committed, and two confirmations of the same payment must not both try to queue
+    the email at once.
+    """
+    db.scalar(select(Ticket.id).where(Ticket.id == ticket.id).with_for_update())
+    user = db.get(User, transaction.user_id)
+    tier_name = TIER_SPECS[ticket_tier_of(db, transaction)].name
+    html, text = build_ticket_email(user.name, tier_name, transaction.reference)
+    enqueue_email(
+        db,
+        user.email,
+        TICKET_EMAIL_SUBJECT,
+        html,
+        text_body=text,
+        inline_images={TICKET_QR_CID: render_qr_png(ticket.qr_payload)},
+        dedupe_key=f"ticket:{ticket.id}",
+    )
+
+
+_asked_at: dict[str, float] = {}
+_asked_lock = threading.Lock()
+_clock = time.monotonic  # replaced in tests
+
+
+def _should_ask_provider(key: str) -> bool:
+    """Whether the provider may be asked about ``key`` now.
+
+    At most one question per payment every ``PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS``.
+    The memory is per process (the backend runs one), so with more processes each
+    would ask on its own. Skipping a question never changes a payment: it stays as it
+    is until the next one, or until the callback arrives.
+    """
+    interval = settings.PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS
+    if interval <= 0:
+        return True
+    now = _clock()
+    with _asked_lock:
+        last = _asked_at.get(key)
+        if last is not None and now - last < interval:
+            return False
+        _asked_at[key] = now
+        if len(_asked_at) > 4096:  # forget what is long past
+            for old_key, asked in list(_asked_at.items()):
+                if now - asked > 10 * interval:
+                    del _asked_at[old_key]
+    return True
+
+
+def _sync_provider_status(
+    db: Session, transaction: Transaction, gateway: MBWayGateway
+) -> None:
+    """Ask the provider for the real state of a pending payment and persist it.
+
+    The provider is the source of truth: a confirmed payment must reach the
+    frontend even if the local ``expires_at`` window already passed, and a
+    failed/expired one must not stay ``pending``. A payment the provider still
+    reports as waiting stays ``pending`` and keeps its seat, even past its local
+    deadline (``expires_at`` is the time the person has to approve, not the moment
+    the seat is released). When the gateway is unreachable the answer is unknown, so
+    the payment also stays ``pending`` and the poll keeps working. A payment the
+    provider cannot resolve (no reference, or an unreadable answer) is expired a long
+    time after its deadline so that it does not hold its seat for ever.
+    """
+    reference = transaction.reference
+    provider = transaction.provider
+    provider_reference = transaction.provider_reference
+    expires_at = _as_utc(transaction.expires_at)
+    # Release the pooled database connection before the network call: a slow
+    # provider must not keep a connection busy while we wait for its answer.
+    db.commit()
+
+    if not provider_reference and provider == "stripe":
+        provider_reference = _recover_provider_reference(db, reference, gateway)
+
+    if provider_reference and not _should_ask_provider(reference):
+        return  # asked a moment ago: nothing can have changed that the callback misses
+
+    # "Unresolved" means the provider could not tell us: we never saved its reference,
+    # or it answered something we cannot read. (An unreachable provider is not
+    # unresolved: it is an outage, and the payments stay as they are.)
+    unresolved = False
+    provider_status = TransactionStatus.PENDING
+    if not provider_reference:
+        unresolved = True
+        logger.warning("Payment %s has no provider reference to ask about", reference)
+    else:
+        try:
+            provider_status = gateway.get_status(
+                reference=reference,
+                provider_reference=provider_reference,
+            )
+        except UnrecognisedStatusError:
+            unresolved = True
+        except PaymentGatewayError:
+            logger.warning(
+                "MB WAY status poll failed for %s; keeping stored status",
+                reference,
+            )
+
+    if provider_status is TransactionStatus.PENDING:
+        if _cancel_if_overdue(
+            db,
+            transaction,
+            gateway,
+            reference=reference,
+            provider=provider,
+            provider_reference=provider_reference,
+            expires_at=expires_at,
+        ):
+            return
+        # Still waiting, whatever the local deadline says: only the provider can end
+        # a payment, and until then it keeps its seat. The one exception is a payment
+        # the provider cannot resolve for a long time: it would hold its seat for ever.
+        limit = timedelta(seconds=settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS)
+        if unresolved and expires_at + limit < datetime.now(UTC):
+            logger.error(
+                "Payment %s could not be resolved with the provider for over %s s "
+                "after its deadline: expired. If it was paid, it needs a look.",
+                reference,
+                settings.MBWAY_UNRESOLVED_MAX_WAIT_SECONDS,
+            )
+            _settle_pending(db, transaction, TransactionStatus.EXPIRED)
+        return
+    if provider_status is TransactionStatus.CONFIRMED:
+        if _paid_as_charged(
+            gateway,
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=transaction.amount_cents,
+        ):
+            confirm_transaction(db, transaction)
+        return
+
+    _settle_pending(db, transaction, provider_status)
+
+
+def _paid_as_charged(
+    gateway: MBWayGateway,
+    *,
+    reference: str,
+    provider_reference: str | None,
+    amount_cents: int,
+) -> bool:
+    """Whether the provider received what we charged, before a payment is confirmed.
+
+    The Stripe webhook already refuses a payment paid for another amount or in another
+    currency; the status poll and the end-of-wait cancel must too, or the same payment
+    would be confirmed or left pending depending on which of them looked first. When
+    the amount cannot be read the payment stays as it is and the next look tries again.
+    A payment that does not match stays ``pending`` and is logged: it needs a look.
+    """
+    if not isinstance(gateway, AmountCheckingGateway):
+        return True
+    try:
+        currency, received = gateway.paid_amount(
+            reference=reference, provider_reference=provider_reference
+        )
+    except PaymentGatewayError:
+        logger.warning("Payment %s: could not read the amount received", reference)
+        return False
+    if currency == "eur" and received == amount_cents:
+        return True
+    logger.error(
+        "Stripe payment %s is paid for another amount than charged "
+        "(%r %r instead of %d EUR cents): not confirmed, needs a look",
+        reference,
+        received,
+        currency,
+        amount_cents,
+    )
+    return False
+
+
+def _recover_provider_reference(
+    db: Session, reference: str, gateway: MBWayGateway
+) -> str | None:
+    """Find a Stripe payment whose id we never saved, and save it.
+
+    It happens when Stripe created the payment but the answer got lost (a timeout):
+    the person may well approve it. Without the id the payment cannot be read,
+    cancelled or refunded, so it is looked up by its reference. The search can lag
+    a little behind a new payment: "not found yet" changes nothing and the next look
+    tries again. Asked at most as often as any other question to the provider.
+    """
+    if not isinstance(gateway, LookupGateway) or not _should_ask_provider(
+        f"find:{reference}"
+    ):
+        return None
+    try:
+        found = gateway.find_payment(reference=reference)
+    except PaymentGatewayError:
+        logger.warning("Payment %s could not be looked up at Stripe", reference)
+        return None
+    if found is None:
+        return None
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    if transaction is None or transaction.provider_reference not in (None, found):
+        db.rollback()
+        return None
+    if transaction.provider_reference is None:
+        transaction.provider_reference = found
+        logger.warning(
+            "Payment %s had no Stripe id (the answer to its creation was lost): "
+            "found it by its reference",
+            reference,
+        )
+    db.commit()
+    return found
+
+
+def _cancel_if_overdue(
+    db: Session,
+    transaction: Transaction,
+    gateway: MBWayGateway,
+    *,
+    reference: str,
+    provider: str,
+    provider_reference: str | None,
+    expires_at: datetime,
+) -> bool:
+    """End, at Stripe, a payment that still waits past its deadline plus a grace.
+
+    Stripe ends the MB WAY wait by itself; this is the backstop for when it does not,
+    so that a payment cannot hold its seat, or be approved, for ever. A payment the
+    person approved at that very moment is confirmed, never expired. When Stripe
+    cannot be asked the payment stays as it is. Returns whether it was settled.
+    """
+    if (
+        provider != "stripe"
+        or not provider_reference
+        or not isinstance(gateway, CancellingGateway)
+    ):
+        return False
+    grace = timedelta(seconds=settings.STRIPE_CANCEL_GRACE_SECONDS)
+    if datetime.now(UTC) < expires_at + grace:
+        return False
+    try:
+        outcome = gateway.cancel_payment(
+            reference=reference, provider_reference=provider_reference
+        )
+    except PaymentGatewayError:
+        logger.warning(
+            "Stripe payment %s is past its deadline and could not be cancelled; "
+            "keeping stored status",
+            reference,
+        )
+        return False
+    if outcome is TransactionStatus.CONFIRMED:
+        if _paid_as_charged(
+            gateway,
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=transaction.amount_cents,
+        ):
+            confirm_transaction(db, transaction)
+    else:
+        logger.info("Stripe payment %s cancelled after its deadline", reference)
+        _settle_pending(db, transaction, TransactionStatus.EXPIRED)
+    return True
+
+
+def refresh_pending_payment(db: Session, reference: str, gateway: MBWayGateway) -> None:
+    """Ask the provider about a payment somebody is waiting for and persist the answer.
+
+    Used by the live status stream: when the provider reports a change the payment is
+    updated (and the streams are told) without anyone polling. Throttled like a poll.
+    """
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    if transaction is not None and transaction.status is TransactionStatus.PENDING:
+        _sync_provider_status(db, transaction, gateway)
+
+
+def pending_references_to_sweep(
+    db: Session,
+    *,
+    min_age_seconds: int,
+    limit: int,
+    provider: str | None = None,
+    now: datetime | None = None,
+) -> list[str]:
+    """The ``pending`` payments old enough to be asked about, the oldest first.
+
+    This is the safety net for a webhook that never came: nobody may be waiting for the
+    payment any more, so only the database knows it exists. ``provider`` keeps only the
+    payments made with the gateway that is asking: a payment made with another one (a
+    test run, an earlier provider) cannot be answered by this gateway and would only
+    fill the log every minute.
+    """
+    cutoff = (now or datetime.now(UTC)) - timedelta(seconds=min_age_seconds)
+    query = select(Transaction.reference).where(
+        Transaction.status == TransactionStatus.PENDING,
+        Transaction.created_at <= cutoff,
+    )
+    if provider is not None:
+        query = query.where(Transaction.provider == provider)
+    return list(
+        db.scalars(query.order_by(Transaction.created_at, Transaction.id).limit(limit))
+    )
+
+
+def refresh_users_pending_payment(
+    db: Session, user: User, gateway: MBWayGateway | None
+) -> None:
+    """Settle the payment this person is waiting for, if the provider already knows.
+
+    Called when they open their account: someone who left the waiting page sees the
+    ticket at once, without waiting for the webhook or the sweep. Never fails the
+    caller (the account page must open even if the provider is down); asked at most
+    every ``PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`` like any other poll.
+    """
+    if gateway is None:
+        return
+    try:
+        pending = db.scalar(
+            select(Transaction)
+            .where(
+                Transaction.user_id == user.id,
+                Transaction.status == TransactionStatus.PENDING,
+            )
+            .order_by(Transaction.id.desc())
+            .limit(1)
+        )
+        if pending is not None and pending.provider == gateway.name:
+            _sync_provider_status(db, pending, gateway)
+    except Exception:  # noqa: BLE001 - a bonus, never a reason to fail the page
+        db.rollback()
+        logger.exception("Could not refresh the pending payment of user %s", user.id)
+
+
+def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
+    """Cancel a ticket and free its seat: the payment becomes ``refunded``.
+
+    The caller refunds the money (the gateway, or by hand). The person can buy again,
+    and the seat counts as free for the next buyer. Idempotent. The transaction is
+    locked before the ticket, the same order as ``confirm_transaction``, so a
+    repeated callback arriving at the same time cannot deadlock with it.
+    """
+    reference = db.scalar(
+        select(Ticket.transaction_reference).where(Ticket.id == ticket_id)
+    )
+    if reference is None:
+        raise TicketNotFoundError(f"Ticket {ticket_id} not found")
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    ticket = db.scalar(select(Ticket).where(Ticket.id == ticket_id).with_for_update())
+    if ticket.payment_status is not PaymentStatus.CANCELLED:
+        ticket.payment_status = PaymentStatus.CANCELLED
+        if (
+            transaction is not None
+            and transaction.status is TransactionStatus.CONFIRMED
+        ):
+            transaction.status = TransactionStatus.REFUNDED
+        db.commit()
+        db.refresh(ticket)
+        if transaction is not None:
+            notify(transaction.reference, transaction.status)
+    return ticket
+
+
+def refund_payment(db: Session, reference: str, gateway: MBWayGateway) -> Transaction:
+    """Give the money of a payment back and close it: ``refunded``.
+
+    For a ``refund_due`` (it arrived and there is no ticket to give) and for a
+    ``confirmed`` payment whose ticket is being cancelled: the ticket of THIS payment
+    is cancelled and its seat freed (a ticket of the same person from another payment
+    is never touched). Repeating it changes nothing: a payment already ``refunded``
+    returns at once, and the provider gets an idempotency key, so even a failure
+    between the refund and the database leaves nothing to redo but run it again.
+    The log has the reference and the amount, never anything about the person.
+    """
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference)
+    )
+    if transaction is None:
+        raise NothingToRefundError("Unknown transaction reference")
+    if transaction.status is TransactionStatus.REFUNDED:
+        return transaction
+    if transaction.status not in (
+        TransactionStatus.REFUND_DUE,
+        TransactionStatus.CONFIRMED,
+    ):
+        raise NothingToRefundError(
+            f"A {transaction.status.value} payment has nothing to refund"
+        )
+    provider_reference = transaction.provider_reference
+    amount_cents = transaction.amount_cents
+    description = payment_description(ticket_tier_of(db, transaction))
+    if (
+        transaction.provider != gateway.name
+        or not provider_reference
+        or not isinstance(gateway, RefundingGateway)
+    ):
+        raise RefundNotSupportedError(
+            f"A {transaction.provider} payment cannot be refunded here: "
+            "refund it in the provider's own panel"
+        )
+    # No lock during the network call: the refund is idempotent, so nobody is hurt if
+    # something else touches the row meanwhile.
+    db.commit()
+    try:
+        refund_id = gateway.refund(
+            reference=reference,
+            provider_reference=provider_reference,
+            amount_cents=amount_cents,
+            description=description,
+        )
+    except AlreadyRefundedError:
+        refund_id = "already refunded at the provider"
+
+    db.refresh(transaction, with_for_update=True)
+    if transaction.status is not TransactionStatus.REFUNDED:
+        ticket_id = db.scalar(
+            select(Ticket.id).where(
+                Ticket.transaction_reference == reference,
+                Ticket.payment_status != PaymentStatus.CANCELLED,
+            )
+        )
+        if ticket_id is not None and transaction.status is TransactionStatus.CONFIRMED:
+            cancel_ticket(db, ticket_id)  # also makes the payment ``refunded``
+        if transaction.status is not TransactionStatus.REFUNDED:
+            transaction.status = TransactionStatus.REFUNDED
+            db.commit()
+        db.refresh(transaction)
+        notify(reference, transaction.status)
+    logger.info(
+        "Payment %s refunded (%d cents, refund %s)", reference, amount_cents, refund_id
+    )
+    return transaction
+
+
+def refundable_references(db: Session) -> list[str]:
+    """The payments waiting for a refund, oldest first."""
+    return list(
+        db.scalars(
+            select(Transaction.reference)
+            .where(Transaction.status == TransactionStatus.REFUND_DUE)
+            .order_by(Transaction.confirmed_at, Transaction.id)
+        )
+    )
+
+
+def handle_payment_callback(
+    db: Session,
+    *,
+    key: str | None,
+    reference: str | None,
+    amount: str | None,
+) -> Transaction:
+    """Apply an ifthenpay payment callback to a transaction.
+
+    Trust only callbacks that carry our anti-phishing key, and only confirm a
+    payment whose value matches what was charged. ifthenpay only calls this when
+    the money has been paid, so a callback for a transaction that already
+    ``failed`` or ``expired`` locally is a late payment: it is confirmed like any
+    other (the person paid and gets the ticket) and logged, unless the modality sold
+    out meanwhile or the person already has a ticket: ``confirm_transaction`` then
+    keeps the payment as ``refund_due`` for a manual refund. Idempotent: a repeated
+    callback returns the same transaction and never duplicates the ticket.
+    """
+    if not _callback_key_matches(key):
+        raise InvalidCallbackKeyError("Invalid callback key")
+
+    if not reference:
+        raise CallbackTransactionNotFoundError("Missing transaction reference")
+
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    if transaction is None:
+        raise CallbackTransactionNotFoundError("Unknown transaction reference")
+
+    if transaction.provider == "stripe":
+        # A Stripe payment is only ever confirmed by reading it from Stripe: the
+        # ifthenpay key must not be able to settle it, whatever is configured.
+        raise CallbackTransactionNotFoundError("Unknown transaction reference")
+
+    if not _callback_amount_matches(amount, transaction.amount_cents):
+        raise CallbackAmountMismatchError(
+            "Callback amount does not match the transaction"
+        )
+
+    if transaction.status in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+        logger.warning(
+            "Late MB WAY payment for %s: the transaction was %s locally",
+            transaction.reference,
+            transaction.status.value,
+        )
+
+    return confirm_transaction(db, transaction)
+
+
+_STRIPE_PAYMENT_EVENTS = {
+    "payment_intent.succeeded",
+    "payment_intent.payment_failed",
+    "payment_intent.canceled",
+}
+
+
+def _handle_stripe_charge_refunded(db: Session, charge: dict) -> None:
+    """A refund made at Stripe (its dashboard, not our command): close the payment here.
+
+    Without this, a payment refunded in the Stripe dashboard stays ``confirmed`` and
+    its ticket keeps working at the door. A full refund cancels the ticket of THIS
+    payment, frees its seat and makes the payment ``refunded``, exactly like
+    ``refund_payment``; a payment that was never confirmed here is closed too, so a
+    late confirmation cannot give a ticket for money that already went back. A partial
+    refund changes nothing: after the ticket is given a refund is not allowed, so a
+    partial one is a goodwill refund agreed by email, and the ticket is taken away by
+    hand afterwards (admin panel or the server). It is logged. The charge is matched
+    by its PaymentIntent id, so an event about a payment of another site on the same
+    Stripe account is ignored. Idempotent: our own refunds raise this event too, and
+    by then the payment is already ``refunded``. The log has the reference and the
+    amounts, never the person.
+    """
+    intent_id = charge.get("payment_intent")
+    if not isinstance(intent_id, str):
+        return
+    transaction = db.scalar(
+        select(Transaction)
+        .where(
+            Transaction.provider == "stripe",
+            Transaction.provider_reference == intent_id,
+        )
+        .with_for_update()
+    )
+    if transaction is None:
+        # The id may not have been saved yet (the answer to the creation was lost):
+        # the reference we put in the metadata identifies the payment.
+        reference = (charge.get("metadata") or {}).get("reference")
+        if isinstance(reference, str):
+            transaction = db.scalar(
+                select(Transaction)
+                .where(
+                    Transaction.reference == reference,
+                    Transaction.provider == "stripe",
+                    Transaction.provider_reference.is_(None),
+                )
+                .with_for_update()
+            )
+            if transaction is not None:
+                transaction.provider_reference = intent_id
+                db.flush()
+    if transaction is None:
+        db.rollback()
+        logger.warning("Stripe event charge.refunded ignored: not one of our payments")
+        return
+
+    charged = charge.get("amount")
+    refunded_cents = charge.get("amount_refunded")
+    if type(charged) is int and charged != transaction.amount_cents:
+        db.rollback()
+        logger.error(
+            "Stripe charge of payment %s refunded for another amount than we charged "
+            "(%r instead of %d cents): left as it is, needs a look",
+            transaction.reference,
+            charged,
+            transaction.amount_cents,
+        )
+        return
+    fully = charge.get("refunded") is True or (
+        type(refunded_cents) is int and refunded_cents >= transaction.amount_cents
+    )
+    if transaction.status is TransactionStatus.REFUNDED:
+        db.rollback()
+        return
+    if not fully:
+        db.rollback()
+        logger.warning(
+            "Payment %s was partly refunded at Stripe (%r of %d cents): "
+            "the ticket is left as it is",
+            transaction.reference,
+            refunded_cents,
+            transaction.amount_cents,
+        )
+        return
+
+    reference = transaction.reference
+    ticket_id = db.scalar(
+        select(Ticket.id).where(
+            Ticket.transaction_reference == reference,
+            Ticket.payment_status != PaymentStatus.CANCELLED,
+        )
+    )
+    if ticket_id is not None and transaction.status is TransactionStatus.CONFIRMED:
+        cancel_ticket(db, ticket_id)  # also makes the payment ``refunded``
+    if transaction.status is not TransactionStatus.REFUNDED:
+        transaction.status = TransactionStatus.REFUNDED
+        db.commit()
+    db.refresh(transaction)
+    notify(reference, transaction.status)
+    logger.warning(
+        "Payment %s was refunded at Stripe (%d cents): ticket cancelled, seat freed",
+        reference,
+        transaction.amount_cents,
+    )
+
+
+def handle_stripe_event(db: Session, event: dict) -> None:
+    """Apply a Stripe webhook event (already checked for its signature).
+
+    Only the three PaymentIntent events and ``charge.refunded`` matter; anything else
+    is ignored so Stripe gets its 200 and stops sending it. The PaymentIntent events
+    say which payment they are about through the reference we put in the
+    PaymentIntent's metadata, and they only count
+    when that payment is one of ours made through Stripe. ``succeeded`` confirms like
+    the status poll (and, like the ifthenpay callback, also a payment we had already
+    given up on: ``confirm_transaction`` then issues the ticket or keeps it for a
+    refund); it needs the amount Stripe received to be what we charged, in euros.
+    ``payment_failed`` and ``canceled`` only end a payment that is still waiting.
+    Idempotent: Stripe repeats events, and a repeat changes nothing.
+    """
+    kind = event.get("type")
+    intent = (event.get("data") or {}).get("object")
+    if kind == "charge.refunded" and isinstance(intent, dict):
+        _handle_stripe_charge_refunded(db, intent)
+        return
+    if kind not in _STRIPE_PAYMENT_EVENTS or not isinstance(intent, dict):
+        return
+    reference = (intent.get("metadata") or {}).get("reference")
+    intent_id = intent.get("id")
+    if not isinstance(reference, str) or not isinstance(intent_id, str):
+        return
+
+    transaction = db.scalar(
+        select(Transaction).where(Transaction.reference == reference).with_for_update()
+    )
+    # A payment whose answer from Stripe came back before we saved its id has no
+    # provider reference yet: the signed reference identifies it.
+    if (
+        transaction is None
+        or transaction.provider != "stripe"
+        or transaction.provider_reference not in (None, intent_id)
+    ):
+        db.rollback()
+        logger.warning("Stripe event %s ignored: not one of our payments", kind)
+        return
+    if transaction.provider_reference is None:
+        transaction.provider_reference = intent_id
+        db.flush()  # the helpers below refresh the row and would drop an unsaved change
+
+    if kind == "payment_intent.succeeded":
+        received = intent.get("amount_received")
+        if intent.get("currency") != "eur" or received != transaction.amount_cents:
+            db.rollback()
+            logger.error(
+                "Stripe payment %s succeeded for another amount than charged "
+                "(%r %r instead of %d EUR cents): not confirmed, needs a look",
+                transaction.reference,
+                received,
+                intent.get("currency"),
+                transaction.amount_cents,
+            )
+            return
+        if transaction.status in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+            logger.warning(
+                "Late Stripe payment for %s: the transaction was %s locally",
+                transaction.reference,
+                transaction.status.value,
+            )
+        confirm_transaction(db, transaction)
+        return
+
+    try:
+        ended = stripe_status(intent)
+    except UnrecognisedStatusError:
+        db.rollback()
+        return
+    if ended in (TransactionStatus.FAILED, TransactionStatus.EXPIRED):
+        _settle_pending(db, transaction, ended)
+    else:
+        db.rollback()
+
+
+def get_transaction(
+    db: Session, user: User, reference: str, gateway: MBWayGateway
+) -> Transaction | None:
+    transaction = db.scalar(
+        select(Transaction).where(
+            Transaction.reference == reference,
+            Transaction.user_id == user.id,
+        )
+    )
+    if transaction is None:
+        return None
+
+    if transaction.status is TransactionStatus.PENDING:
+        _sync_provider_status(db, transaction, gateway)
+
+    return transaction
+
+
+def account_payment_overview(db: Session, user: User) -> dict:
+    """What the account page needs to know about the person's purchase.
+
+    The active ticket (with its modality), the payment that is waiting, and a payment
+    that arrived without a ticket and will be refunded. Each is ``None`` if absent.
+    """
+    ticket = db.execute(
+        select(Ticket, TicketTierPrice)
+        .join(Transaction, Transaction.reference == Ticket.transaction_reference)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Ticket.user_id == user.id,
+            Ticket.payment_status == PaymentStatus.PAID,
+        )
+        .order_by(Ticket.id.desc())
+        .limit(1)
+    ).first()
+    waiting = db.execute(
+        select(Transaction, TicketTierPrice)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    ).first()
+    refund = db.scalar(
+        select(Transaction)
+        .where(
+            Transaction.user_id == user.id,
+            Transaction.status == TransactionStatus.REFUND_DUE,
+        )
+        .order_by(Transaction.id.desc())
+        .limit(1)
+    )
+    return {
+        "ticket": None
+        if ticket is None
+        else {
+            "reference": ticket[0].transaction_reference,
+            "tier": ticket[1].tier.value,
+            "tier_name": ticket[1].name,
+            "holder_name": user.name,
+            "paid_at": ticket[0].paid_at,
+        },
+        "pending_payment": None
+        if waiting is None
+        else {
+            "reference": waiting[0].reference,
+            "tier": waiting[1].tier.value,
+            "tier_name": waiting[1].name,
+            "amount_cents": waiting[0].amount_cents,
+            "expires_at": waiting[0].expires_at,
+        },
+        "refund_due": None
+        if refund is None
+        else {"reference": refund.reference, "amount_cents": refund.amount_cents},
+    }
+
+
+def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
+    """The modalities with their price and whether each can be bought right now.
+
+    ``sale_open`` is false while payments are off, the modality has no price or
+    ``SALES_OPEN_AT`` has not arrived (``opens_at`` then says when).
+    ``available`` is also false when every seat of the shared stock is taken or
+    reserved for a payment that is waiting. Read-only: it does not ask the provider
+    about anything.
+    """
+    order = {tier: index for index, tier in enumerate(TicketTier)}
+    rows = sorted(db.scalars(select(TicketTierPrice)), key=lambda r: order[r.tier])
+    payments_on = settings.PAYMENTS_MODE != "off"
+    opened = sales_have_opened()
+    has_room = _seats_left(db) >= 1
+    early_bird_over = early_bird_is_over(db)
+    result = []
+    for row in rows:
+        price_cents, normal_price_cents = price_in_force(row, early_bird_over)
+        sale_open = payments_on and opened and row.price_cents is not None
+        result.append(
+            TicketTierRead(
+                tier=row.tier,
+                name=row.name,
+                price_cents=price_cents,
+                normal_price_cents=normal_price_cents,
+                is_student=row.is_student,
+                sale_open=sale_open,
+                available=sale_open and has_room,
+                opens_at=None if opened else settings.SALES_OPEN_AT,
+            )
+        )
+    return result
+
+
+def ticket_tier_of(db: Session, transaction: Transaction) -> TicketTier:
+    return db.scalar(
+        select(TicketTierPrice.tier).where(
+            TicketTierPrice.id == transaction.ticket_tier_id
+        )
+    )
+
+
+def to_read(db: Session, transaction: Transaction) -> TransactionRead:
+    tier = ticket_tier_of(db, transaction)
+    return TransactionRead(
+        reference=transaction.reference,
+        ticket_tier=tier,
+        status=transaction.status,
+        amount_cents=transaction.amount_cents,
+        quantity=transaction.quantity,
+        phone=transaction.phone,
+        expires_at=transaction.expires_at,
+        confirmed_at=transaction.confirmed_at,
+        created_at=transaction.created_at,
+    )

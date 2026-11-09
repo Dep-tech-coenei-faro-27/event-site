@@ -1,0 +1,68 @@
+import heroFaro from '../assets/hero-faro.webp';
+import Eyebrow from './EyeBrow';
+import { Link } from 'react-router-dom';
+import { EVENT_DATES } from '../data/Event';
+
+export default function Hero() {
+  return (
+    <section
+      className="hero-home relative w-full grid items-center overflow-clip"
+      style={{
+        backgroundImage: `
+          linear-gradient(
+            90deg,
+            rgba(5, 13, 33, 0.96) 0%,
+            rgba(5, 13, 33, 0.74) 56%,
+            rgba(5, 13, 33, 0.88) 100%
+          ),
+          url(${heroFaro})
+        `,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+      }}
+    >
+      {/* Grelha do Background */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(0, 170, 255, 0.045) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 170, 255, 0.035) 1px, transparent 1px)
+          `,
+          backgroundSize: '76px 76px',
+          WebkitMaskImage: 'linear-gradient(to bottom, black, transparent 78%)',
+          maskImage: 'linear-gradient(to bottom, black, transparent 78%)',
+        }}
+      />
+
+      <div className="hero-content container relative z-10 py-[90px] flex flex-col items-start gap-4">
+        <div className="inline-flex items-center">
+          <Eyebrow text="LOCAL_HOST: FARO_2027" />
+        </div>
+
+        {/* Título Principal com escala fluida forçada */}
+        <h1 className="hero-title font-poppins font-bold max-w-[880px] leading-[1.06] tracking-[-0.075em]">
+            ENEI 2027
+        </h1>
+        <p className="max-w-[680px] text-lg sm:text-xl text-[#AAB7C9] font-montserrat font-normal leading-relaxed">
+          Encontro Nacional de Estudantes de Informática
+        </p>
+
+        <div className="inline-flex items-center gap-2 px-3 py-[7px] rounded-[2px] border border-[#00AAFF]/20 bg-[#00AAFF]/[0.12] text-[#d7e3f4] text-[11px] font-semibold font-montserrat tracking-[0.04em] leading-[1.2]">
+          <span>{EVENT_DATES} · Faro, Algarve</span>
+        </div>
+
+        <div className="hero-actions flex flex-wrap items-center gap-4 pt-2">
+          <Link className="btn btn--secondary" to="/sobre">
+            Saber mais
+          </Link>
+          <Link className="btn btn--primary" to="/bilhetes">
+            Comprar bilhete
+          </Link>
+        </div>
+      </div>
+
+      <span className="hero-signal" aria-hidden="true" />
+    </section>
+  );
+}

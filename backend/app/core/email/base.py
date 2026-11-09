@@ -1,0 +1,53 @@
+from abc import ABC, abstractmethod
+
+
+def mask_email(address: str) -> str:
+    """Hide most of an address so logs do not keep personal data."""
+    local, _, domain = address.partition("@")
+    if not local or not domain:
+        return "***"
+    return f"{local[0]}***@{domain}"
+
+
+class EmailDeliveryError(RuntimeError):
+    """Raised when an email cannot be delivered by a transport.
+
+    ``kind`` says whose fault it was, so a fallback transport is only tried when
+    another server could do better: ``"limit"`` (the provider's sending quota),
+    ``"server"`` (unreachable, timeout, refused login, any other refusal) or
+    ``"recipient"`` (the address was refused, which another server would refuse too).
+    """
+
+    LIMIT = "limit"
+    SERVER = "server"
+    RECIPIENT = "recipient"
+
+    def __init__(self, message: str, kind: str = SERVER) -> None:
+        super().__init__(message)
+        self.kind = kind
+
+
+class EmailSender(ABC):
+    """Reusable contract for sending HTML emails.
+
+    Implementations are swappable (SMTP, provider SDKs, in-memory fakes)
+    without changing the code that consumes them.
+    """
+
+    @abstractmethod
+    def send_html(
+        self,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        inline_images: dict[str, bytes] | None = None,
+        text_body: str | None = None,
+    ) -> None:
+        """Send an HTML email to a single recipient, raising on failure.
+
+        ``text_body`` is the plain-text alternative; without it one is derived
+        from the HTML.
+
+        ``inline_images`` maps a Content-ID to a PNG that the body shows with
+        ``<img src="cid:...">``: mail clients block ``data:`` images.
+        """

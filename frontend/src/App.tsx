@@ -1,0 +1,119 @@
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import SkipLink, { MAIN_ID } from './components/SkipLink';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Registo from './pages/Registo';
+import Equipa from './pages/Equipa';
+import InformacaoAjuda from './pages/InformacaoAjuda';
+import Sobre from './pages/Sobre';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ProfilePage from './pages/Profile';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
+import Agenda from './pages/Agenda';
+import NotFound from './pages/NotFound';
+import Bilhetes from './pages/Bilhetes';
+import Acessibilidade from './pages/Acessibilidade';
+import Privacidade from './pages/Privacidade';
+import Termos from './pages/TermosCondicoes';
+import ScrollToTop from './components/ScrollToTop';
+import { useMotion } from './utils/useMotion';
+import ProtectedRoute from './components/ProtectedRoute';
+import Checkout from './pages/checkout/Checkout';
+import CheckoutWaiting from './pages/checkout/CheckoutWaiting';
+import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
+import CheckoutError from './pages/checkout/CheckoutError';
+import SessionEnded from './pages/estados/SessionEnded';
+import LinkExpired from './pages/estados/LinkExpired';
+import TooManyAttempts from './pages/estados/TooManyAttempts';
+import UnverifiedAccount from './pages/estados/UnverifiedAccount';
+import { AuthProvider } from './utils/AuthContext';
+
+import Seguranca from './pages/Seguranca';
+import { AccountShell } from './components/dashboard/AccountLayout';
+import DadosPessoais from './pages/DadosPessoais';
+// Um erro numa página mostra o ecrã de erro dentro do layout (com Navbar e Footer) e
+// desaparece ao navegar para outra página.
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
+}
+
+// Camada de animações do desenho novo (ver utils/useMotion.ts); vive dentro do router para saber
+// em que página está.
+function MotionLayer() {
+  useMotion();
+  return null;
+}
+
+// O layout e as rotas, sem o router: os testes montam-no dentro de um MemoryRouter.
+export function AppShell() {
+  return (
+      <AuthProvider>
+        <ScrollToTop />
+        <MotionLayer />
+        <div className="flex flex-col min-h-screen bg-[#050d21]">
+          <SkipLink />
+
+          <Navbar />
+
+          <main id={MAIN_ID} tabIndex={-1} className="flex-grow bg-[#050d21]">
+            <RouteErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/equipa" element={<Equipa />} />
+              <Route path="/bilhetes" element={<Bilhetes />} />
+              <Route path="/bilhetes/checkout" element={<Checkout />} />
+              <Route path="/bilhetes/checkout/aguardar" element={<CheckoutWaiting />} />
+              <Route path="/bilhetes/checkout/sucesso" element={<CheckoutSuccess />} />
+              <Route path="/bilhetes/checkout/erro" element={<CheckoutError />} />
+              <Route path="/sobre" element={<Sobre />} />
+              <Route path="/parcerias" element={<Navigate to="/#parceiros" replace />} />
+              <Route path="/informacao-ajuda" element={<InformacaoAjuda />} />
+              <Route path="/acessibilidade" element={<Acessibilidade />} />
+              <Route path="/termos" element={<Termos />} />
+              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/privacidade" element={<Privacidade />} />
+              <Route path="/conta" element={<Login />} />
+              <Route path="/conta/criar" element={<Registo />} />
+              <Route path="/conta/verificar" element={<VerifyEmailPage />} />
+              <Route path="/conta/recuperar" element={<ForgotPasswordPage />} />
+              <Route path="/conta/redefinir" element={<ResetPasswordPage />} />
+              <Route path="/conta/por-verificar" element={<UnverifiedAccount />} />
+              <Route path="/conta/link-expirado" element={<LinkExpired />} />
+              <Route path="/conta/demasiadas-tentativas" element={<TooManyAttempts />} />
+              <Route path="/conta/sessao-terminada" element={<SessionEnded />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AccountShell />}>
+                  <Route path="/perfil" element={<ProfilePage />} />
+                  <Route path="/conta/dados" element={<DadosPessoais />} />
+                  <Route path="/conta/seguranca" element={<Seguranca />} />
+                </Route>
+                <Route path="/conta/alterar-palavra-passe" element={<Navigate to="/conta/seguranca" replace />} />
+                <Route path="/conta/perfil" element={<Navigate to="/perfil" replace />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            </RouteErrorBoundary>
+          </main>
+          <Footer />
+
+        </div>
+      </AuthProvider>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  )
+}
+
+export default App;

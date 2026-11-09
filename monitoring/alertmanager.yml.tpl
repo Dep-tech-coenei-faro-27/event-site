@@ -1,0 +1,38 @@
+global:
+  smtp_smarthost: ${SMTP_HOST}:${ALERT_SMTP_PORT}
+  smtp_from: ${EMAIL_SENDER}
+  smtp_auth_username: ${SMTP_USER}
+  smtp_auth_password_file: /etc/alertmanager/smtp_password
+  smtp_require_tls: ${ALERT_SMTP_REQUIRE_TLS}
+
+route:
+  receiver: team
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 1m
+  repeat_interval: 6h
+  routes:
+    # Os comprovativos por decidir só vão para o Discord, não para o email.
+    - matchers: ['alertname="StudentProofsWaiting"']
+      receiver: discord
+    - matchers: ['alertname="Watchdog"']
+      receiver: watchdog
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+
+receivers:
+  - name: team
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/discord_webhook
+    email_configs:
+      - to: ${ALERT_EMAIL_TO}
+        send_resolved: true
+  - name: discord
+    discord_configs:
+      - webhook_url_file: /etc/alertmanager/discord_webhook
+        send_resolved: true
+  - name: watchdog
+    webhook_configs:
+      - url_file: /etc/alertmanager/watchdog_url
+        send_resolved: false

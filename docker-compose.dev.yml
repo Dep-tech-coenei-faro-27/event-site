@@ -1,0 +1,18 @@
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    ports:
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+
+  backend:
+    environment:
+      ENVIRONMENT: dev
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      EMAIL_SENDER: noreply@enei.local
+    depends_on:
+      - mailpit

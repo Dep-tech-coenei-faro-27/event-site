@@ -1,0 +1,29 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{mountpoint="/", fstype="ext4", instance="node-exporter:9100", job="node"}'
+        values: '15+0x10'
+      - series: 'node_filesystem_size_bytes{mountpoint="/", fstype="ext4", instance="node-exporter:9100", job="node"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: DiskUsage80
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: DiskUsage80
+        exp_alerts:
+          - exp_labels: { severity: warning, mountpoint: "/", fstype: ext4, instance: "node-exporter:9100", job: node }
+            exp_annotations: { summary: "Disk usage at 85%" }
+  - interval: 1m                       # 70% usado: não dispara
+    input_series:
+      - series: 'node_filesystem_avail_bytes{mountpoint="/", fstype="ext4", instance="node-exporter:9100", job="node"}'
+        values: '30+0x10'
+      - series: 'node_filesystem_size_bytes{mountpoint="/", fstype="ext4", instance="node-exporter:9100", job="node"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DiskUsage80
+        exp_alerts: []

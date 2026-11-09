@@ -1,0 +1,23 @@
+/*
+ * Ajustes à mão sobre o `conta.css` (gerado: não se edita). No telemóvel a apresentação da esquerda
+ * ocupava o ecrã inteiro e o formulário ficava escondido por baixo: aqui a apresentação encolhe
+ * (só o título e a frase) para o formulário aparecer logo.
+ */
+@media (max-width: 900px) {
+  html body[data-page="conta"][data-page] main .auth-aside {
+    min-height: 0;
+    padding-bottom: 24px;
+  }
+  html body[data-page="conta"][data-page] main .auth-points {
+    display: none;
+  }
+}
+@media (max-width: 620px) {
+  /* Em ecrãs pequenos a apresentação fica só no título: a frase repete o que o cartão já diz. */
+  html body[data-page="conta"][data-page] main .auth-aside .lead {
+    display: none;
+  }
+  html body[data-page="conta"][data-page] main .auth-aside {
+    padding-bottom: 8px;
+  }
+}

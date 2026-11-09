@@ -1,0 +1,25 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'enei_email_oldest_pending_seconds{job="node", instance="node-exporter:9100"}'
+        values: '0+0x4 1000+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: EmailQueueStuck
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: EmailQueueStuck
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "Há emails pendentes há 16m 40s" }
+  - interval: 30s                      # 899 s fica abaixo do limite de 15 min
+    input_series:
+      - series: 'enei_email_oldest_pending_seconds{job="node", instance="node-exporter:9100"}'
+        values: '899+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: EmailQueueStuck
+        exp_alerts: []

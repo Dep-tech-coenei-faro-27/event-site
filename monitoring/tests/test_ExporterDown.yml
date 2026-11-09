@@ -1,0 +1,17 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s
+    input_series:
+      - series: 'up{job="node", instance="node-exporter:9100"}'
+        values: '1+0x2 0+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ExporterDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: ExporterDown
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "The node-exporter has stopped responding" }
