@@ -941,6 +941,63 @@ def refresh_pending_payment(db: Session, reference: str, gateway: MBWayGateway) 
         _sync_provider_status(db, transaction, gateway)
 
 
+def pending_references_to_sweep(
+    db: Session,
+    *,
+    min_age_seconds: int,
+    limit: int,
+    provider: str | None = None,
+    now: datetime | None = None,
+) -> list[str]:
+    """The ``pending`` payments old enough to be asked about, the oldest first.
+
+    This is the safety net for a webhook that never came: nobody may be waiting for the
+    payment any more, so only the database knows it exists. ``provider`` keeps only the
+    payments made with the gateway that is asking: a payment made with another one (a
+    test run, an earlier provider) cannot be answered by this gateway and would only
+    fill the log every minute.
+    """
+    cutoff = (now or datetime.now(UTC)) - timedelta(seconds=min_age_seconds)
+    query = select(Transaction.reference).where(
+        Transaction.status == TransactionStatus.PENDING,
+        Transaction.created_at <= cutoff,
+    )
+    if provider is not None:
+        query = query.where(Transaction.provider == provider)
+    return list(
+        db.scalars(query.order_by(Transaction.created_at, Transaction.id).limit(limit))
+    )
+
+
+def refresh_users_pending_payment(
+    db: Session, user: User, gateway: MBWayGateway | None
+) -> None:
+    """Settle the payment this person is waiting for, if the provider already knows.
+
+    Called when they open their account: someone who left the waiting page sees the
+    ticket at once, without waiting for the webhook or the sweep. Never fails the
+    caller (the account page must open even if the provider is down); asked at most
+    every ``PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS`` like any other poll.
+    """
+    if gateway is None:
+        return
+    try:
+        pending = db.scalar(
+            select(Transaction)
+            .where(
+                Transaction.user_id == user.id,
+                Transaction.status == TransactionStatus.PENDING,
+            )
+            .order_by(Transaction.id.desc())
+            .limit(1)
+        )
+        if pending is not None and pending.provider == gateway.name:
+            _sync_provider_status(db, pending, gateway)
+    except Exception:  # noqa: BLE001 - a bonus, never a reason to fail the page
+        db.rollback()
+        logger.exception("Could not refresh the pending payment of user %s", user.id)
+
+
 def cancel_ticket(db: Session, ticket_id: int) -> Ticket:
     """Cancel a ticket and free its seat: the payment becomes ``refunded``.
 

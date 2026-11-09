@@ -693,6 +693,14 @@ class SimulatedMBWayGateway:
         return TransactionStatus.PENDING
 
 
+def get_mbway_gateway_or_none() -> MBWayGateway | None:
+    """The gateway, or ``None`` while payments are off (for work that is a bonus)."""
+    try:
+        return get_mbway_gateway()
+    except HTTPException:
+        return None
+
+
 def get_mbway_gateway() -> MBWayGateway:
     if settings.PAYMENTS_MODE == "off":
         raise HTTPException(

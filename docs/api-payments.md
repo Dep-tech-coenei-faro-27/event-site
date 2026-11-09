@@ -267,6 +267,9 @@ Não há stock por modalidade: os bilhetes à venda são um número só para tod
 | `MBWAY_UNRESOLVED_MAX_WAIT_SECONDS` | `1800` | quanto tempo depois do prazo um pagamento que o MB WAY não consegue resolver (resposta ilegível ou sem referência) mantém o lugar antes de ser dado por expirado |
 | `STRIPE_CANCEL_GRACE_SECONDS` | `120` | só Stripe: quanto tempo depois do prazo um pagamento ainda à espera é cancelado no Stripe (`POST /v1/payment_intents/{id}/cancel`), o que liberta o lugar e impede uma aprovação tardia. Se a pessoa o aprovar nesse instante, fica `confirmed`. Tem de ficar acima da janela real de aprovação do MB WAY |
 | `PAYMENT_PROVIDER_MIN_INTERVAL_SECONDS` | `5` | no máximo uma pergunta ao MB WAY por pagamento neste intervalo (0 = sempre). A memória é por processo; o backend corre um |
+| `PAYMENT_SWEEP_SECONDS` | `60` | de quanto em quanto tempo o backend pergunta ao fornecedor por **todos** os pagamentos `pending` (a rede de segurança para um webhook que não chegou, mesmo com a página fechada). `0` desliga |
+| `PAYMENT_SWEEP_MIN_AGE_SECONDS` | `30` | só se pergunta por pagamentos com pelo menos esta idade |
+| `PAYMENT_SWEEP_BATCH` | `100` | máximo de pagamentos por passagem (os mais antigos primeiro) |
 | `PAYMENTS_SIMULATED_CONFIRM_AFTER_SECONDS` | `0` | o gateway simulado confirma o pagamento ao fim destes segundos (`0` = nunca). Só é permitido com `PAYMENTS_MODE=simulated`; com `live` ou `off` o backend recusa arrancar. |
 | `PAYMENTS_SIMULATED_LATENCY_SECONDS` | `0` | só para o teste de carga: o gateway simulado demora estes segundos a responder; acima de `MBWAY_TIMEOUT_SECONDS` dá erro de gateway ao fim do timeout, como o cliente real. Só é permitido com `PAYMENTS_MODE=simulated`. |
 | `PAYMENT_INITIATE_THREADS` | `40` | threads que iniciam pagamentos, à parte das 40 que respondem aos outros pedidos: um fornecedor lento só atrasa as compras (ver `scripts/loadtest/RESULTADOS.md`). |

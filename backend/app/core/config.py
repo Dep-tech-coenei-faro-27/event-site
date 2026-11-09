@@ -205,6 +205,14 @@ class Settings(BaseSettings):
     PAYMENT_EVENTS_MAX_SECONDS: float = Field(default=600, gt=0, le=3600)
     PAYMENT_EVENTS_MAX_PER_USER: int = Field(default=3, ge=0, le=20)
     PAYMENT_EVENTS_RECONCILE_SECONDS: float = Field(default=5, gt=0, le=60)
+    # The safety net for a payment nobody is waiting for any more (the page was closed)
+    # whose webhook never arrived: every PAYMENT_SWEEP_SECONDS the provider is asked
+    # about every payment still ``pending`` after PAYMENT_SWEEP_MIN_AGE_SECONDS, up to
+    # PAYMENT_SWEEP_BATCH per pass, and the answer is applied as a webhook would
+    # (ticket and email if paid, seat freed if not). 0 turns it off.
+    PAYMENT_SWEEP_SECONDS: float = Field(default=60, ge=0, le=3600)
+    PAYMENT_SWEEP_MIN_AGE_SECONDS: int = Field(default=30, ge=0, le=3600)
+    PAYMENT_SWEEP_BATCH: int = Field(default=100, ge=1, le=1000)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the

@@ -13,6 +13,13 @@ num() { printf '%s\n' "$status" | grep -oE "$1[\"'= :]*[0-9.]+" | head -n1 | gre
 oldest="$(num oldest_pending_seconds)"
 failed="$(num failed)"
 
+pstatus="$(docker compose --env-file backend/.env --env-file tunnel.env exec -T backend \
+  /app/.venv/bin/python -m app.domains.payments.status 2>/dev/null)" || pstatus=""
+pnum() { printf '%s\n' "$pstatus" | grep -oE "^$1=[0-9]+" | head -n1 | grep -oE '[0-9]+$'; }
+ppending="$(pnum pending)"
+pstuck="$(pnum stuck_pending_seconds)"
+prefund="$(pnum refund_due)"
+
 tmp="$(mktemp "$METRICS_DIR/.enei.XXXXXX")"
 {
   if [ -n "$failed" ]; then
@@ -21,6 +28,14 @@ tmp="$(mktemp "$METRICS_DIR/.enei.XXXXXX")"
     echo "enei_email_failed $failed"
   else
     echo "enei_email_status_ok 0"
+  fi
+  if [ -n "$pstuck" ]; then
+    echo "enei_payment_status_ok 1"
+    echo "enei_payment_pending ${ppending:-0}"
+    echo "enei_payment_stuck_pending_seconds $pstuck"
+    echo "enei_payment_refund_due ${prefund:-0}"
+  else
+    echo "enei_payment_status_ok 0"
   fi
   if [ -f "$BACKUP_DIR/offsite-last-success" ]; then
     echo "enei_backup_last_success_timestamp_seconds $(stat -c %Y "$BACKUP_DIR/offsite-last-success")"
