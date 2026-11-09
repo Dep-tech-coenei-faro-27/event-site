@@ -101,19 +101,22 @@ class Settings(BaseSettings):
     # the 2 vCPU server (scripts/loadtest/RESULTADOS.md): the default stays at 60 and
     # the Variable RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE raises it on the day if needed.
     RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
-    RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=2, gt=0)
+    # Per IP too: a lecture hall or the whole campus can sit behind one address, so 2 a
+    # minute (the first value) would let a room register in an hour. 30 a minute still
+    # stops a script (verification emails are also capped by the daily SMTP quota).
+    RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=30, gt=0)
     RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
     RATE_LIMIT_EMAIL_PER_HOUR: int = Field(default=5, gt=0)
-    RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE: int = Field(default=10, gt=0)
+    RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE: int = Field(default=30, gt=0)
     RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES: int = Field(default=2, gt=0)
     RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
     RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE: int = Field(default=120, gt=0)
     RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     # The shop page of that same campus; one read costs ~10 ms (scripts/loadtest).
-    RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=600, gt=0)
+    RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=1500, gt=0)
     RATE_LIMIT_STUDENT_PROOF_PER_HOUR: int = Field(default=5, gt=0)
-    RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR: int = Field(default=20, gt=0)
+    RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR: int = Field(default=200, gt=0)
 
     UNVERIFIED_ACCOUNT_TTL_DAYS: int = Field(default=7, gt=0)
 

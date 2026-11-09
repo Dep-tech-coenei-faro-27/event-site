@@ -346,14 +346,16 @@ APPROVED_DEFAULTS = {
     "RATE_LIMIT_LOGIN_PER_MINUTE": 5,
     "RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE": 20,
     "RATE_LIMIT_LOGIN_PER_IP_PER_MINUTE": 60,
-    "RATE_LIMIT_REGISTER_PER_MINUTE": 2,
+    "RATE_LIMIT_REGISTER_PER_MINUTE": 30,
     "RATE_LIMIT_EMAIL_PER_MINUTE": 1,
     "RATE_LIMIT_EMAIL_PER_HOUR": 5,
-    "RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE": 10,
+    "RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE": 30,
     "RATE_LIMIT_PASSWORD_CHANGE_PER_15_MINUTES": 2,
     "RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE": 20,
     # The same campus opening the shop page (load test).
-    "RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE": 600,
+    "RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE": 1500,
+    # Many students behind one address sending their proof.
+    "RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR": 200,
 }
 
 
@@ -363,7 +365,9 @@ def test_the_default_limits_are_the_approved_ones():
     assert defaults == APPROVED_DEFAULTS
 
 
-def test_registration_allows_two_a_minute_per_ip(auth_client, clock):
+def test_registration_is_blocked_past_the_limit_per_ip(auth_client, clock, monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_REGISTER_PER_MINUTE", 2)
+
     def register(number):
         return auth_client.post(
             REGISTER_URL,
