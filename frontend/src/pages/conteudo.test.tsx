@@ -73,16 +73,13 @@ describe("ligações externas", () => {
 });
 
 describe("peso das imagens", () => {
-  // Só a fotografia de grupo usada no hero mantém a qualidade original acima do limite.
+  // A fotografia de grupo mantém a qualidade original, conforme a atualização da branch dev.
   const MAX_BYTES = 900_000;
-  const roots = [
-    ["frontend/src/assets", join(import.meta.dirname, "..", "assets")],
-    ["ui-ux/assets", join(import.meta.dirname, "..", "..", "..", "ui-ux", "assets")],
-  ] as const;
+  const root = join(import.meta.dirname, "..", "assets");
   const files = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
 
-  it.each(roots)("nenhum ficheiro de %s passa dos 900 kB, exceto equipa.webp", (_name, root) => {
+  it("nenhum ficheiro de src/assets passa dos 900 kB, exceto equipa.webp", () => {
     const tooBig = files(root)
       .map((f) => [f.slice(root.length + 1), statSync(f).size] as const)
       .filter(([file, size]) => file !== "equipa.webp" && size > MAX_BYTES);

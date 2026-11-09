@@ -21,6 +21,8 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".home-edition .split > *", "up"],
   [".pathway", "up"],
   [".programme-preview__item", "up"],
+  [".home-programme__item", "up"],
+  [".home-practical .split > *", "up"],
   [".home-faro-photo", "left"],
   [".home-experience .split > *", "up"],
   // Estes dois não vêm do protótipo: no React a «Experiência» e o texto de Faro têm outra estrutura e
@@ -29,7 +31,6 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".ops-item", "up"],
   [".home-faro .split > *", "up"],
   [".home-closing .container > *", "up"],
-  [".fact", "up"],
   [".timeline-item", "up"],
   [".photo", "up"],
   [".speaker-profile", "up"],
@@ -45,7 +46,6 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".auth-intro > *", "left"],
   [".auth-card", "right"],
   [".account-content > *", "up"],
-  [".location-card", "up"],
   [".countdown", "up"],
   [".faq-layout > *", "up"],
   [".legal-layout > *", "up"],
@@ -76,8 +76,10 @@ const PAGE_GROUPS: [string, Direction][] = [
   [`main section > div > .flex-col > *${CONTENT}`, "up"],
 ];
 
+// Ficam de fora de propósito, sem revelação com o scroll: os cartões dos mapas (`.location-card`, em Informação e Ajuda)
+// e os números da secção «Contexto» da página Sobre (`.fact`).
 const MEDIA_SELECTOR =
-  ".photo, .campus-photo, .location-card__visual, .home-faro-photo, .team-member__photo, .speaker-profile__media";
+  ".photo, .campus-photo, .home-faro-photo, .team-member__photo, .speaker-profile__media";
 
 const HERO_SELECTOR = ".hero-home, .hero";
 

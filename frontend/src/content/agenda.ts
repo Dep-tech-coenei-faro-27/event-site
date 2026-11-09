@@ -6,6 +6,8 @@
  * está em hora de verão (UTC+1).
  */
 
+import drWhyImage from '../assets/dr-why.png';
+
 export const AGENDA_TIMEZONE = 'Europe/Lisbon';
 /** Desfasamento de Lisboa em todos os dias do evento (hora de verão). Os testes confirmam-no com `Intl`. */
 export const AGENDA_UTC_OFFSET = '+01:00';
@@ -15,7 +17,7 @@ export interface AgendaDay {
   key: 'quinta' | 'sexta' | 'sabado' | 'domingo';
   /** Dia, `AAAA-MM-DD`. */
   date: string;
-  /** Nome do dia por extenso, como aparece na linha «Sexta-feira, 2 abril · 10 sessões». */
+  /** Nome do dia por extenso, como aparece na linha «Sexta-feira, 2 de abril · 10 sessões». */
   label: string;
   /** A etiqueta pequena do botão do dia («SEXTA»). */
   tab: string;
@@ -53,6 +55,8 @@ export interface AgendaItem {
   location?: string;
   /** Quem fala. Sem valor, a página diz que o orador está por anunciar (ver `announce`). */
   speaker?: AgendaSpeaker;
+  /** Imagem própria da atividade, independente do retrato de um orador. */
+  image?: { src: string; alt: string; fit?: 'cover' | 'contain' };
   /** Texto «por anunciar» quando ainda não há `speaker` (por omissão: «Orador a anunciar»). */
   announce?: string;
   /** `false` esconde o item sem o apagar. */
@@ -60,10 +64,10 @@ export interface AgendaItem {
 }
 
 export const AGENDA_DAYS: AgendaDay[] = [
-  { key: 'quinta', date: '2027-04-01', label: 'Quinta-feira, 1 abril', tab: 'QUINTA', short: '1 Abr' },
-  { key: 'sexta', date: '2027-04-02', label: 'Sexta-feira, 2 abril', tab: 'SEXTA', short: '2 Abr' },
-  { key: 'sabado', date: '2027-04-03', label: 'Sábado, 3 abril', tab: 'SÁBADO', short: '3 Abr' },
-  { key: 'domingo', date: '2027-04-04', label: 'Domingo, 4 abril', tab: 'DOMINGO', short: '4 Abr' },
+  { key: 'quinta', date: '2027-04-01', label: 'Quinta-feira, 1 de abril', tab: 'QUINTA', short: '1 Abr' },
+  { key: 'sexta', date: '2027-04-02', label: 'Sexta-feira, 2 de abril', tab: 'SEXTA', short: '2 Abr' },
+  { key: 'sabado', date: '2027-04-03', label: 'Sábado, 3 de abril', tab: 'SÁBADO', short: '3 Abr' },
+  { key: 'domingo', date: '2027-04-04', label: 'Domingo, 4 de abril', tab: 'DOMINGO', short: '4 Abr' },
 ];
 
 /**
@@ -84,7 +88,7 @@ export const AGENDA: AgendaItem[] = [
   { id: 'sex-1600-palestra', start: '2027-04-02T16:00', end: '2027-04-02T17:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sex-1700-palestra', start: '2027-04-02T17:00', end: '2027-04-02T18:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sex-1900-jantar', start: '2027-04-02T19:00', end: '2027-04-02T20:30', title: 'Jantar', kind: 'Refeição', category: 'encontro' },
-  { id: 'sex-2100-dr-why', start: '2027-04-02T21:00', end: '2027-04-02T23:00', title: 'Dr Why', kind: 'Noite', category: 'encontro' },
+  { id: 'sex-2100-dr-why', start: '2027-04-02T21:00', end: '2027-04-02T23:00', title: 'Dr Why', kind: 'Noite', category: 'encontro', image: { src: drWhyImage, alt: 'Logótipo do Dr Why' } },
   { id: 'sex-0000-discoteca', start: '2027-04-03T00:00', end: '2027-04-03T04:00', day: 'sexta', title: 'Discoteca', kind: 'Noite', category: 'encontro' },
   { id: 'sab-0900-palestra', start: '2027-04-03T09:00', end: '2027-04-03T10:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },
   { id: 'sab-1000-palestra', start: '2027-04-03T10:00', end: '2027-04-03T11:00', title: 'Palestra', kind: 'Palestra', category: 'palestras' },

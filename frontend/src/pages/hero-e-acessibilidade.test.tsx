@@ -28,7 +28,7 @@ describe("Declaração de acessibilidade", () => {
     expect(body).toMatch(/Exceção conhecida/);
     expect(body).toMatch(/caixas finais/i);
     expect(body).toMatch(/abaixo do mínimo de 4,5:1/);
-    expect(body).toMatch(/Versão do texto\s*1\.1/);
+    expect(body).toMatch(/Versão do texto\s*1\.2/);
   });
 });
 
@@ -50,6 +50,6 @@ describe("início: o fim do hero", () => {
   });
 
   it("o traço no topo da primeira secção (por baixo do cartão data/local/bilhetes) fica escondido", () => {
-    expect(css("home.css")).toMatch(/\.home-edition > \.motion-section__trace\s*\{\s*display: none;/);
+    expect(css("home.css")).toMatch(/\.home-programme > \.motion-section__trace\s*\{\s*display: none;/);
   });
 });
