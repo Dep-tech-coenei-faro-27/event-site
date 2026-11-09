@@ -141,6 +141,16 @@ body[data-page="conta"] main .auth-aside h1 {
   max-width: 520px;
   font-size: clamp(38px, 5vw, 64px);
 }
+/* O título acompanha a largura do próprio painel (e não a do ecrã): com o painel estreito, entre
+   os 900 e os 1100 px, uma palavra comprida como «experiência» saía para fora do painel. */
+@supports (width: 1cqi) {
+  body[data-page="conta"] main .auth-aside {
+    container-type: inline-size;
+  }
+  body[data-page="conta"] main .auth-aside h1 {
+    font-size: clamp(30px, 14.5cqi, 64px);
+  }
+}
 body[data-page="conta"] main .auth-aside .lead {
   font-size: 17px;
 }

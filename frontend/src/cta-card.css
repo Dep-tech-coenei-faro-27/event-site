@@ -1,0 +1,92 @@
+/*
+ * A caixa luminosa do fim de cada página (`.cta`): o desenho vive aqui, uma só vez.
+ * Cada página só muda o conteúdo (e, na Landing, o símbolo e o espaçamento em `home.css`).
+ *
+ * Começa num azul vivo e fundo (#0062c4; o #006fa6 anterior tendia para o verde-azulado). O degradê leva o
+ * azul-claro só depois dos 75 %, para o texto (à esquerda) ficar sobre a parte mais escura: a 58 % o branco
+ * chegava a 2,7:1 de contraste, com 75 % chega a 3,1:1.
+ */
+body[data-page] .cta {
+  padding: clamp(44px, 7vw, 80px);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(125deg, #0062c4, #00aaff 75%, #00c5ff);
+  color: white;
+}
+body[data-page] main .cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #ffffff;
+  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px repeat;
+  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px repeat;
+  opacity: 0.075;
+}
+body[data-page] main .cta > * {
+  position: relative;
+  z-index: 2;
+}
+body[data-page] main .cta p {
+  max-width: 650px;
+  color: rgba(255, 255, 255, 0.84);
+}
+body[data-page] main .cta .btn--dark {
+  background: var(--panel);
+}
+body[data-page] main .cta .btn--dark:hover {
+  background: var(--panel-strong);
+}
+body[data-page] main .cta .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.68);
+  background: rgba(3, 16, 31, 0.72);
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+body[data-page] main .cta .btn--secondary:hover {
+  border-color: #ffffff;
+  background: rgba(3, 16, 31, 0.9);
+}
+/* O símbolo do ENEI, parado, à direita (o lado que o texto à esquerda deixa vazio). A Landing tem o dela. */
+body[data-page]:not([data-page="inicio"]) main .cta::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: clamp(32px, 6vw, 96px);
+  width: 200px;
+  height: 220px;
+  transform: translateY(-50%);
+  background: url("./assets/ENEI-logo.svg") center / contain no-repeat;
+  filter: brightness(0) invert(1);
+  opacity: 0.4;
+  pointer-events: none;
+}
+@media (min-width: 901px) {
+  body[data-page]:not([data-page="inicio"]) main .cta {
+    padding-right: calc(200px + clamp(32px, 6vw, 96px) + 24px);
+  }
+}
+@media (max-width: 900px) {
+  body[data-page]:not([data-page="inicio"]) main .cta::before {
+    display: none;
+  }
+}
+@media (max-width: 620px) {
+  body[data-page] .cta {
+    margin-inline: -4px;
+    padding: 34px 24px;
+  }
+  /* No telemóvel os botões ficam um por baixo do outro, os dois com a largura toda (o mesmo tamanho). */
+  html body[data-page] main .cta .actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  html body[data-page] main .cta .actions .btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}

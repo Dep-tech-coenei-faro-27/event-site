@@ -169,6 +169,11 @@ body.motion-page-leave {
 .page-hero + .motion-section > .motion-section__trace {
   background: rgba(var(--accent-rgb), 0.75);
 }
+/* Com o traço por baixo, o contorno do próprio banner (1 px cinzento) ficava um pixel acima do traço azul e via-se uma linha
+   dupla. Onde há traço, o contorno sai; onde não há (ex.: sem JavaScript), continua. */
+html body[data-page][data-page] main .page-hero:has(+ .motion-section) {
+  border-bottom: 0;
+}
 /* Imagens que se revelam com o scroll: a moldura inteira (imagem e contorno) abre da esquerda para a
    direita, de esbatida e com um pouco de zoom a inteira. O corte fica na moldura para o contorno
    acompanhar a imagem e tem os mesmos cantos arredondados (`--media-radius`, definido junto ao raio

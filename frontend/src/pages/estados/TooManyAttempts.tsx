@@ -41,8 +41,8 @@ export default function TooManyAttempts() {
         </>
       }
       kicker="Acesso temporariamente limitado"
-      title="Precisamos de fazer uma pausa."
-      lead="Foram feitas várias tentativas num curto período. Para proteger a tua conta, aguarda antes de voltares a tentar."
+      title="Aguarda antes de tentar novamente."
+      lead="Houve demasiadas tentativas. Podes voltar a tentar quando o contador chegar a zero."
       actions={
         <>
           <button className="btn btn--primary" type="button" disabled={!ready} onClick={() => navigate("/conta")}>
