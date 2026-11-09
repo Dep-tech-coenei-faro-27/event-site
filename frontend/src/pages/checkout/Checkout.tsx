@@ -13,6 +13,8 @@ import PageStatus from "../../components/PageStatus";
 import { loadErrorMessage } from "../../utils/loadError";
 import { cleanNif, nifError } from "../../utils/nif";
 import { ORGANIZATION_EMAIL, studentStatus, type StudentStatus } from "../../utils/studentProof";
+import { isEarlyBird } from "../bilhetes/earlyBird";
+import "../../checkout.early-bird.css";
 import { formatOpeningTime, formatPrice, isPortuguesePhone, normalizePhone } from "./format";
 
 /**
@@ -171,12 +173,30 @@ function CheckoutForm() {
         ticket_tier: current.tier,
         phone: normalizePhone(phone),
         ...(cleanNif(nif) ? { nif: cleanNif(nif) } : {}),
+        // O preço que está no ecrã: se mudou entretanto, o servidor recusa em vez de cobrar outro valor.
+        ...(current.price_cents !== null ? { expected_price_cents: current.price_cents } : {}),
       });
       saveReference(transaction.reference);
       navigate("/bilhetes/checkout/aguardar");
     } catch (error) {
       const described = describeInitiateError(error);
       setFailure(described);
+      // O preço mudou (acabou o Early Bird): mostra o valor novo e deixa a pessoa decidir. Nada foi cobrado.
+      if (described.kind === "price-changed") {
+        try {
+          const fresh = await getTiers();
+          setTiers(fresh);
+          const now = fresh.find((tier) => tier.tier === current.tier);
+          if (now && now.price_cents !== null) {
+            setFailure({
+              ...described,
+              message: `O preço deste bilhete mudou: agora é ${formatPrice(now.price_cents, now.currency)}. Confirma o novo valor e volta a pagar.`,
+            });
+          }
+        } catch {
+          // a mensagem geral fica; recarregar a página mostra o preço certo
+        }
+      }
       // Já havia uma compra: leva a pessoa a ela em vez de a deixar presa no formulário.
       if (described.kind === "already-in-progress") {
         try {
@@ -271,7 +291,18 @@ function CheckoutForm() {
                           <strong>{tier.name}</strong>
                           <span>{tierNote(tier, student)}</span>
                         </span>
-                        <span className="checkout-ticket-option__price">{formatPrice(tier.price_cents, tier.currency)}</span>
+                        <span className="checkout-ticket-option__price">
+                          {formatPrice(tier.price_cents, tier.currency)}
+                          {isEarlyBird(tier) && (
+                            <span className="checkout-early">
+                              <s>
+                                <span className="sr-only">Preço normal </span>
+                                {formatPrice(tier.normal_price_cents, tier.currency)}
+                              </s>
+                              <em>Early Bird</em>
+                            </span>
+                          )}
+                        </span>
                       </label>
                     );
                   })}
@@ -368,6 +399,18 @@ function CheckoutForm() {
                 </span>
               </label>
 
+              <p className="checkout-refund-note">
+                Depois de pagares, o bilhete não é reembolsável. Se houver um erro nosso, ou se cancelarmos o evento, devolvemos-te o valor total. Reembolso parcial excecional: pedido por email até 28/02/2027. Dúvidas:{" "}
+                <a className="auth-legal-link" href="mailto:geral@eneiconf.pt">
+                  geral@eneiconf.pt
+                </a>
+                .{" "}
+                <Link className="auth-legal-link" to="/termos#cancelamento-e-reembolso">
+                  Ver as condições
+                </Link>
+                .
+              </p>
+
               {failure && <FailureNotice failure={failure} />}
 
               <button className="btn btn--primary checkout-submit" type="submit" disabled={!canSubmit}>
@@ -403,6 +446,13 @@ function CheckoutForm() {
               <span>Total</span>
               <strong>{current ? formatPrice(current.price_cents, current.currency) : "—"}</strong>
             </div>
+            {isEarlyBird(current ?? undefined) && (
+              <p className="checkout-early-note">
+                <strong>Preço Early Bird.</strong> O preço normal é{" "}
+                <s>{formatPrice(current?.normal_price_cents ?? null, current?.currency)}</s>: poupas{" "}
+                {formatPrice((current?.normal_price_cents ?? 0) - (current?.price_cents ?? 0), current?.currency)}. Depois passa para o preço normal.
+              </p>
+            )}
             <ul className="checkout-trust-list">
               <li>Pagamento através de MB Way</li>
               <li>Bilhete disponível na área pessoal</li>
@@ -438,7 +488,7 @@ function StudentHint({ status }: { status: StudentStatus }) {
       ? "O teu comprovativo de estudante está em revisão. As modalidades de estudante abrem quando for aprovado."
       : status === "rejected"
         ? "O teu comprovativo de estudante foi recusado. Vê o motivo e envia outro na tua conta."
-        : "Não tens email de aluno? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
+        : "Ainda não és um estudante verificado? Envia o comprovativo de matrícula na tua conta para teres o preço de estudante.";
   return (
     <p style={{ margin: "12px 0 0", fontSize: 13 }}>
       {text}{" "}

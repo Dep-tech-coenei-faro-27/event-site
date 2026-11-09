@@ -32,6 +32,12 @@ describe("describeInitiateError (uma linha por erro de docs/api-payments.md)", (
     expect(mine.message).not.toMatch(/esgot/i);
   });
 
+  it("409 de preço mudado: não é esgotado nem «já tens bilhete»; manda rever o preço", () => {
+    const f = describeInitiateError(api(409, "The price of this ticket changed"));
+    expect(f).toMatchObject({ kind: "price-changed", action: "review-price" });
+    expect(f.message).not.toMatch(/esgot|já tens/i);
+  });
+
   it("422 do telemóvel aponta o campo", () => {
     const f = describeInitiateError(
       api(422, [{ type: "value_error", loc: ["body", "phone"], msg: "invalid" }]),

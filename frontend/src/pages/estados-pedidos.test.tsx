@@ -263,6 +263,45 @@ describe("Profile (/users/me)", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it.each([
+    [true, "bg-[#10b981]", ": sim"],
+    [false, "bg-areia", "ainda por abrir"],
+  ])("a preparação diz sempre «Email verificado» e a luz segue a confirmação (verificado: %s)", async (verified, dot, spoken) => {
+    stubApi({ "/users/me": json(200, { ...BASE_USER, is_verified: verified }) });
+    open();
+    const item = await screen.findByTestId("email-check");
+    expect(item).toHaveTextContent("Email verificado");
+    expect(item.querySelector("span")?.className).toContain(dot);
+    expect(item).toHaveTextContent(spoken);
+  });
+
+  it.each([
+    ["verified", "bg-[#10b981]", ": sim"],
+    ["submitted", "bg-areia", "comprovativo em revisão"],
+    ["rejected", "bg-[#f87171]", "comprovativo recusado"],
+    ["none", "border", "ainda não"],
+  ])("a preparação diz sempre «Estudante verificado» e a luz segue o comprovativo (%s)", async (status, dot, spoken) => {
+    stubApi({ "/users/me": json(200, { ...BASE_USER, student_verification_status: status }) });
+    open();
+    const item = await screen.findByTestId("student-check");
+    expect(item).toHaveTextContent("Estudante verificado");
+    expect(item.querySelector("span")?.className).toContain(dot);
+    expect(item).toHaveTextContent(spoken);
+  });
+
+  it.each([
+    ["sem compra", BASE_USER, "border"],
+    ["a confirmar o pagamento", PENDING, "bg-areia"],
+    ["compra feita", WITH_TICKET, "bg-[#10b981]"],
+  ])("a preparação diz sempre «Bilhete confirmado» e a luz segue a compra (%s)", async (_name, user, dot) => {
+    stubApi({ "/users/me": json(200, user) });
+    open();
+    const item = await screen.findByTestId("ticket-check");
+    expect(item).toHaveTextContent("Bilhete confirmado");
+    expect(item.querySelector("span")?.className).toContain(dot);
+    expect(screen.queryByText(/pagamento em validação/i)).toBeNull();
+  });
+
   it.each(FAILURES)("%s: erro com «Tentar novamente», nunca «Ainda não tens uma inscrição»", async (_name, reply, message) => {
     stubApi({ "/users/me": reply });
     open();

@@ -1,4 +1,5 @@
 import LegalPageLayout, { type LegalSection } from '../components/LegalPageLayout';
+import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 
 const sections: LegalSection[] = [
     {
@@ -11,7 +12,7 @@ const sections: LegalSection[] = [
     {
         title: 'Conta e acesso',
         content: (
-            <p>A conta é pessoal. És responsável por manter as credenciais seguras, confirmar que o email indicado te pertence e atualizar os dados necessários para a inscrição. Se detetares acesso indevido, utiliza a área de recuperação ou procura apoio através da página Informação & Ajuda.
+            <p>A conta é pessoal. És responsável por manter as credenciais seguras, confirmar que o email indicado te pertence e atualizar os dados necessários para a inscrição. Se detetares acesso indevido, utiliza a área de recuperação ou procura apoio através da página Informações e ajuda.
             </p>
         ),
     },
@@ -28,10 +29,10 @@ const sections: LegalSection[] = [
         content: (
             <>
             <p>
-                O pagamento é iniciado através do método apresentado no checkout. A inscrição apenas fica confirmada depois de o pagamento ser validado. Em caso de recusa, expiração ou falha, não é efetuada uma cobrança confirmada e podes repetir o processo.
+                O pagamento é iniciado através do método apresentado na compra. A inscrição apenas fica confirmada depois de o pagamento ser validado. Em caso de recusa, expiração ou falha, não é efetuada uma cobrança confirmada e podes repetir o processo.
             </p>
             <p>
-                A fatura é emitida manualmente pela AAUalg, a entidade vendedora, e enviada para o email da tua conta até 20 dias úteis após a compra. Se a quiseres com número de contribuinte, indica o NIF (campo opcional) no checkout.
+                A fatura é emitida manualmente pela AAUalg, a entidade vendedora, e enviada para o email da tua conta até 20 dias úteis após a compra. Se a quiseres com número de contribuinte, indica o NIF (campo opcional) na compra.
             </p>
             </>
         ),
@@ -42,6 +43,29 @@ const sections: LegalSection[] = [
             <p>
                 A organização pode atualizar horários, espaços ou atividades quando tal for necessário para o funcionamento ou segurança do encontro. As condições específicas de cancelamento, reembolso ou alteração aplicáveis à compra devem ser apresentadas no momento da aquisição, sem prejuízo dos direitos previstos na lei.
             </p>
+        ),
+    },
+    {
+        id: 'cancelamento-e-reembolso',
+        title: 'Cancelamento e reembolso',
+        content: (
+            <>
+            <p>
+                O bilhete é vendido pela AAUalg, NIF 504035266, com sede no Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro. Depois de o pagamento estar concluído e o bilhete emitido, <strong>não há direito a reembolso</strong>.
+            </p>
+            <p>
+                Se pagares e, por um erro nosso, não for possível emitir o teu bilhete (por exemplo, por falha do sistema ou por a modalidade estar esgotada), devolvemos-te o valor total, automaticamente e pelo mesmo meio de pagamento. Se o ENEI for cancelado pela organização, devolvemos também o valor total do bilhete.
+            </p>
+            <p>
+                Se não puderes mesmo participar, podes pedir-nos um reembolso parcial escrevendo para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o teu nome e a referência da compra, <strong>até 28 de fevereiro de 2027</strong>, inclusive. Conta a data em que nos escreves, e não a data em que tratamos o pedido. Analisamos cada pedido caso a caso e, se o aceitarmos, avisamos-te por email da aceitação, o bilhete é cancelado e devolvemos o valor aceite pelo mesmo meio de pagamento, <strong>em até 10 dias úteis a contar da data da aceitação</strong>.
+            </p>
+            <p>
+                <strong>A partir de 1 de março de 2027 não aceitamos pedidos de reembolso parcial.</strong>
+            </p>
+            <p>
+                Estas condições não afetam os direitos que a lei te reconhece.
+            </p>
+            </>
         ),
     },
     {
@@ -59,9 +83,7 @@ export default function Acessibilidade() {
             eyebrow="INFORMAÇÃO LEGAL"
             title="Termos e condições"
             lead="As regras essenciais para utilizar o site, gerir a tua conta e participar no ENEI 2027."
-            version="1.0"
-            lastUpdated="8 outubro 2026"
-            lastUpdatedISO="2026-10-08"
+            {...legalMeta(LEGAL_DOCS.termos)}
             sections={sections}
         />
     );

@@ -6,7 +6,7 @@
 body[data-page="agenda"] main .ag-programme {
   padding: 72px 0 88px;
   position: relative;
-  overflow: hidden;
+  overflow: clip; /* `hidden` impedia os dias de ficarem presos ao topo (`sticky`) */
   /* Um tom mais claro e o azulejo suave: é o que separa o cabeçalho da lista, como no desenho. */
   background: var(--surface);
 }
@@ -38,12 +38,56 @@ body[data-page="agenda"] main .agenda-hero .date-pill {
   margin: 26px auto 0;
 }
 
-/* Dias */
+/* Dias: as caixas descem com a página e ficam presas por baixo da barra de topo, acompanhadas de um fundo igual ao
+   da secção, para a lista não passar por trás delas. A faixa começa logo abaixo da barra de topo (76 px no computador
+   e no tablet; 64 px no telemóvel) e as caixas ficam a 12 px dela. */
 body[data-page="agenda"] main .ag-days {
+  position: sticky;
+  top: 76px;
+  z-index: 20;
+  padding-block: 12px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 36px;
+  margin-top: 24px;
+  margin-bottom: -12px;
+}
+/* O fundo é o da secção (o mesmo tom e o mesmo azulejo, no mesmo sítio), por isso não se nota onde começa: parece
+   que o fundo da página desce com as caixas. A faixa só tem a largura das caixas (que ocupam a largura toda da lista),
+   não precisa de chegar às pontas da secção. `--days-x` e `--days-y` vêm do Agenda.tsx e põem o azulejo da faixa onde
+   está o da secção. Em baixo esbate, para a lista não acabar num corte seco. */
+body[data-page="agenda"] main .ag-days::before,
+body[data-page="agenda"] main .ag-days::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-days::before {
+  background: var(--surface);
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+}
+body[data-page="agenda"] main .ag-days::after {
+  background: var(--accent);
+  opacity: 0.026;
+  -webkit-mask:
+    url("./assets/azulejo-pattern-transparent.webp") calc(var(--days-x, 0px) * -1) calc(var(--days-y, 0px) * -1) / 96px 96px repeat,
+    linear-gradient(#000 calc(100% - 18px), transparent);
+  -webkit-mask-composite: source-in;
+  mask:
+    url("./assets/azulejo-pattern-transparent.webp") calc(var(--days-x, 0px) * -1) calc(var(--days-y, 0px) * -1) / 96px 96px repeat,
+    linear-gradient(#000 calc(100% - 18px), transparent);
+  mask-composite: intersect;
+}
+@media (max-width: 767px) {
+  body[data-page="agenda"] main .ag-days {
+    top: 64px;
+  }
 }
 body[data-page="agenda"] main .ag-day {
   display: flex;
@@ -52,7 +96,7 @@ body[data-page="agenda"] main .ag-day {
   gap: 4px;
   padding: 14px 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--surface);
   color: var(--text);
   font-family: inherit;
@@ -72,7 +116,8 @@ body[data-page="agenda"] main .ag-day strong {
 }
 body[data-page="agenda"] main .ag-day[aria-selected="true"] {
   border-color: rgba(26, 178, 255, 0.7);
-  background: rgba(26, 178, 255, 0.12);
+  /* Opaco: o azul suave por cima do fundo da caixa (a transparência deixava ver a lista por baixo quando os dias estão presos). */
+  background: linear-gradient(rgba(26, 178, 255, 0.12), rgba(26, 178, 255, 0.12)), var(--surface);
 }
 body[data-page="agenda"] main .ag-day[aria-selected="true"] small {
   color: var(--accent-strong);
@@ -118,12 +163,160 @@ body[data-page="agenda"] main .ag-filters button[aria-pressed="true"] {
   background: var(--accent);
   color: var(--bg);
 }
+/* O seletor de categoria só aparece em ecrãs estreitos (ver o `@media (max-width: 767px)` da barra de filtros), no lugar das pílulas. */
+body[data-page="agenda"] main .ag-filter-select {
+  display: none;
+  position: relative;
+  flex: none;
+}
+body[data-page="agenda"] main .ag-filter-select__button {
+  display: block;
+  height: 40px;
+  padding: 0 38px 0 16px;
+  border: 1px solid rgba(215, 227, 244, 0.14);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+body[data-page="agenda"] main .ag-filter-select.is-open .ag-filter-select__button {
+  border-color: var(--accent);
+}
+/* A seta é feita com bordas (e não com uma imagem) para não depender de nada externo; vira-se quando a lista abre. */
+body[data-page="agenda"] main .ag-filter-select::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--subtle);
+  border-bottom: 2px solid var(--subtle);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-filter-select.is-open::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+body[data-page="agenda"] main .ag-filter-select__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: max(100%, 190px);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid rgba(215, 227, 244, 0.22);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+}
+/* Linhas altas (boas para o dedo), separadas por um fio; a escolhida leva um visto e a cor de destaque. */
+body[data-page="agenda"] main .ag-filter-select__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+  padding: 0 16px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+body[data-page="agenda"] main .ag-filter-select__list li + li {
+  border-top: 1px solid var(--line);
+}
+body[data-page="agenda"] main .ag-filter-select__list li svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0;
+}
+body[data-page="agenda"] main .ag-filter-select__list li.is-active {
+  background: rgba(215, 227, 244, 0.07);
+}
+body[data-page="agenda"] main .ag-filter-select__list li[aria-selected="true"] {
+  color: var(--accent-strong);
+}
+body[data-page="agenda"] main .ag-filter-select__list li[aria-selected="true"] svg {
+  opacity: 1;
+}
+
+/* «Guardados»: um filtro à parte (liga e desliga), que se combina com a categoria. */
+body[data-page="agenda"] main .ag-saved-pill {
+  position: relative;
+  margin-left: 12px; /* com os 12 px da fila, a barra fica com 12 px de cada lado */
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(215, 227, 244, 0.14);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* Uma barra azul fina e suave, no meio do espaço entre as categorias e os «Guardados», para se ver que são filtros diferentes.
+   Só com as pílulas à vista: com o seletor (ecrãs estreitos) já se percebe e a barra sai. */
+body[data-page="agenda"] main .ag-saved-pill::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -13px;
+  width: 1px;
+  height: 32px;
+  transform: translateY(-50%);
+  /* Esbate das pontas para o centro. */
+  background: linear-gradient(to bottom, transparent, var(--accent) 50%, transparent);
+  opacity: 0.45;
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-saved-pill svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  fill: none;
+}
+body[data-page="agenda"] main .ag-saved-pill[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+body[data-page="agenda"] main .ag-saved-pill[aria-pressed="true"] svg {
+  fill: currentColor;
+}
 body[data-page="agenda"] main .ag-search {
   display: flex;
   align-items: center;
   gap: 10px;
   height: 40px;
   margin-left: auto;
+  /* Encolhe até caber ao lado das pílulas (nunca passa para uma segunda linha): 166 px é o mínimo e 236 px o normal. */
+  flex: 1 1 166px;
+  max-width: 236px;
   padding: 0 14px;
   border: 1px solid rgba(215, 227, 244, 0.14);
   border-radius: 999px;
@@ -138,7 +331,9 @@ body[data-page="agenda"] main .ag-search svg {
   fill: none;
 }
 body[data-page="agenda"] main .ag-search input {
-  width: 180px;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -148,19 +343,89 @@ body[data-page="agenda"] main .ag-search input {
 body[data-page="agenda"] main .ag-search input::placeholder {
   color: var(--subtle);
 }
-body[data-page="agenda"] main .ag-programme button:focus-visible,
-body[data-page="agenda"] main .ag-programme input:focus-visible {
+/* O «x» para limpar: o mesmo da barra de Informações e ajuda (cinza, branco ao passar o rato); o do navegador sai. */
+body[data-page="agenda"] main .ag-search input::-webkit-search-cancel-button,
+body[data-page="agenda"] main .ag-search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+body[data-page="agenda"] main .ag-search .ag-search__clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+body[data-page="agenda"] main .ag-search .ag-search__clear svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  fill: none;
+}
+body[data-page="agenda"] main .ag-search .ag-search__clear:hover {
+  background: rgba(26, 178, 255, 0.14);
+  color: #fff;
+}
+body[data-page="agenda"] main .ag-programme button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A barra de pesquisa destaca-se inteira (como a de Informações e ajuda): borda e halo azuis na barra,
+   e não um contorno à volta da caixa de texto lá dentro. */
+body[data-page="agenda"] main .ag-search input {
+  outline: none;
+}
+/* Contorno transparente: não se vê (a barra é que se destaca), mas aparece no modo de alto contraste do Windows. */
+body[data-page="agenda"] main .ag-search input:focus-visible {
+  outline: 2px solid transparent;
+}
+body[data-page="agenda"] main .ag-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 170, 255, 0.15);
+}
+body[data-page="agenda"] main .ag-search:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 body[data-page="agenda"] main .ag-results {
+  position: relative;
   margin: 28px 0 14px;
+  padding-top: 24px;
   color: var(--accent-strong);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+/* A barra que separa os filtros da lista: igual ao traço que abre cada secção do site (`.motion-section__trace`, em motion.css),
+   de ponta a ponta do ecrã e a esbater nas pontas. A secção corta (`overflow: clip`) o que passar da largura. */
+body[data-page="agenda"] main .ag-results::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--accent-rgb), 0.75) 30%,
+    rgba(var(--accent-rgb), 0.75) 70%,
+    transparent
+  );
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 /* Cartões */
@@ -199,6 +464,58 @@ body[data-page="agenda"] main .ag-card__media {
   width: 168px;
   background: var(--surface);
 }
+body[data-page="agenda"] main .ag-visual {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b1b30;
+  color: #6ccded;
+  border-right: 1px solid rgba(215,227,244,.08);
+}
+body[data-page="agenda"] main .ag-visual svg {
+  width: 44%;
+  min-width: 36px;
+  max-width: 64px;
+  height: auto;
+  aspect-ratio: 1;
+}
+/* Pictogramas parados (sem animação contínua). */
+body[data-page="agenda"] main .ag-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(26,178,255,.16), transparent 70%);
+  pointer-events: none;
+}
+body[data-page="agenda"] main .ag-visual svg {
+  position: relative;
+  filter: drop-shadow(0 0 9px rgba(26,178,255,.18));
+}
+body[data-page="agenda"] main .ag-card:focus-within {
+  border-color: var(--tone);
+}
+@media (prefers-reduced-motion: no-preference) {
+  body[data-page="agenda"] main .ag-card {
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  body[data-page="agenda"] main .ag-visual::before {
+    transition: opacity .25s ease;
+    opacity: .65;
+  }
+  body[data-page="agenda"] main .ag-card:focus-within .ag-visual::before {
+    opacity: 1;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="agenda"] main .ag-card:hover {
+    border-color: var(--tone);
+    box-shadow: 0 5px 24px rgba(0,0,0,.18);
+  }
+  body[data-page="agenda"] main .ag-card:hover .ag-visual::before {
+    opacity: 1;
+  }
+}
 /* A imagem enche a coluna sem contar para a altura do cartão (assim nem a imagem, antes de carregar, o estica). */
 body[data-page="agenda"] main .ag-card__media img {
   position: absolute;
@@ -211,6 +528,16 @@ body[data-page="agenda"] main .ag-card__media img {
 }
 /* Momentos (refeições, chegadas, convívio): sem retrato, o azulejo do site, como nas secções e nas caixas finais
    (uma cor em máscara com o padrão `azulejo-pattern-transparent.webp`). */
+body[data-page="agenda"] main .ag-card__media--activity img {
+  object-fit: contain;
+  object-position: center;
+  padding: 8px;
+}
+body[data-page="agenda"] main .ag-card__media--photo img {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+}
 body[data-page="agenda"] main .ag-card__media--moment {
   background: var(--surface);
 }
@@ -424,18 +751,56 @@ body[data-page="agenda"] main .ag-closing {
   padding: clamp(72px, 9vw, 124px) 0;
 }
 body[data-page="agenda"] main .ag-closing .cta {
-  text-align: center;
-}
-/* O parágrafo e a etiqueta têm largura máxima (650 px): sem margens automáticas ficavam encostados à esquerda. */
-body[data-page="agenda"] main .ag-closing .cta > p {
-  margin-inline: auto;
+  /* Alinhada à esquerda, como a caixa final das outras páginas. */
+  text-align: left;
 }
 body[data-page="agenda"] main .ag-closing .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   margin-top: 24px;
+}
+
+/* Barra de filtros em ecrãs estreitos. Com 768 px a largura da lista passa de 640 para 713 px, que é o que as pílulas, a barra
+   dos «Guardados» e uma pesquisa mínima de 166 px pedem (650 px); abaixo disso não cabem na mesma fila. */
+@media (max-width: 767px) {
+  /* Uma só fila: o seletor de categoria (só o que o texto pede) e a pesquisa a ocupar o resto. */
+  body[data-page="agenda"] main .ag-filters {
+    display: none;
+  }
+  body[data-page="agenda"] main .ag-filter-select {
+    display: block;
+  }
+  body[data-page="agenda"] main .ag-saved-pill {
+    margin-left: 0;
+  }
+  body[data-page="agenda"] main .ag-saved-pill::before {
+    display: none;
+  }
+  /* Só o ícone e o número (a palavra fica para os leitores de ecrã). */
+  body[data-page="agenda"] main .ag-saved-pill {
+    gap: 6px;
+    padding: 0 14px;
+  }
+  body[data-page="agenda"] main .ag-saved-pill__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  body[data-page="agenda"] main .ag-search {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    margin-left: 0;
+  }
+  body[data-page="agenda"] main .ag-search input {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 700px) {
@@ -448,7 +813,7 @@ body[data-page="agenda"] main .ag-closing .actions {
   }
   body[data-page="agenda"] main .ag-day {
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: 0;
   }
   body[data-page="agenda"] main .ag-day small {
     font-size: 9.5px;
@@ -457,18 +822,9 @@ body[data-page="agenda"] main .ag-closing .actions {
   body[data-page="agenda"] main .ag-day strong {
     font-size: 16px;
   }
-  body[data-page="agenda"] main .ag-filters {
-    flex: 1 1 100%;
-  }
-  body[data-page="agenda"] main .ag-search {
-    flex: 1 1 100%;
-    margin-left: 0;
-  }
-  body[data-page="agenda"] main .ag-search input {
-    width: 100%;
-  }
   body[data-page="agenda"] main .ag-results {
     margin: 22px 0 12px;
+    padding-top: 20px;
     font-size: 10.5px;
   }
 
@@ -497,6 +853,11 @@ body[data-page="agenda"] main .ag-closing .actions {
   body[data-page="agenda"] main .ag-card__media--moment::before {
     mask-size: 56px 56px;
     -webkit-mask-size: 56px 56px;
+  }
+  /* O traço claro à direita do pictograma separa-o do texto no computador; no telemóvel o pictograma é um
+     quadrado arredondado e o traço ficava como uma linha solta no seu lado direito. */
+  body[data-page="agenda"] main .ag-visual {
+    border-right: 0;
   }
   body[data-page="agenda"] main .ag-card__body {
     display: contents;
@@ -570,4 +931,35 @@ body[data-page="agenda"] main .ag-closing .actions {
     height: 40px;
     justify-content: center;
   }
+}
+
+/* Aviso das atividades pagas à parte e a nota de inscrição no fim da lista. */
+body[data-page="agenda"] main .ag-registration-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+body[data-page="agenda"] main .ag-card .ag-registration-note {
+  color: var(--tone);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+body[data-page="agenda"] main .ag-registration-note a {
+  color: var(--accent-strong);
+}
+
+/* Atividade paga: o aviso fica por baixo do local e o botão no canto inferior direito do cartão. */
+body[data-page="agenda"] main .ag-card__foot-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+body[data-page="agenda"] main .ag-card__foot--paid {
+  align-items: flex-end;
+  padding-top: 8px;
+}
+body[data-page="agenda"] main .ag-card__foot--paid .ag-registration-note {
+  margin-top: 6px;
 }
