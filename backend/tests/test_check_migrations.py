@@ -113,7 +113,9 @@ def test_the_migrations_that_already_exist_are_known_to_the_rule():
         if check_migrations.violations(path.read_text(encoding="utf-8"))
     }
 
-    # a única já existente é o alargamento da coluna role (String(5) para String(20)),
-    # que é seguro para o código antigo. A regra só olha para as migrations novas de
-    # cada PR.
-    assert flagged == {"96579782156e_harden_users_table.py"}
+    # a única já existente que a regra assinalava era o alargamento da coluna role
+    # (String(5) para String(20)), que é seguro para o código antigo e por isso está
+    # marcado como intencional. A regra só olha para as migrations novas de cada PR; no
+    # primeiro PR de dev para main, a base é a main antiga e sem a marca esta migration
+    # contava como nova.
+    assert flagged == set()
