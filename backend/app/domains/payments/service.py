@@ -6,7 +6,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-from sqlalchemy import String, cast, func, select
+from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -70,6 +70,10 @@ class TicketUnavailableError(PaymentError):
 
 
 class TicketSoldOutError(PaymentError):
+    status_code = 409
+
+
+class PriceChangedError(PaymentError):
     status_code = 409
 
 
@@ -269,6 +273,94 @@ def sales_have_opened(now: datetime | None = None) -> bool:
     return opens_at is None or (now or datetime.now(UTC)) >= opens_at
 
 
+def early_bird_places_taken(db: Session, now: datetime | None = None) -> int:
+    """The early-bird places in use: paid tickets and payments still inside their time.
+
+    Counted like the seats of the stock, with one difference: a payment that is still
+    ``pending`` after its deadline does not count. Whoever closed the page without
+    approving leaves a payment ``pending`` until someone asks the provider about it,
+    and the end of the early bird cannot be undone, so abandoned checkouts must not be
+    able to use up its places. (If such a payment turns out to have been paid, it is
+    confirmed and counts again.)
+    """
+    taken = db.scalar(
+        select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
+            or_(
+                Transaction.status == TransactionStatus.CONFIRMED,
+                and_(
+                    Transaction.status == TransactionStatus.PENDING,
+                    Transaction.expires_at > (now or datetime.now(UTC)),
+                ),
+            )
+        )
+    )
+    return int(taken or 0)
+
+
+def early_bird_is_over(db: Session, now: datetime | None = None) -> bool:
+    """Whether the early-bird price has ended: its date passed, or its places are gone.
+
+    Whichever comes first (``EARLY_BIRD_ENDS_AT``, ``EARLY_BIRD_TICKET_LIMIT``). The
+    places are those of ``early_bird_places_taken``, in every modality together, so the
+    early price is never given to more people than the limit however many start to pay
+    at once. This only says what is true at this moment; ``_end_early_bird_for_good``
+    is what makes the end permanent.
+    """
+    ends_at = settings.EARLY_BIRD_ENDS_AT
+    if ends_at is not None and (now or datetime.now(UTC)) >= ends_at:
+        return True
+    return early_bird_places_taken(db, now) >= settings.EARLY_BIRD_TICKET_LIMIT
+
+
+def _end_early_bird_for_good(db: Session, rows: list[TicketTierPrice]) -> bool:
+    """Make the end of the early bird permanent: the regular price becomes the price.
+
+    Once the early bird is over (its date, or its places), every modality that has a
+    regular price saved is written as ``price_cents = normal_price_cents`` with no
+    ``normal_price_cents``: exactly what ``set_price <tier> <regular price>`` does, so
+    the price never goes back to the early one, not even if a payment fails or a
+    ticket is refunded and a place is free again, and the site stops showing any
+    early-bird text. Nothing is stored apart from the prices themselves.
+
+    It runs inside the purchase, with the modality rows already locked, and is
+    committed or rolled back together with it, so it needs no connection and no
+    transaction of its own and two purchases at once cannot both write it. It runs
+    when the purchase starts (the date has passed, or the places were already gone)
+    and again once the purchase has taken its place, so the purchase that takes the
+    last early place closes the early bird in the same commit. A purchase that is
+    refused rolls it back; the next one writes it. Reading the prices writes nothing.
+    """
+    if all(row.normal_price_cents is None for row in rows) or not early_bird_is_over(
+        db
+    ):
+        return False
+    for row in rows:
+        if row.normal_price_cents is not None:
+            row.price_cents = row.normal_price_cents
+            row.normal_price_cents = None
+    logger.warning(
+        "Early bird ended: the modalities now sell at the regular price (%d places "
+        "taken)",
+        early_bird_places_taken(db),
+    )
+    return True
+
+
+def price_in_force(
+    row: TicketTierPrice, early_bird_over: bool
+) -> tuple[int | None, int | None]:
+    """``(price, struck-through normal price)`` a modality is sold at right now.
+
+    The database keeps the early-bird price in ``price_cents`` and the regular one in
+    ``normal_price_cents``. Once the early bird is over the regular one is the price
+    and there is nothing to strike through; a modality with no ``normal_price_cents``
+    never changes.
+    """
+    if early_bird_over and row.normal_price_cents is not None:
+        return row.normal_price_cents, None
+    return row.price_cents, row.normal_price_cents
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -302,9 +394,8 @@ def initiate_payment(
     # Lock every modality row so that the stock check and the reservation are a single
     # atomic step. Without it, two concurrent buyers (of the same modality or not) can
     # both read the same remaining seats and sell the stock twice.
-    tier = next(
-        (row for row in _lock_stock(db) if row.tier == payload.ticket_tier), None
-    )
+    rows = _lock_stock(db)
+    tier = next((row for row in rows if row.tier == payload.ticket_tier), None)
     if tier is None:
         db.rollback()
         raise TicketUnavailableError("Ticket tier is not available")
@@ -312,6 +403,10 @@ def initiate_payment(
     if tier.price_cents is None:
         db.rollback()
         raise TicketOfficeClosedError("Ticket sales are not open yet")
+    # If the early bird is already over, the regular price is written down now (in this
+    # same transaction), so this purchase is priced from the stored prices.
+    _end_early_bird_for_good(db, rows)
+    unit_price_cents, _ = price_in_force(tier, early_bird_is_over(db))
 
     if tier.is_student and (
         user.student_verification_status is not StudentVerificationStatus.VERIFIED
@@ -328,7 +423,16 @@ def initiate_payment(
             "This ticket tier is sold out"
         )  # text kept: the site reads it
 
-    amount_cents = tier.price_cents * payload.quantity
+    if (
+        payload.expected_price_cents is not None
+        and payload.expected_price_cents != unit_price_cents
+    ):
+        # Nothing was reserved or asked of the provider: the buyer reads the new price
+        # (GET /payment/tiers) and decides again.
+        db.rollback()
+        raise PriceChangedError("The price of this ticket changed")
+
+    amount_cents = unit_price_cents * payload.quantity
     transaction = Transaction(
         reference=generate_reference(db),
         user_id=user.id,
@@ -342,6 +446,11 @@ def initiate_payment(
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )
     db.add(transaction)
+    # This purchase may have taken the last early-bird place: with it counted, close the
+    # early bird in the same commit, before anyone else is priced. It keeps the early
+    # price it was given above, whatever happens to the payment afterwards.
+    db.flush()
+    _end_early_bird_for_good(db, rows)
     # Persist the reservation before talking to the provider: the seat is held
     # while the user confirms, and the row lock is released without waiting on the
     # network call.
@@ -1270,15 +1379,17 @@ def list_ticket_tiers(db: Session) -> list[TicketTierRead]:
     payments_on = settings.PAYMENTS_MODE != "off"
     opened = sales_have_opened()
     has_room = _seats_left(db) >= 1
+    early_bird_over = early_bird_is_over(db)
     result = []
     for row in rows:
+        price_cents, normal_price_cents = price_in_force(row, early_bird_over)
         sale_open = payments_on and opened and row.price_cents is not None
         result.append(
             TicketTierRead(
                 tier=row.tier,
                 name=row.name,
-                price_cents=row.price_cents,
-                normal_price_cents=row.normal_price_cents,
+                price_cents=price_cents,
+                normal_price_cents=normal_price_cents,
                 is_student=row.is_student,
                 sale_open=sale_open,
                 available=sale_open and has_room,

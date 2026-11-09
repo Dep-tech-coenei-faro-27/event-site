@@ -210,13 +210,13 @@ describe("checkout", () => {
     expect(pay).toBeEnabled();
   });
 
-  it("paga: manda só a modalidade e o telemóvel normalizado, guarda a referência e vai à espera", async () => {
+  it("paga: manda a modalidade, o telemóvel normalizado e o preço que a pessoa viu, guarda a referência e vai à espera", async () => {
     mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
     renderAt();
     await fillAndSubmit("+351 912 345 678");
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/bilhetes/checkout/aguardar"));
     expect(mocks.initiatePayment).toHaveBeenCalledTimes(1);
-    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "geral", phone: "912345678" });
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "geral", phone: "912345678", expected_price_cents: 5000 });
     expect(sessionStorage.getItem("enei.payment.reference")).toBe("ENEI-ABC");
   });
 
@@ -230,7 +230,7 @@ describe("checkout", () => {
     renderAt();
     await fillAndSubmit();
     await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
-    expect(mocks.initiatePayment.mock.calls[0][0]).toEqual({ ticket_tier: "geral", phone: "912345678" });
+    expect(mocks.initiatePayment.mock.calls[0][0]).toEqual({ ticket_tier: "geral", phone: "912345678", expected_price_cents: 5000 });
   });
 
   it("com NIF válido manda-o só com os 9 algarismos", async () => {
@@ -239,7 +239,12 @@ describe("checkout", () => {
     fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "PT 123 456 789" } });
     await fillAndSubmit();
     await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
-    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "geral", phone: "912345678", nif: "123456789" });
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({
+      ticket_tier: "geral",
+      phone: "912345678",
+      nif: "123456789",
+      expected_price_cents: 5000,
+    });
   });
 
   it("um NIF inválido avisa junto ao campo e não deixa pagar nem faz pedido", async () => {
@@ -275,6 +280,34 @@ describe("checkout", () => {
     await fillAndSubmit();
     expect(await screen.findByRole("alert")).toHaveTextContent("Esta modalidade esgotou.");
     expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("o preço mudou entretanto (acabou o Early Bird): não cobra, mostra o valor novo e deixa decidir", async () => {
+    const changed = TIERS.map((tier) => (tier.tier === "geral" ? { ...tier, price_cents: 6000 } : tier));
+    mocks.initiatePayment.mockRejectedValueOnce(new ApiError(409, "x", "The price of this ticket changed"));
+    mocks.getTiers.mockResolvedValueOnce(TIERS).mockResolvedValue(changed);
+    renderAt();
+    await fillAndSubmit();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/o preço deste bilhete mudou: agora é/i);
+    expect(alert).toHaveTextContent(/60,00/);
+    expect(mocks.initiatePayment).toHaveBeenCalledTimes(1);
+    expect(mocks.initiatePayment.mock.calls[0][0]).toMatchObject({ expected_price_cents: 5000 });
+    expect(screen.queryByTestId("where")).toBeNull();
+  });
+
+  it("depois de ver o preço novo, a pessoa paga esse preço", async () => {
+    const changed = TIERS.map((tier) => (tier.tier === "geral" ? { ...tier, price_cents: 6000 } : tier));
+    mocks.initiatePayment.mockRejectedValueOnce(new ApiError(409, "x", "The price of this ticket changed"));
+    mocks.getTiers.mockResolvedValueOnce(TIERS).mockResolvedValue(changed);
+    mocks.initiatePayment.mockResolvedValueOnce({ reference: "ENEI-ABC" });
+    renderAt();
+    await fillAndSubmit();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/agora é/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/60,00/);
+    fireEvent.click(screen.getByRole("button", { name: /pagar com mb way/i }));
+    await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(2));
+    expect(mocks.initiatePayment.mock.calls[1][0]).toMatchObject({ expected_price_cents: 6000 });
   });
 
   it("com Early Bird: o preço normal riscado e a etiqueta em cada modalidade, e o aviso no resumo", async () => {
@@ -351,7 +384,7 @@ describe("checkout", () => {
     expect(screen.queryByRole("link", { name: /comprovativo/i })).toBeNull();
     await fillAndSubmit();
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/bilhetes/checkout/aguardar"));
-    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "acesso", phone: "912345678" });
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "acesso", phone: "912345678", expected_price_cents: 2500 });
   });
 
   it("falha de rede: avisa e não repete o pedido sozinho", async () => {

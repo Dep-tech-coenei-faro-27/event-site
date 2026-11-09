@@ -173,12 +173,30 @@ function CheckoutForm() {
         ticket_tier: current.tier,
         phone: normalizePhone(phone),
         ...(cleanNif(nif) ? { nif: cleanNif(nif) } : {}),
+        // O preço que está no ecrã: se mudou entretanto, o servidor recusa em vez de cobrar outro valor.
+        ...(current.price_cents !== null ? { expected_price_cents: current.price_cents } : {}),
       });
       saveReference(transaction.reference);
       navigate("/bilhetes/checkout/aguardar");
     } catch (error) {
       const described = describeInitiateError(error);
       setFailure(described);
+      // O preço mudou (acabou o Early Bird): mostra o valor novo e deixa a pessoa decidir. Nada foi cobrado.
+      if (described.kind === "price-changed") {
+        try {
+          const fresh = await getTiers();
+          setTiers(fresh);
+          const now = fresh.find((tier) => tier.tier === current.tier);
+          if (now && now.price_cents !== null) {
+            setFailure({
+              ...described,
+              message: `O preço deste bilhete mudou: agora é ${formatPrice(now.price_cents, now.currency)}. Confirma o novo valor e volta a pagar.`,
+            });
+          }
+        } catch {
+          // a mensagem geral fica; recarregar a página mostra o preço certo
+        }
+      }
       // Já havia uma compra: leva a pessoa a ela em vez de a deixar presa no formulário.
       if (described.kind === "already-in-progress") {
         try {
