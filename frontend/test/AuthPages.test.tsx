@@ -248,7 +248,7 @@ describe('Entrar', () => {
     pages[0].fill();
     fireEvent.click(screen.getByRole('button', { name: 'Entrar na conta' }));
 
-    expect(await screen.findByRole('heading', { name: /confirma o teu email para continuar/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /confirma o teu email/i })).toBeInTheDocument();
     expect(screen.getByText('ana@example.com')).toBeInTheDocument();
   });
 
@@ -371,7 +371,7 @@ describe('Recuperar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar ligação' }));
 
     const email = screen.getByLabelText('Email');
-    await waitFor(() => expect(email).toHaveAccessibleDescription(/só pode conter caracteres ascii/i));
+    await waitFor(() => expect(email).toHaveAccessibleDescription(/usa um email sem acentos nem espaços/i));
     await waitFor(() => expect(email).toHaveFocus());
   });
 });
@@ -463,7 +463,7 @@ describe('Verificar email', () => {
   test('com token e 429: vai para demasiadas tentativas, com o tempo do Retry-After', async () => {
     mocks.http.mockRejectedValue(new ApiError(429, 'HTTP 429', null, '120'));
     open('/conta/verificar?token=abc');
-    expect(await screen.findByRole('heading', { name: 'Precisamos de fazer uma pausa.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Aguarda antes de tentar novamente.' })).toBeInTheDocument();
     expect(screen.getByText('02:00')).toBeInTheDocument();
   });
 

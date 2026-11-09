@@ -37,7 +37,7 @@ describe("estados da conta", () => {
   it("sessão terminada: leva a entrar outra vez e marca a página", () => {
     renderPage(<SessionEnded />);
     expect(screen.getByRole("heading", { name: /a tua sessão terminou/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /iniciar sessão novamente/i })).toHaveAttribute("href", "/conta");
+    expect(screen.getByRole("link", { name: /voltar a entrar/i })).toHaveAttribute("href", "/conta");
     expect(document.body.dataset.page).toBe("estado");
     expect(document.body).toHaveClass("system-state-page");
   });

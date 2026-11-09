@@ -123,6 +123,40 @@ describe("Informação e Ajuda", () => {
     expect(screen.getByText(/não encontrámos uma resposta/i)).toBeInTheDocument();
   });
 
+  it("ao pesquisar, os mapas e a contagem saem e os resultados aparecem logo por baixo da barra; ao limpar, tudo volta", () => {
+    at(<InformacaoAjuda />);
+    const search = screen.getByRole("searchbox");
+    expect(screen.queryByRole("button", { name: "Limpar pesquisa" })).toBeNull(); // sem texto, sem «x»
+    expect(document.getElementById("localizacoes")).not.toBeNull();
+    expect(screen.getByRole("group", { name: "Categorias de ajuda" })).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "refeicoes" } });
+    expect(document.getElementById("localizacoes")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Categorias de ajuda" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Resultados da pesquisa" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/resultados? para «refeicoes»/);
+    expect(document.querySelectorAll(".faq-question").length).toBeGreaterThan(0);
+
+    fireEvent.change(search, { target: { value: "xyzxyz" } });
+    expect(screen.getByRole("status")).toHaveTextContent("Sem resultados para «xyzxyz».");
+
+    expect(document.querySelector(".faq-status button")).toBeNull(); // o botão de texto saiu: só há o «x» na barra
+    fireEvent.click(screen.getByRole("button", { name: "Limpar pesquisa" }));
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Limpar pesquisa" })).toBeNull();
+    expect(document.getElementById("localizacoes")).not.toBeNull();
+    expect(screen.getByRole("group", { name: "Categorias de ajuda" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Perguntas frequentes" })).toBeInTheDocument();
+  });
+
+  it("a pesquisa procura em todas as categorias, mesmo com uma categoria escolhida", () => {
+    at(<InformacaoAjuda />);
+    fireEvent.click(screen.getByRole("button", { name: "Transporte", pressed: false }));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "certificado" } });
+    expect(document.querySelectorAll(".faq-question").length).toBeGreaterThan(0);
+  });
+
   it("a primeira pergunta abre por omissão e cada uma abre e fecha ao clicar", () => {
     vi.stubGlobal("matchMedia", () => ({ matches: true })); // sem animações
     at(<InformacaoAjuda />);

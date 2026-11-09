@@ -112,12 +112,6 @@ body[data-page="equipa"] main .lead {
   color: var(--muted);
   font-size: clamp(17px, 2vw, 20px);
 }
-body[data-page="equipa"] main .cta .btn--dark {
-  background: var(--panel);
-}
-body[data-page="equipa"] main .cta .btn--dark:hover {
-  background: var(--panel-strong);
-}
 body[data-page="equipa"] main .actions {
   display: flex;
   flex-wrap: wrap;
@@ -236,49 +230,6 @@ body[data-page="equipa"] main .team-member p::before {
   border-radius: 999px;
   background: var(--accent);
 }
-body[data-page="equipa"] main .cta {
-  padding: clamp(44px, 7vw, 80px);
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(
-    125deg,
-    #006FA6,
-    #00AAFF 58%,
-    #00C5FF
-  );
-  color: white;
-}
-body[data-page="equipa"] main .cta::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: #FFFFFF;
-  -webkit-mask: url("./assets/azulejo-pattern-transparent.webp") left top /
-    140px 140px repeat;
-  mask: url("./assets/azulejo-pattern-transparent.webp") left top / 140px 140px
-    repeat;
-  opacity: 0.075;
-}
-body[data-page="equipa"] main .cta > * {
-  position: relative;
-  z-index: 2;
-}
-body[data-page="equipa"] main .cta p {
-  max-width: 650px;
-  color: rgba(255, 255, 255, 0.84);
-}
-body[data-page="equipa"] main .cta .btn--secondary {
-  border-color: rgba(255, 255, 255, 0.68);
-  background: rgba(3, 16, 31, 0.72);
-  color: #FFFFFF;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-}
-body[data-page="equipa"] main .cta .btn--secondary:hover {
-  border-color: #FFFFFF;
-  background: rgba(3, 16, 31, 0.9);
-}
 html body[data-page="equipa"][data-page] main .page-hero {
   background:
     radial-gradient(
@@ -353,10 +304,6 @@ html body[data-page="equipa"][data-page] main .team-directory {
   }
   body[data-page="equipa"] main .section-heading .lead {
     margin-top: 16px;
-  }
-  body[data-page="equipa"] main .cta {
-    margin-inline: -4px;
-    padding: 34px 24px;
   }
   body[data-page="equipa"] main .team-department__header {
     display: block;

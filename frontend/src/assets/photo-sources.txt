@@ -1,0 +1,35 @@
+Fotografias da Universidade do Algarve — adicionadas em 31/10/2026.
+
+campus-gambelas-ualg.webp
+1600 × 1066 px (WebP, qualidade 92; original 3303 × 2200 px)
+Fonte: https://www.ualg.pt/edificio-1-do-campus-de-gambelas-torna-se-mais-eficiente-nivel-energetico-e-ambiental
+Original: https://www.ualg.pt/sites/default/files/nodes/images/2024-07/imagem1.jpg
+
+cantina-gambelas-ualg.webp
+2560 × 1440 px (WebP, qualidade 92; original 4224 × 2376 px)
+Fonte: https://ess.ualg.pt/ementas
+Original: https://ess.ualg.pt/sites/default/files/nodes/images/2020-09/cantinagambelas0011_0.jpg
+
+Crédito apresentado no site: Fotografia: UAlg.
+Utilização na versão local de teste, autorizada pelo utilizador. Não foi identificada uma licença pública de reutilização nas fontes consultadas.
+
+faro-baixa.webp — versão de maior resolução, substituída em 01/11/2026.
+1500 × 1000 px (WebP servido pela fonte, sem recompressão local).
+Autor/crédito na fonte: Neil Farrin/Getty Images.
+Fonte: https://www.tripsavvy.com/getting-from-faro-to-seville-1644677
+ualg-estudantes-biblioteca.webp — adicionada em 01/11/2026.
+1800 × 1198 px; WebP qualidade 90, a partir do original 3768 × 2507 px.
+Fonte: https://www.ualg.pt/centro-de-documentacao-europeia-da-ualg
+Original: https://www.ualg.pt/sites/default/files/nodes/images/2022-10/estudantesbiblioteca.png
+Crédito: UAlg. Fotografia de vida académica; não identifica a equipa organizadora do ENEI.
+Não foi identificada uma licença pública de reutilização na fonte consultada.partners/sao-bras.png — logótipo oficial do Município de São Brás de Alportel (substitui o sao-bras.jpg, pequeno e desfocado); descarregado a 08/11/2026.
+204 × 68 px (PNG com transparência), sem alterações.
+Fonte: https://www.cm-sbras.pt/images/png/logo_black.png (cabeçalho de https://www.cm-sbras.pt/pt/).
+
+about-workshop.webp, about-talks.webp e about-companies.webp — substituídas em 06/11/2026 (Programa, na página inicial) e sobre-encontro.webp (Sobre, «O encontro»), a partir do PR #331; trazidas para aqui a 08/11/2026.
+2560 × 1707 px; WebP qualidade 92, sem recorte.
+about-workshop.webp: Vibaton-112_resized.jpg. Participantes do Vibathon 2026 a trabalhar em grupo com computadores portáteis.
+about-talks.webp: Vibaton-83_resized.jpg. Apresentação no Vibathon 2026 com participantes a acompanhar a sessão.
+about-companies.webp: Vibaton-59_resized.jpg. Participantes do Vibathon 2026 a conversar e a trabalhar em grupo, vistos através de uma parede de vidro.
+sobre-encontro.webp: Vibaton-60_resized.jpg (a mesma fotografia que o PR deu a agenda-auditorio.webp; aqui o ficheiro antigo continua a servir o fundo da Agenda).
+Originais fornecidos pelo autor do PR (Diogo Carvalho): C:/Users/carva/Desktop/ENEI/Vibaton-*_resized.jpg. Fotografias do Vibathon 2026.

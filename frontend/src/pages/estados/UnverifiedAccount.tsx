@@ -37,11 +37,10 @@ export default function UnverifiedAccount() {
         </>
       }
       kicker="Conta por verificar"
-      title="Confirma o teu email para continuar."
+      title="Confirma o teu email."
       lead={
         <>
-          Enviámos uma ligação para {email ? <strong>{email}</strong> : "o teu email"}. Abre o email e confirma o
-          endereço para ativares a conta.
+          Enviámos uma ligação para {email ? <strong>{email}</strong> : "o teu email"}. Abre o email e segue a ligação para ativares a conta.
         </>
       }
       actions={
@@ -68,7 +67,6 @@ export default function UnverifiedAccount() {
         text: "Depois de confirmares o email, regressa à área de participante para completares o perfil.",
         facts: [
           { label: "Estado", value: "Confirmação pendente" },
-          { label: "Código API", value: "403" },
           { label: "Próximo passo", value: "Abrir o email" },
         ],
       }}

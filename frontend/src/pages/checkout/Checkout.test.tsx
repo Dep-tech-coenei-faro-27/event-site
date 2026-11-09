@@ -310,6 +310,34 @@ describe("checkout", () => {
     expect(mocks.initiatePayment.mock.calls[1][0]).toMatchObject({ expected_price_cents: 6000 });
   });
 
+  it("com Early Bird: o preço normal riscado e a etiqueta em cada modalidade, e o aviso no resumo", async () => {
+    mocks.getTiers.mockResolvedValue(
+      TIERS.map((tier) => (tier.tier === "geral" ? { ...tier, price_cents: 4594, normal_price_cents: 5102 } : tier)),
+    );
+    renderAt();
+    const geral = (await screen.findByRole("radio", { name: /passe geral/i })).closest("label") as HTMLElement;
+
+    expect(geral.querySelector("s")?.textContent).toMatch(/51,02\s€/);
+    expect(geral.querySelector("em")?.textContent).toBe("Early Bird");
+    expect(within(geral).getByText(/preço normal/i)).toBeInTheDocument(); // para os leitores de ecrã
+    const note = document.querySelector(".checkout-early-note");
+    expect(note?.textContent).toMatch(/Preço Early Bird/);
+    expect(note?.textContent).toMatch(/poupas\s+5,08\s€/);
+    expect(note?.textContent).toMatch(/Depois passa para o preço normal/);
+    // uma modalidade sem preço normal não leva riscado nem etiqueta
+    const acesso = screen.getByRole("radio", { name: /apenas acesso/i }).closest("label") as HTMLElement;
+    expect(acesso.querySelector("s")).toBeNull();
+    expect(acesso.querySelector("em")).toBeNull();
+  });
+
+  it("sem Early Bird (o servidor não manda preço normal): só o preço, sem riscado, etiqueta nem aviso", async () => {
+    renderAt();
+    await screen.findByRole("radio", { name: /passe geral/i });
+
+    expect(document.querySelector(".checkout-early")).toBeNull();
+    expect(document.querySelector(".checkout-early-note")).toBeNull();
+  });
+
   it("403 de estudante: diz porquê, leva ao comprovativo e dá o contacto da organização", async () => {
     mocks.initiatePayment.mockRejectedValue(
       new ApiError(403, "x", "Student verification is required to buy this ticket"),
