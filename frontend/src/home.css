@@ -724,7 +724,7 @@ html body[data-page="inicio"][data-page] main .partner-card {
   flex-direction: column;
   flex: 0 0 calc((100% - (var(--partner-cols) - 1) * var(--partner-gap)) / var(--partner-cols));
   min-width: 0;
-  padding: 16px 16px 18px;
+  padding: 16px 16px 0; /* sem folga em baixo: o nome ocupa o espaço até à borda e fica centrado nele */
   border: 1px solid var(--line-accent);
   border-radius: 10px;
   background: var(--panel);
@@ -756,8 +756,16 @@ html body[data-page="inicio"][data-page] main .partner-card__logo svg {
   width: 100%;
   height: 100%;
 }
+/* O nome ocupa todo o espaço que sobra por baixo do logótipo (os cartões da mesma linha têm a mesma altura) e fica centrado nele,
+   na horizontal e na vertical, quer tenha uma linha ou duas. */
 html body[data-page="inicio"][data-page] main .partner-card__name {
-  margin: 14px 2px 0;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 14px 2px;
+  text-align: center;
   color: var(--muted);
   font: 700 11px/1.45 Montserrat, sans-serif;
   letter-spacing: 0.1em;
@@ -785,9 +793,9 @@ html body[data-page="inicio"][data-page] main .home-partners .actions {
     --partner-cols: 2;
     --partner-gap: 12px;
   }
-  html body[data-page="inicio"][data-page] main .partner-card { padding: 12px 12px 14px; }
+  html body[data-page="inicio"][data-page] main .partner-card { padding: 12px 12px 0; }
   html body[data-page="inicio"][data-page] main .partner-card__logo { height: 84px; padding: 12px; }
-  html body[data-page="inicio"][data-page] main .partner-card__name { font-size: 10px; letter-spacing: 0.08em; }
+  html body[data-page="inicio"][data-page] main .partner-card__name { padding: 10px 2px; font-size: 10px; letter-spacing: 0.08em; }
 }
 /* Caixa final: centrada na secção, com a mesma folga em cima e em baixo (como nas outras páginas). */
 html body[data-page="inicio"][data-page] main .home-closing {

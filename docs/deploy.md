@@ -474,7 +474,7 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
   (uma *thread* que arranca com o backend) envia o que está pendente a cada 5 segundos, sem esperar entre lotes enquanto
   houver fila, e **repete o que falhar** com espera crescente (30 s, 2 min, 10 min, 30 min, 2 h e depois de 6 em 6 h). Por
   omissão tenta 10 vezes (cerca de 27 horas, o que cobre uma quota diária esgotada, como o limite do plano gratuito do
-  Resend). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
+  fornecedor). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
   na fila **sobrevive a um reinício** do backend ou a uma falha do servidor SMTP. A entrega é *pelo menos uma vez*: se o
   backend cair entre enviar e registar, o email pode seguir duas vezes.
 - O corpo do email (que pode ter links de verificação ou de recuperação) é **apagado logo que o email é enviado**. As linhas
@@ -484,22 +484,30 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
   `docker compose --env-file backend/.env --env-file tunnel.env exec -T backend /app/.venv/bin/python -m app.core.email --status`.
   Pendentes há muito tempo, ou `failed` a crescer, são o sinal de que o envio não está a funcionar.
 - Enviar à mão o que estiver pendente (por exemplo depois de corrigir o SMTP): o mesmo comando sem argumentos.
-- Tentar outra vez os que desistiram (por exemplo depois de a quota do Resend voltar), no primeiro dia, enquanto ainda têm
+- Tentar outra vez os que desistiram (por exemplo depois de a quota do fornecedor voltar), no primeiro dia, enquanto ainda têm
   corpo: o mesmo comando com `--requeue-failed`.
 - Configuração (opcional): `EMAIL_OUTBOX_WORKER` (`1` por omissão; `0` desliga o *worker*), `EMAIL_OUTBOX_POLL_SECONDS`
   (5) e `EMAIL_OUTBOX_MAX_ATTEMPTS` (10).
 - Ao fazer `alembic downgrade` desta migration apaga-se a tabela, e com ela os emails que estivessem pendentes.
 - O certificado do servidor SMTP é verificado. Um servidor com certificado autoassinado vai falhar.
-- Está configurado o **Resend** (`SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`, `SMTP_USER=resend`, `SMTP_PASSWORD` a
-  chave de API). O remetente (`EMAIL_SENDER`) tem de ser de um domínio verificado no Resend
-  (`noreply@mail.eneiconf.pt`), senão o Resend recusa o envio. O plano gratuito tem limites de envio diários:
-  confirma-os antes do evento.
+- Em produção (desde 1/11/2026) o primeiro SMTP é o **Brevo** e o de reserva é o **Resend**:
+  - **Principal, Brevo:** `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587` (STARTTLS), `SMTP_USER` o login SMTP do Brevo,
+    `SMTP_PASSWORD` a chave SMTP, `EMAIL_SENDER=ENEI Faro <noreply@envio.eneiconf.pt>`. O domínio `envio.eneiconf.pt`
+    está autenticado no Brevo (SPF, DKIM e DMARC); o remetente tem de ser de um domínio verificado, senão o Brevo recusa.
+    Plano gratuito: 300 emails por dia (9 000 por mês). `SMTP_DAILY_LIMIT=270` (os 300 menos 30 de folga, porque o
+    Alertmanager também envia pelo primeiro).
+  - **Reserva, Resend:** `SMTP2_HOST=smtp.resend.com`, `SMTP2_PORT=465`, `SMTP2_USER=resend`, `SMTP2_PASSWORD` a chave de API,
+    `SMTP2_EMAIL_SENDER=ENEI Faro <noreply@mail.eneiconf.pt>` (domínio `mail.eneiconf.pt` verificado no Resend).
+    Plano gratuito: 100 por dia (3 000 por mês).
+  - Os valores vêm dos Secrets `SMTP_*`, `SMTP2_*`, `EMAIL_SENDER`, `SMTP2_EMAIL_SENDER` e da Variable `SMTP_DAILY_LIMIT`,
+    que o CD escreve no `.env` da VPS (`.github/workflows/cd.yml`). Os limites dos planos são os de 1/11/2026: confirma-os
+    nos painéis antes do evento.
 - Em desenvolvimento, sem `SMTP_HOST`, os emails aparecem no log do backend, com os links. Com o
   `docker-compose.dev.yml`, ficam no Mailpit em `http://localhost:8025`.
 
 ### SMTP de reserva
 
-Os planos gratuitos (o do Resend incluído) enviam algumas centenas de emails por dia, menos do que o primeiro dia de
+Os planos gratuitos (o do Brevo, com 300 por dia, e o do Resend, com 100) enviam poucas centenas de emails por dia, menos do que o primeiro dia de
 vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que só envia quando o primeiro não consegue:
 
 - **Quota do primeiro esgotada:** quando o primeiro dá uma recusa **permanente (5xx)** que fala da quota do dia
@@ -557,7 +565,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] **Chave real do Stripe** (`sk_live_…`) e `STRIPE_ALLOW_TEST_KEY` apagada; `stripe_check` sem problemas; o log do arranque diz «Stripe payments run with a live key».
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
-- [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
+- [ ] Limites dos planos de email (Brevo e Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP
