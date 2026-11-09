@@ -105,6 +105,12 @@ class Settings(BaseSettings):
     # minute (the first value) would let a room register in an hour. 30 a minute still
     # stops a script (verification emails are also capped by the daily SMTP quota).
     RATE_LIMIT_REGISTER_PER_MINUTE: int = Field(default=30, gt=0)
+    # All addresses together: each registration costs ~0.2 s of bcrypt on a 2 vCPU
+    # server, so many addresses at 30 a minute each could saturate it and slow the shop
+    # down. Past this, registration answers 429 while login, shop and payments keep
+    # working. It counts only what the per-IP limit let through (a blocked address
+    # cannot use the budget up).
+    RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE: int = Field(default=300, gt=0)
     RATE_LIMIT_EMAIL_PER_MINUTE: int = Field(default=1, gt=0)
     RATE_LIMIT_EMAIL_PER_HOUR: int = Field(default=5, gt=0)
     RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE: int = Field(default=30, gt=0)

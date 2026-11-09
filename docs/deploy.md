@@ -582,7 +582,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
   minuto por email e IP) não muda com isto. Por omissão (9/11/2026, depois de se ver que a rede da universidade sai por um só IP):
   registos 30 por minuto por IP (`RATE_LIMIT_REGISTER_PER_MINUTE`), reenvios e recuperações de palavra-passe 30 por minuto por IP
   (`RATE_LIMIT_EMAIL_PER_IP_PER_MINUTE`), leituras de `/api/payment/tiers` 1500 por minuto por IP e comprovativos de estudante
-  200 por hora por IP (`RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR`). Os limites por conta e por email não mudam.
+  200 por hora por IP (`RATE_LIMIT_STUDENT_PROOF_PER_IP_PER_HOUR`). Há ainda um teto para todos os IPs juntos no registo (`RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE`, 300 por minuto): cada registo gasta cerca de 0,2 s de CPU de `bcrypt`, e muitos IPs a 30 por minuto cada um podiam saturar a VPS; passado o teto o registo responde 429 e o login, as modalidades e os pagamentos continuam a funcionar. Só conta o que o limite por IP deixou passar. Os limites por conta e por email não mudam.
 - [ ] Teste de carga repetido numa VPS de staging com base própria (nunca na produção, que partilha a base com o
   staging): `scripts/loadtest/README.md`. Os números de referência foram medidos num portátil e não na VPS.
 - [ ] Um só processo do uvicorn (o `CMD` do `Dockerfile`): o registo do SSE e a reconciliação estão em memória. Mais
