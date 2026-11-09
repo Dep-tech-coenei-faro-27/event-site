@@ -93,6 +93,10 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = Field(default=20, ge=1, le=100)
     DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=100)
     DB_POOL_TIMEOUT: float = Field(default=10, gt=0, le=60)
+    # Cost of the bcrypt hash of a password. 12 is what production uses (~0.2 s per
+    # hash); the tests lower it because they hash hundreds of passwords. Existing hashes
+    # keep working whatever this is: the cost is stored in each one.
+    BCRYPT_ROUNDS: int = Field(default=12, ge=4, le=15)
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_LOGIN_PER_MINUTE: int = Field(default=5, gt=0)
     RATE_LIMIT_LOGIN_PER_EMAIL_PER_MINUTE: int = Field(default=20, gt=0)
@@ -481,6 +485,8 @@ class Settings(BaseSettings):
             )
         if self.DEBUG:
             problems.append("DEBUG must be false (it leaks tracebacks in responses).")
+        if self.BCRYPT_ROUNDS < 12:
+            problems.append("BCRYPT_ROUNDS must be at least 12 in production.")
         if self.POSTGRES_PASSWORD == "postgres":
             problems.append("POSTGRES_PASSWORD must not be the example value.")
         if not (self.SMTP_HOST and self.EMAIL_SENDER):

@@ -10,7 +10,6 @@ from pydantic_core import PydanticCustomError
 import app.core.config as config
 
 BCRYPT_MAX_PASSWORD_BYTES = 72
-BCRYPT_ROUNDS = 12
 
 ACCESS_TOKEN_TYPE = "access"
 ACCESS_COOKIE_NAME = "__Host-access_token"
@@ -48,7 +47,8 @@ def hash_password(password: str) -> str:
     if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
         raise ValueError("Password exceeds the maximum length supported by bcrypt")
     hashed = bcrypt.hashpw(
-        password.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+        password.encode("utf-8"),
+        bcrypt.gensalt(rounds=config.settings.BCRYPT_ROUNDS),
     )
     return hashed.decode("utf-8")
 
