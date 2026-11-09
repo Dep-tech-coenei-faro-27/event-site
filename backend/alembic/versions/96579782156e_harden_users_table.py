@@ -47,6 +47,7 @@ def upgrade() -> None:
             nullable=False,
         ),
     )
+    # destructive: ok - só alarga role (5 para 20); migration antiga, já em produção
     op.alter_column(
         "users",
         "role",
