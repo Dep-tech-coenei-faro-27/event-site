@@ -27,11 +27,13 @@ para **`http://frontend:8080`**. Se apontar para o backend, o site não aparece.
 
 ## Como funciona o deploy
 
-O `.github/workflows/cd.yml` corre depois de o "CI - Backend" passar num push para `dev` ou `main` (ou à mão, em
-Actions, com "Run workflow"). Há um só deploy de cada vez.
+O `.github/workflows/cd.yml` corre depois de o "CI - Backend" passar num push para a **`main`** (ou à mão, em
+Actions, com "Run workflow"). Há um só deploy de cada vez, e cada um espera pela aprovação de um revisor do
+environment `production` (Settings > Environments).
 
-**`dev` e `main` fazem deploy para o mesmo servidor e para a mesma pasta.** O último a correr ganha. Enquanto houver um
-só ambiente, não faças merge para `main` sem querer que isso fique no ar.
+**A `main` é a produção; o `dev` integra e testa e já não faz deploy.** Para pôr o `dev` no ar abre-se um Pull Request de
+`dev` para `main`; quando se funde, o CI da `main` passa e o CD pede a aprovação. O ramo por omissão continua a ser o `dev`
+(é para onde vão os Pull Requests do dia a dia), e o `workflow_run` lê o `cd.yml` do ramo por omissão.
 
 Os passos, por ordem:
 
@@ -587,9 +589,9 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 
 ## Reverter um deploy
 
-1. **O código:** reverte o merge em `dev` (`git revert` num Pull Request). O CI e o CD voltam a pôr a versão anterior no
-   ar. Só uses "Run workflow" a partir de um ramo que tenha a versão atual do `cd.yml`: um ramo antigo corre o `cd.yml`
-   dele, sem as verificações antes do `down`.
+1. **O código:** reverte o merge em `main` (`git revert` num Pull Request para a `main`). O CI e o CD voltam a pôr a
+   versão anterior no ar. Só uses "Run workflow" a partir de um ramo que tenha a versão atual do `cd.yml`: um ramo antigo
+   corre o `cd.yml` dele, sem as verificações antes do `down`.
 2. **A base de dados:** como as migrations têm de ser compatíveis com o código anterior, normalmente não é preciso
    desfazê-las. Se for mesmo preciso, pára o backend e desce uma migration antes de pores o código antigo:
    ```bash
