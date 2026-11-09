@@ -34,6 +34,12 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
+# Tests hash hundreds of passwords: at the production cost (12) that is ~0.2 s each and
+# most of the time of the whole suite. Hashes made at any cost still verify. It is set
+# on the object, not in the environment, so tests that build a production Settings
+# still see the real default.
+settings.BCRYPT_ROUNDS = 4
+
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 
 
