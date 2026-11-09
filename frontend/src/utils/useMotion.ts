@@ -47,7 +47,6 @@ const REVEAL_GROUPS: [string, Direction][] = [
   [".auth-intro > *", "left"],
   [".auth-card", "right"],
   [".account-content > *", "up"],
-  [".location-card", "up"],
   [".countdown", "up"],
   [".faq-layout > *", "up"],
   [".legal-layout > *", "up"],
@@ -78,8 +77,9 @@ const PAGE_GROUPS: [string, Direction][] = [
   [`main section > div > .flex-col > *${CONTENT}`, "up"],
 ];
 
+// Os cartões dos mapas (`.location-card`, em Informação e Ajuda) ficam de fora de propósito: não se revelam com o scroll.
 const MEDIA_SELECTOR =
-  ".photo, .campus-photo, .location-card__visual, .home-faro-photo, .team-member__photo, .speaker-profile__media";
+  ".photo, .campus-photo, .home-faro-photo, .team-member__photo, .speaker-profile__media";
 
 const HERO_SELECTOR = ".hero-home, .hero";
 
