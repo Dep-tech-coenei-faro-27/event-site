@@ -5,8 +5,8 @@ on:
     workflows: ["CI - Backend"]
     types:
       - completed
+    # Só a `main` vai para produção. O `dev` integra e testa: fundir lá já não faz deploy.
     branches:
-      - dev
       - main
   workflow_dispatch:
 
@@ -21,6 +21,10 @@ concurrency:
 jobs:
   build_deploy:
     runs-on: ubuntu-latest
+
+    # Cada deploy espera pela aprovação de quem estiver nos revisores do environment
+    # «production» (Settings > Environments). Fundir um PR deixa de pôr logo em produção.
+    environment: production
 
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     
