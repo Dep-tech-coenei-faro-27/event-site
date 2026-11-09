@@ -37,6 +37,12 @@ html body[data-page="equipa"][data-page] main .departments-nav {
   padding-block: 24px;
   border-bottom: 1px solid var(--line);
 }
+/* O traço da 1.ª secção (logo por baixo da barra de departamentos) vai de ponta a ponta, sólido, como nas outras páginas (`motion.css`).
+   Aqui a barra de departamentos fica entre o banner e a secção, por isso a regra `.page-hero + .motion-section` não chega lá e o traço
+   esbatia nas pontas. */
+html body[data-page="equipa"][data-page] main > .motion-section:first-of-type > .motion-section__trace {
+  background: rgba(var(--accent-rgb), 0.75);
+}
 html body[data-page="equipa"][data-page] main .departments-nav__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 html body[data-page="equipa"][data-page] main .departments-nav button {
   position: relative;
