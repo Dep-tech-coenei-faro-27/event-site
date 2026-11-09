@@ -1,0 +1,25 @@
+rule_files:
+  - ../alerts.yml
+evaluation_interval: 30s
+tests:
+  - interval: 30s                      # 1000 s depois do prazo: dispara passados 2 min
+    input_series:
+      - series: 'enei_payment_stuck_pending_seconds{job="node", instance="node-exporter:9100"}'
+        values: '0+0x4 1000+0x12'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: PaymentsStuck
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: PaymentsStuck
+        exp_alerts:
+          - exp_labels: { severity: warning, job: node, instance: "node-exporter:9100" }
+            exp_annotations: { summary: "Há um pagamento à espera há 16m 40s depois do prazo: nem o webhook nem a varredura o resolveram" }
+  - interval: 30s                      # 599 s fica abaixo do limite de 10 min
+    input_series:
+      - series: 'enei_payment_stuck_pending_seconds{job="node", instance="node-exporter:9100"}'
+        values: '599+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: PaymentsStuck
+        exp_alerts: []

@@ -1,7 +1,7 @@
 import json
 import re
 import warnings
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -135,6 +135,16 @@ class Settings(BaseSettings):
     # and do not count. Paid payments and the ones still waiting take a seat.
     TICKET_STOCK_LIMIT: int = Field(default=600, ge=0)
 
+    # The early-bird price ends by itself, whichever comes first: this moment, or this
+    # many places taken (paid tickets and payments still inside their time, all the
+    # modalities together; an abandoned payment past its deadline does not count).
+    # From then on a modality that has a ``normal_price_cents`` gets it written as its
+    # price, for good (the early price never comes back, even if a place is freed),
+    # with no command to run. A payment already started keeps the price it was started
+    # with. The default is the end of 31 January 2027 (Lisbon time is UTC in winter).
+    EARLY_BIRD_ENDS_AT: datetime | None = datetime(2027, 2, 1, tzinfo=UTC)
+    EARLY_BIRD_TICKET_LIMIT: int = Field(default=300, ge=1)
+
     # Ticket prices live in the database (ticket_tiers.price_cents) and are changed
     # at runtime with `python -m app.domains.payments.set_price`. A NULL price means
     # the ticket office is still closed and /payment/initiate answers 503.
@@ -195,6 +205,14 @@ class Settings(BaseSettings):
     PAYMENT_EVENTS_MAX_SECONDS: float = Field(default=600, gt=0, le=3600)
     PAYMENT_EVENTS_MAX_PER_USER: int = Field(default=3, ge=0, le=20)
     PAYMENT_EVENTS_RECONCILE_SECONDS: float = Field(default=5, gt=0, le=60)
+    # The safety net for a payment nobody is waiting for any more (the page was closed)
+    # whose webhook never arrived: every PAYMENT_SWEEP_SECONDS the provider is asked
+    # about every payment still ``pending`` after PAYMENT_SWEEP_MIN_AGE_SECONDS, up to
+    # PAYMENT_SWEEP_BATCH per pass, and the answer is applied as a webhook would
+    # (ticket and email if paid, seat freed if not). 0 turns it off.
+    PAYMENT_SWEEP_SECONDS: float = Field(default=60, ge=0, le=3600)
+    PAYMENT_SWEEP_MIN_AGE_SECONDS: int = Field(default=30, ge=0, le=3600)
+    PAYMENT_SWEEP_BATCH: int = Field(default=100, ge=1, le=1000)
     # Staging only: with a positive value the simulated provider starts confirming
     # payments a few seconds after they are created, so the ticket/QR/email flow can
     # be exercised without ifthenpay. Only allowed with PAYMENTS_MODE=simulated; the
@@ -236,6 +254,23 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SALES_OPEN_AT must include a timezone, "
                 "for example 2026-11-02T09:00:00+00:00"
+            )
+        return value
+
+    @field_validator("EARLY_BIRD_ENDS_AT", mode="before")
+    @classmethod
+    def empty_early_bird_end_means_no_date(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("EARLY_BIRD_ENDS_AT")
+    @classmethod
+    def early_bird_end_needs_a_timezone(cls, value: datetime | None):
+        if value is not None and value.tzinfo is None:
+            raise ValueError(
+                "EARLY_BIRD_ENDS_AT must include a timezone, "
+                "for example 2027-02-01T00:00:00+00:00"
             )
         return value
 

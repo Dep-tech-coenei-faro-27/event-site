@@ -142,3 +142,13 @@ def auth_client(db_session, email_sender):
 def _restore_ticket_stock_limit(monkeypatch):
     """A test may set ``settings.TICKET_STOCK_LIMIT`` directly: it is put back after."""
     monkeypatch.setattr(settings, "TICKET_STOCK_LIMIT", settings.TICKET_STOCK_LIMIT)
+
+
+@pytest.fixture(autouse=True)
+def _early_bird_does_not_end_with_the_calendar(monkeypatch):
+    """The early bird ends by date in production; a test must not depend on today.
+
+    Without this, every test that expects an early-bird price would start to fail the
+    day ``EARLY_BIRD_ENDS_AT`` passes. A test about the end sets the date itself.
+    """
+    monkeypatch.setattr(settings, "EARLY_BIRD_ENDS_AT", None)

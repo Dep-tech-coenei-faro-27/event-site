@@ -57,6 +57,7 @@ class MBWayGateway(Protocol):
         phone: str,
         email: str,
         description: str,
+        nif: str | None = None,
     ) -> MBWayPayment: ...
 
     def get_status(
@@ -215,6 +216,7 @@ class IfThenPayMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        nif: str | None = None,
     ) -> MBWayPayment:
         payload = {
             "mbWayKey": self.mbway_key,
@@ -396,6 +398,7 @@ class StripeMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        nif: str | None = None,
     ) -> MBWayPayment:
         form = {
             "amount": str(amount_cents),
@@ -407,6 +410,10 @@ class StripeMBWayGateway:
             "description": description,
             "metadata[reference]": reference,
         }
+        if nif:
+            # The tax number the buyer gave for the invoice, so whoever issues it
+            # finds it next to the payment in the dashboard and in its export.
+            form["metadata[nif]"] = nif
         # The same reference always means the same PaymentIntent: a repeated request
         # (a timeout we retried, a double click) cannot create a second charge.
         headers = self._headers({"Idempotency-Key": f"enei-{reference}"})
@@ -631,6 +638,7 @@ class SimulatedMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        nif: str | None = None,
     ) -> MBWayPayment:
         self._wait_for_provider()
         # The creation instant travels inside the provider reference so the gateway
@@ -691,6 +699,14 @@ class SimulatedMBWayGateway:
         if expires > 0 and elapsed >= expires:
             return TransactionStatus.EXPIRED
         return TransactionStatus.PENDING
+
+
+def get_mbway_gateway_or_none() -> MBWayGateway | None:
+    """The gateway, or ``None`` while payments are off (for work that is a bonus)."""
+    try:
+        return get_mbway_gateway()
+    except HTTPException:
+        return None
 
 
 def get_mbway_gateway() -> MBWayGateway:

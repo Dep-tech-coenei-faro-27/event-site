@@ -208,7 +208,9 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.set_price
 ```
 
 - O preço é com IVA, em cêntimos, e tem de ser maior que zero.
+- **Fim do Early Bird (automático e definitivo):** com `set_price … --normal …` o preço normal fica guardado como alternativo. Quando chega **`EARLY_BIRD_ENDS_AT`** (por omissão 2027-02-01T00:00:00+00:00, isto é, depois de 31/1) **ou** há **`EARLY_BIRD_TICKET_LIMIT`** lugares ocupados (300 por omissão, todas as modalidades juntas, bilhetes pagos **e pagamentos à espera que ainda estão dentro do prazo de 4 minutos**; um checkout abandonado, já fora do prazo, não conta, porque o fim é irreversível), o que vier primeiro, o site **escreve o preço normal como preço** de cada modalidade que o tenha guardado e limpa o `--normal`: é o que `set_price <modalidade> <preço normal>` faz. **A partir daí é definitivo**: o preço Early Bird não volta, nem que um pagamento falhe ou um bilhete seja reembolsado e fique um lugar livre, e o site deixa de mostrar o riscado, o «Poupas» e o aviso de Early Bird. Quem fecha o Early Bird é a compra que ocupa o último lugar (ou a primeira compra depois da data); só ler os preços não escreve nada. O preço Early Bird nunca é dado a mais gente do que o limite. Um pagamento já iniciado mantém o preço com que começou, e o checkout manda o preço que a pessoa viu (`expected_price_cents`): se mudou, o servidor recusa com 409 e não cobra. **Só muda a modalidade que tem o preço normal guardado**: `set_price --show` mostra, para cada modalidade, o preço guardado, o normal e o que está em vigor, e avisa das que não mudariam (sai com código 1; ignora o aviso depois de o Early Bird ter acabado). Um `set_price` sem `--normal` apaga o preço normal guardado. Os valores por omissão estão em `config.py`.
 - **Early Bird:** `set_price <modalidade> <preço> --normal <preço normal>` mostra o preço normal riscado na página de bilhetes; **sem `--normal` o preço normal apaga-se**, por isso a troca para o preço normal é `set_price <modalidade> <preço normal>`. Nada é cobrado pelo preço normal.
+- **Conferir as vendas com o Stripe (só leitura):** `$COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.reconcile` compara todos os pagamentos do Stripe com os da base e lista só o que não bate (dinheiro recebido que o site não contou, venda contada que o Stripe não recebeu, valores diferentes, reembolso feito no painel com o bilhete ainda válido, **disputas (chargebacks)**, que o site não trata: responde-se no painel do Stripe antes do prazo e, se a disputa se perder, cancela-se o bilhete à mão com `cancel_ticket`). Com `--list` escolhe-se a listagem: `site` (tudo o que o site registou), `stripe` (tudo o que o Stripe registou), `side` (as duas lado a lado, uma linha por pagamento, com o resultado) ou `all` (como `side`, com ids e datas). `--since 2026-11-09` limita a partir de um dia, `--paid` tira os pagamentos que nunca se concluíram, `--csv vendas.csv` grava a listagem escolhida, `--fees` junta a taxa e o líquido do Stripe e `--with-nif` junta o NIF dado na compra (dado pessoal: só quando é preciso, para as faturas). Nunca escreve nomes, emails nem telefones. Sai com código 1 se algo não bater. Uma chave restrita precisa de ler PaymentIntents e Charges (com `--fees`, também Balance transactions).
 - **Não há stock por modalidade.** Os bilhetes à venda no site são **um número só para todas as modalidades**: a Variable `TICKET_STOCK_LIMIT` (600 por omissão; os bilhetes da organização e dos convidados não contam). Um pagamento confirmado ou à espera ocupa um lugar; um falhado, expirado ou reembolsado liberta-o. Quando o total chega ao limite, **todas** as modalidades ficam esgotadas. Para o mudar: `gh variable set TICKET_STOCK_LIMIT --body 550` e correr o CD (o backend lê-o no arranque).
 - Em `live`, no backoffice da ifthenpay configure o URL de callback como
   `https://<domínio>/api/payment/callback` e a chave anti-phishing em `MBWAY_CALLBACK_KEY`. A ifthenpay chama este
@@ -230,6 +232,10 @@ $COMPOSE exec -T backend /app/.venv/bin/python -m app.domains.payments.stripe_ch
 ```
 
 Só lê, não altera nada no Stripe e não imprime segredos. Mostra se a chave é de **teste ou real**, a conta a que pertence (id e nome), se o **MB WAY está ativo** nessa conta, e se existe um endpoint de webhook **ativo para este site** (`FRONTEND_URL` + `/api/payment/stripe/webhook`), com os quatro eventos (`payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled` e `charge.refunded`) e no mesmo modo que a chave. Sai com erro se algo estiver mal; quando falta o endpoint diz para onde apontam os que a conta tem. Corre-o depois de mudar as chaves ou o webhook, e antes de abrir as vendas. **Não consegue** dizer se `STRIPE_WEBHOOK_SECRET` é o segredo desse endpoint (o Stripe só o mostra uma vez): isso vê-se no primeiro pagamento, com `POST /api/payment/stripe/webhook … 200` no log do `backend`. Uma conta partilhada com outro site (por exemplo o sandbox do NEEI) recebe os eventos dos dois nos dois endpoints; os pagamentos que não têm a nossa referência são ignorados com `200`.
+
+## O NIF no Stripe
+
+Quando a pessoa preenche o NIF no checkout, ele vai para o Stripe nos **metadados do pagamento** (`nif`), ao lado da referência `ENEI-…`, para quem emite a fatura o ver no painel e nas exportações. Sem NIF, não vai nada. O Stripe é subcontratante e guarda o pagamento por obrigação legal, por isso um pedido de apagamento de dados **não** remove o pagamento no Stripe, mas pode retirar-se o NIF: no painel, em Payments, abrir o pagamento, editar os metadados e apagar a chave `nif`. A fatura já emitida não se altera. A Privacidade tem de dizer que o NIF é partilhado com o Stripe.
 
 ## Pagamentos a reembolsar
 
@@ -282,6 +288,16 @@ Um `refund_due` é um erro nosso (a pessoa pagou e não há bilhete para dar), p
 - **`--quiet`** não escreve nada quando não há nada à espera e põe a hora (UTC) em cada linha: o `refund.log` só cresce quando alguém é reembolsado ou quando uma tentativa falha. O `flock -n` impede que duas corridas se sobreponham.
 - **Se uma tentativa falhar** (o Stripe em baixo, ou um pagamento que não passa as verificações), a linha `ENEI-…: NOT refunded: …` fica no `refund.log` e repete-se na corrida seguinte, até resolver. Convém olhar para o `refund.log` todos os dias: `grep 'NOT refunded' /home/debian/enei/refund.log | tail`. Um `refund_due` que falhe sempre precisa de uma pessoa a ver porquê.
 - **Para confirmar que funciona:** `crontab -l`, `systemctl is-active cron`, e corre o comando uma vez à mão (sem `--quiet` imprime `Nothing waiting for a refund.`). Se houver um `refund_due`, a corrida seguinte escreve `…Z ENEI-…: refunded (…)` e a transação passa a `refunded`.
+
+### Se o webhook falhar (a rede de segurança)
+
+O webhook do Stripe (`payment_intent.succeeded`) é o caminho principal para confirmar um pagamento, mesmo com a página fechada. Se ele não chegar (segredo errado, VPS em baixo na hora, falha do Stripe), há três mecanismos que perguntam ao Stripe pelo estado e aplicam a resposta como o webhook faria (bilhete, email, ou lugar libertado). São idempotentes: se o webhook chegar depois, não duplica nada.
+
+1. **A página de espera** (já existia): enquanto a pessoa a tem aberta, o backend pergunta ao Stripe de poucos em poucos segundos.
+2. **A área pessoal:** quem saiu da página de espera e abre a conta vê o bilhete logo que o Stripe diga que está pago. Nunca impede a página de abrir (se o Stripe estiver em baixo, ou os pagamentos desligados, a página abre na mesma).
+3. **A varredura** (`PAYMENT_SWEEP_SECONDS`, 60 s por omissão; `0` desliga): de minuto a minuto o backend pergunta ao Stripe por **todos** os pagamentos `pending` com mais de `PAYMENT_SWEEP_MIN_AGE_SECONDS` (30 s), até `PAYMENT_SWEEP_BATCH` (100) de cada vez, do mais antigo para o mais recente. Corre dentro do backend (como o envio de emails), por isso **não precisa de cron** e sobrevive a uma VPS refeita. Um pagamento abandonado deixa de ficar à espera para sempre: ao fim do prazo (mais `STRIPE_CANCEL_GRACE_SECONDS`) o PaymentIntent é cancelado e o lugar volta.
+
+**Alerta:** `python -m app.domains.payments.status` imprime `pending`, `stuck_pending_seconds` (há quanto tempo passou o prazo do pagamento à espera mais antigo) e `refund_due`. O `scripts/export-metrics.sh` (cron de cada minuto) grava-os como `enei_payment_*` e o alerta `PaymentsStuck` dispara quando há um pagamento **mais de 10 minutos depois do prazo**, ou seja, quando nem o webhook nem a varredura o resolveram. O limite de 10 minutos pressupõe `STRIPE_CANCEL_GRACE_SECONDS` de 5 minutos ou menos (por omissão são 2); se o subires, sobe também o limite em `monitoring/alerts.yml`. A varredura só pergunta pelos pagamentos feitos com o gateway que está ativo (um pagamento de um teste ou de outro fornecedor não é consultado). Se o Stripe estiver em baixo, cada passagem regista um aviso por pagamento à espera, e um pagamento pago por um valor diferente do cobrado fica `pending` (com um erro no registo a cada passagem) até alguém o ver. Nesse caso: ver no painel do Stripe se o pagamento foi pago, `python -m app.domains.payments.reconcile` (lista o que não bate) e os registos do backend (`grep -i "payment"`).
 
 ### Pagamentos Stripe que ficam à espera
 
@@ -458,7 +474,7 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
   (uma *thread* que arranca com o backend) envia o que está pendente a cada 5 segundos, sem esperar entre lotes enquanto
   houver fila, e **repete o que falhar** com espera crescente (30 s, 2 min, 10 min, 30 min, 2 h e depois de 6 em 6 h). Por
   omissão tenta 10 vezes (cerca de 27 horas, o que cobre uma quota diária esgotada, como o limite do plano gratuito do
-  Resend). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
+  fornecedor). Depois disso o email fica `failed` e o erro aparece nos logs (`gave up after`), sem o endereço completo. Um email
   na fila **sobrevive a um reinício** do backend ou a uma falha do servidor SMTP. A entrega é *pelo menos uma vez*: se o
   backend cair entre enviar e registar, o email pode seguir duas vezes.
 - O corpo do email (que pode ter links de verificação ou de recuperação) é **apagado logo que o email é enviado**. As linhas
@@ -468,22 +484,30 @@ As cópias ficam 30 dias no destino e 7 na VPS. Quem pede para apagar a conta co
   `docker compose --env-file backend/.env --env-file tunnel.env exec -T backend /app/.venv/bin/python -m app.core.email --status`.
   Pendentes há muito tempo, ou `failed` a crescer, são o sinal de que o envio não está a funcionar.
 - Enviar à mão o que estiver pendente (por exemplo depois de corrigir o SMTP): o mesmo comando sem argumentos.
-- Tentar outra vez os que desistiram (por exemplo depois de a quota do Resend voltar), no primeiro dia, enquanto ainda têm
+- Tentar outra vez os que desistiram (por exemplo depois de a quota do fornecedor voltar), no primeiro dia, enquanto ainda têm
   corpo: o mesmo comando com `--requeue-failed`.
 - Configuração (opcional): `EMAIL_OUTBOX_WORKER` (`1` por omissão; `0` desliga o *worker*), `EMAIL_OUTBOX_POLL_SECONDS`
   (5) e `EMAIL_OUTBOX_MAX_ATTEMPTS` (10).
 - Ao fazer `alembic downgrade` desta migration apaga-se a tabela, e com ela os emails que estivessem pendentes.
 - O certificado do servidor SMTP é verificado. Um servidor com certificado autoassinado vai falhar.
-- Está configurado o **Resend** (`SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`, `SMTP_USER=resend`, `SMTP_PASSWORD` a
-  chave de API). O remetente (`EMAIL_SENDER`) tem de ser de um domínio verificado no Resend
-  (`noreply@mail.eneiconf.pt`), senão o Resend recusa o envio. O plano gratuito tem limites de envio diários:
-  confirma-os antes do evento.
+- Em produção (desde 1/11/2026) o primeiro SMTP é o **Brevo** e o de reserva é o **Resend**:
+  - **Principal, Brevo:** `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587` (STARTTLS), `SMTP_USER` o login SMTP do Brevo,
+    `SMTP_PASSWORD` a chave SMTP, `EMAIL_SENDER=ENEI Faro <noreply@envio.eneiconf.pt>`. O domínio `envio.eneiconf.pt`
+    está autenticado no Brevo (SPF, DKIM e DMARC); o remetente tem de ser de um domínio verificado, senão o Brevo recusa.
+    Plano gratuito: 300 emails por dia (9 000 por mês). `SMTP_DAILY_LIMIT=270` (os 300 menos 30 de folga, porque o
+    Alertmanager também envia pelo primeiro).
+  - **Reserva, Resend:** `SMTP2_HOST=smtp.resend.com`, `SMTP2_PORT=465`, `SMTP2_USER=resend`, `SMTP2_PASSWORD` a chave de API,
+    `SMTP2_EMAIL_SENDER=ENEI Faro <noreply@mail.eneiconf.pt>` (domínio `mail.eneiconf.pt` verificado no Resend).
+    Plano gratuito: 100 por dia (3 000 por mês).
+  - Os valores vêm dos Secrets `SMTP_*`, `SMTP2_*`, `EMAIL_SENDER`, `SMTP2_EMAIL_SENDER` e da Variable `SMTP_DAILY_LIMIT`,
+    que o CD escreve no `.env` da VPS (`.github/workflows/cd.yml`). Os limites dos planos são os de 1/11/2026: confirma-os
+    nos painéis antes do evento.
 - Em desenvolvimento, sem `SMTP_HOST`, os emails aparecem no log do backend, com os links. Com o
   `docker-compose.dev.yml`, ficam no Mailpit em `http://localhost:8025`.
 
 ### SMTP de reserva
 
-Os planos gratuitos (o do Resend incluído) enviam algumas centenas de emails por dia, menos do que o primeiro dia de
+Os planos gratuitos (o do Brevo, com 300 por dia, e o do Resend, com 100) enviam poucas centenas de emails por dia, menos do que o primeiro dia de
 vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que só envia quando o primeiro não consegue:
 
 - **Quota do primeiro esgotada:** quando o primeiro dá uma recusa **permanente (5xx)** que fala da quota do dia
@@ -541,7 +565,7 @@ vendas precisa. Com `SMTP2_HOST` definido há um **segundo servidor SMTP** que s
 - [ ] **Chave real do Stripe** (`sk_live_…`) e `STRIPE_ALLOW_TEST_KEY` apagada; `stripe_check` sem problemas; o log do arranque diz «Stripe payments run with a live key».
 - [ ] Bilheteira aberta: `PAYMENTS_MODE=live` (ou `simulated` se for de propósito) e os preços definidos com `set_price`.
 - [ ] Cópias de segurança agendadas, guardadas fora do servidor, e um restauro testado.
-- [ ] Limites do plano de email (Resend) confirmados para o número de inscrições esperado.
+- [ ] Limites dos planos de email (Brevo e Resend) confirmados para o número de inscrições esperado.
 - [ ] SMTP de reserva (`SMTP2_*`) configurado, com o `EMAIL_SENDER` verificado nos dois fornecedores, e
   `SMTP_DAILY_LIMIT` igual ao limite diário do plano do primeiro.
 - [ ] Muita gente na mesma rede (campus, recinto do evento): cada IP partilhado conta como uma só pessoa. O login por IP

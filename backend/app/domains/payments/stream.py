@@ -23,7 +23,10 @@ from app.domains.auth.dependencies import get_current_verified_session
 from app.domains.payments.events import FINAL_STATUSES, events
 from app.domains.payments.gateway import MBWayGateway, get_mbway_gateway
 from app.domains.payments.models import Transaction
-from app.domains.payments.service import refresh_pending_payment
+from app.domains.payments.service import (
+    pending_references_to_sweep,
+    refresh_pending_payment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +124,59 @@ async def reconcile_once() -> None:
                 logger.exception("Could not refresh payment %s", reference)
 
     await asyncio.gather(*(one(reference) for reference in references))
+
+
+def _references_to_sweep(provider: str) -> list[str]:
+    with SessionLocal() as db:
+        return pending_references_to_sweep(
+            db,
+            min_age_seconds=settings.PAYMENT_SWEEP_MIN_AGE_SECONDS,
+            limit=settings.PAYMENT_SWEEP_BATCH,
+            provider=provider,
+        )
+
+
+async def sweep_once() -> int:
+    """Ask the provider about every payment still ``pending`` after a while.
+
+    The safety net for a webhook that never arrived: ``reconcile_once`` only looks at
+    payments somebody is waiting for on the status stream, so a payment whose page was
+    closed would stay ``pending`` until the person came back. Here every old enough
+    ``pending`` payment is asked about (throttled per payment like a poll, a few at a
+    time) and the answer is applied as the webhook would. Returns how many were asked.
+    """
+    try:
+        gateway = get_mbway_gateway()
+    except HTTPException:
+        return 0  # payments are off
+    references = await run_in_threadpool(_references_to_sweep, gateway.name)
+    if not references:
+        return 0
+    gate = asyncio.Semaphore(RECONCILE_CONCURRENCY)
+
+    async def one(reference: str) -> None:
+        async with gate:
+            try:
+                await run_in_threadpool(_refresh, reference, gateway)
+            except Exception:  # noqa: BLE001
+                logger.exception("Could not refresh payment %s", reference)
+
+    await asyncio.gather(*(one(reference) for reference in references))
+    return len(references)
+
+
+async def sweep_forever() -> None:
+    """Run ``sweep_once`` every ``PAYMENT_SWEEP_SECONDS`` (``0`` turns it off)."""
+    if settings.PAYMENT_SWEEP_SECONDS <= 0:
+        return
+    while True:
+        await asyncio.sleep(settings.PAYMENT_SWEEP_SECONDS)
+        try:
+            asked = await sweep_once()
+            if asked:
+                logger.info("Payment sweep asked about %d pending payments", asked)
+        except Exception:  # noqa: BLE001
+            logger.exception("The payment sweep failed")
 
 
 async def reconcile_forever() -> None:

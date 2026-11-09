@@ -1,0 +1,55 @@
+/* Sobre: só o que falta ao desenho de `sobre.css` (o mesmo das outras páginas, sem brilhos):
+   detalhe «Mais sobre…», ligações de texto, legendas das fotografias e o cabeçalho de secção com ligação. */
+body[data-page="sobre"] main .about-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }
+body[data-page="sobre"] main .about-text-link { display: inline-flex; gap: 8px; margin-top: 8px; color: var(--accent-strong); font-weight: 600; font-size: 14px; text-decoration: none; }
+body[data-page="sobre"] main .about-text-link:hover { color: #fff; }
+body[data-page="sobre"] main .about-figure { margin: 0; min-width: 0; }
+/* A caixa acompanha a fotografia: o `min-height: 360px` do `.photo` deixava um vazio por baixo dela
+   quando a coluna era estreita (a imagem ficava mais baixa do que a caixa). */
+html body[data-page="sobre"][data-page] main .about-figure .photo { min-height: 0; }
+html body[data-page="sobre"][data-page] main .about-figure .photo img { display: block; width: 100%; height: auto; }
+body[data-page="sobre"] main .about-figure figcaption { margin-top: 12px; margin-left: 12px; color: var(--muted); font-size: 13px; }
+body[data-page="sobre"] main .reference-project h3 { margin: 0; }
+body[data-page="sobre"] main .reference-project .about-label { margin: 0 0 6px; color: var(--accent-strong); font: 700 11px/1.4 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+body[data-page="sobre"] main .about-disclosure { margin-top: 28px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+body[data-page="sobre"] main .about-disclosure summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 0; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
+body[data-page="sobre"] main .about-disclosure summary::-webkit-details-marker { display: none; }
+body[data-page="sobre"] main .about-disclosure summary > span { color: var(--accent-strong); font-size: 20px; line-height: 1; transition: transform .2s ease; }
+body[data-page="sobre"] main .about-disclosure[open] summary > span { transform: rotate(45deg); }
+body[data-page="sobre"] main .about-disclosure summary:hover { color: #fff; }
+body[data-page="sobre"] main .about-disclosure summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 4px; }
+body[data-page="sobre"] main .about-disclosure__body { max-width: 76ch; padding: 0 0 18px; }
+body[data-page="sobre"] main .about-disclosure__body p { margin: 0 0 12px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+@media (max-width: 900px) {
+  body[data-page="sobre"] main .split { grid-template-columns: minmax(0, 1fr); }
+}
+/* As divisórias da tabela de números: bordas nas células (em vez do intervalo de 1px, que
+   desaparecia numa das colunas conforme a largura do ecrã). Só com as 4 colunas lado a lado. */
+@media (min-width: 701px) {
+  body[data-page="sobre"] main .fact-grid { gap: 0; }
+  body[data-page="sobre"] main .fact + .fact { border-left: 1px solid var(--line); }
+}
+/* A fotografia de «O encontro» tem um pouco de zoom, a partir do fundo e ao centro: a caixa mantém a proporção da
+   fotografia (3:2) e a imagem aumenta 18 % ancorada ao fundo, por isso o que se corta é o topo e os lados.
+   Para mudar o zoom, mexe em `--zoom`; para ancorar noutro sítio, em `transform-origin` e `object-position`. */
+html body[data-page="sobre"][data-page] main .about-figure--encontro .photo { --zoom: 1.18; aspect-ratio: 3 / 2; border: 0; }
+html body[data-page="sobre"][data-page] main .about-figure--encontro .photo img {
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 100%;
+  transform: scale(var(--zoom));
+  transform-origin: 50% 100%;
+}
+/* Numa só coluna (telemóvel) a linha acompanha o conteúdo, sem a folga do `min-height: 160px`, e todas ficam
+   com a altura da mais alta. */
+@media (max-width: 620px) {
+  html body[data-page="sobre"][data-page] main .fact-grid { grid-auto-rows: 1fr; }
+  html body[data-page="sobre"][data-page] main .fact { min-height: 0; padding-block: 22px; }
+}
+/* Texto e fotografia lado a lado: a fotografia fica fixa no topo da secção. Centrada (como estava), recentrava-se
+   e «saltava» para baixo quando se abria o «Mais sobre…» e a coluna do texto crescia. */
+@media (min-width: 901px) {
+  html body[data-page="sobre"][data-page] main .split:has(> .about-figure) { align-items: start; }
+  /* O topo da fotografia alinha com o do título (o `h2`), e não com a etiqueta pequena por cima dele (15 px + 14 px). */
+  html body[data-page="sobre"][data-page] main .split > .about-figure { margin-top: 29px; }
+}

@@ -23,7 +23,7 @@ from app.domains.auth.router import router as auth_router
 from app.domains.health.router import router as health_router
 from app.domains.payments.events import events
 from app.domains.payments.router import router as payments_router
-from app.domains.payments.stream import reconcile_forever
+from app.domains.payments.stream import reconcile_forever, sweep_forever
 from app.domains.students.router import router as students_router
 from app.domains.users.router import router as users_router
 
@@ -45,12 +45,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     start_email_worker()
     events.bind_loop(asyncio.get_running_loop())
     reconciler = asyncio.create_task(reconcile_forever())
+    sweeper = asyncio.create_task(sweep_forever())
     try:
         yield
     finally:
-        reconciler.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await reconciler
+        for task in (reconciler, sweeper):
+            task.cancel()
+        for task in (reconciler, sweeper):
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         stop_email_worker()
 
 
