@@ -103,7 +103,7 @@ export default function DadosPessoais() {
       metaDescription="Definições de dados pessoais da conta ENEI 2027."
       eyebrow="ÁREA PESSOAL"
       title="Dados pessoais."
-      lead="Mantém atualizada a informação utilizada na inscrição e no bilhete."
+      lead="Confirma os dados da tua inscrição."
     >
       {/* Cabeçalho da vista (.account-view-heading) */}
       <div className="mb-1">
@@ -203,7 +203,7 @@ export default function DadosPessoais() {
             Leva contigo uma cópia dos teus dados.
           </h2>
           <p className="mb-0 mt-2 text-[13px] leading-relaxed text-cinza-texto">
-            Exporta num ficheiro legível os dados do perfil e o estado da verificação.
+            Descarrega os dados do perfil e o estado da verificação.
           </p>
         </div>
 

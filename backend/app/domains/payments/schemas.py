@@ -61,6 +61,11 @@ class PaymentInitiateRequest(BaseModel):
     nif: str | None = Field(default=None, max_length=32)
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
+    # The price (cents) the buyer was shown for one ticket. When it is sent and the
+    # price in force is another one (the early bird just ended), the payment is
+    # refused with 409 so nobody is charged more, or less, than what they saw.
+    # Optional: a client that does not send it is charged the price in force.
+    expected_price_cents: int | None = Field(default=None, gt=0)
 
     @field_validator("phone")
     @classmethod

@@ -11,6 +11,7 @@ export type InitiateFailureKind =
   | "student-required"
   | "sold-out"
   | "already-in-progress"
+  | "price-changed"
   | "invalid-input"
   | "rate-limited"
   | "gateway-failed"
@@ -26,6 +27,7 @@ export type InitiateAction =
   | "choose-another-tier"
   | "send-student-proof"
   | "view-account"
+  | "review-price"
   | "fix-field"
   | "wait-and-retry"
   | "retry"
@@ -46,6 +48,7 @@ const DETAIL = {
   studentRequired: "Student verification is required to buy this ticket",
   soldOut: "This ticket tier is sold out",
   alreadyInProgress: "You already have a ticket or a payment in progress",
+  priceChanged: "The price of this ticket changed",
   salesClosed: "Ticket sales are not open yet",
   paymentsOff: "Payments are currently disabled.",
 } as const;
@@ -143,6 +146,14 @@ export function describeInitiateError(error: unknown): InitiateFailure {
           kind: "sold-out",
           action: "choose-another-tier",
           message: "Esta modalidade esgotou.",
+        };
+      }
+      if (detail === DETAIL.priceChanged) {
+        // O ecrã volta a ler os preços e diz o valor novo (ver o checkout): nada foi cobrado.
+        return {
+          kind: "price-changed",
+          action: "review-price",
+          message: "O preço deste bilhete mudou. Confirma o novo valor antes de pagar.",
         };
       }
       if (detail === DETAIL.alreadyInProgress) {
