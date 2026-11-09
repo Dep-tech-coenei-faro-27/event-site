@@ -152,6 +152,12 @@ def register(
 ) -> UserRead:
     register_limit = RateLimit("register", settings.RATE_LIMIT_REGISTER_PER_MINUTE, 60)
     enforce_rate_limit(db, (register_limit,), client_ip(request))
+    # Then the budget of the whole site: only the attempts the per-IP limit let through
+    # count here, so one blocked address cannot use it up.
+    global_limit = RateLimit(
+        "register-all", settings.RATE_LIMIT_REGISTER_GLOBAL_PER_MINUTE, 60
+    )
+    enforce_rate_limit(db, (global_limit,), "all")
     existing = get_user_by_email(db, payload.email)
     if existing is not None and existing.is_verified:
         raise HTTPException(
