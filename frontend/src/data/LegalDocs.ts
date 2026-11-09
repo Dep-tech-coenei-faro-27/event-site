@@ -10,7 +10,7 @@ export interface LegalDoc {
 
 export const LEGAL_DOCS = {
   termos: { version: '1.1', updated: '2026-11-06' },
-  privacidade: { version: '1.0', updated: '2026-10-08' },
+  privacidade: { version: '1.1', updated: '2026-11-09' },
   acessibilidade: { version: '1.2', updated: '2026-11-08' },
 } as const satisfies Record<string, LegalDoc>;
 

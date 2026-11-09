@@ -4,6 +4,15 @@ import { LEGAL_DOCS, legalMeta } from '../data/LegalDocs';
 // Só o conteúdo: o índice, os ids (secao-1...), as caixas e o estilo do texto vêm do layout.
 const sections: LegalSection[] = [
     {
+        title: 'Responsável pelo tratamento',
+        content: (
+            <p>
+                O responsável pelo tratamento dos teus dados é a AAUalg, NIF 504035266, com sede no Campus da Penha, Instituto Superior de Engenharia, Estrada da Penha, 8005-139 Faro. Para qualquer questão sobre dados pessoais, escreve para{' '}
+                <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a>.
+            </p>
+        ),
+    },
+    {
         title: 'Dados tratados',
         content: (
             <p>
@@ -30,16 +39,24 @@ const sections: LegalSection[] = [
     {
         title: 'Partilha de dados',
         content: (
-            <p>
-                Os dados podem ser disponibilizados a prestadores que apoiem pagamentos, alojamento técnico, comunicação ou operação do evento, apenas na medida necessária e sujeitos às obrigações aplicáveis. Não são vendidos dados pessoais.
-            </p>
+            <>
+                <p>
+                    Os dados só são disponibilizados a prestadores que apoiam o encontro, na medida do necessário e sujeitos às obrigações aplicáveis. Não são vendidos dados pessoais. Os prestadores são:
+                </p>
+                <ul>
+                    <li><strong>Stripe</strong>, para processar o pagamento (recebe o valor, o telefone do MB WAY, a modalidade comprada, a referência da compra e, se o indicares, o NIF para a fatura);</li>
+                    <li><strong>Brevo</strong> e <strong>Resend</strong>, para enviar os emails da conta e do bilhete;</li>
+                    <li><strong>Cloudflare</strong>, para proteger e entregar o site e para guardar as cópias de segurança, que são cifradas;</li>
+                    <li><strong>OVH</strong>, que aloja o servidor onde os dados ficam guardados.</li>
+                </ul>
+            </>
         ),
     },
     {
         title: 'Conservação e segurança',
         content: (
             <p>
-                A informação deve ser conservada apenas durante o período necessário para as finalidades indicadas e para cumprir obrigações aplicáveis. São adotadas medidas organizativas e técnicas destinadas a reduzir o risco de acesso, alteração ou divulgação indevida.
+                Conservamos os teus dados durante o encontro e até duas semanas depois de ele terminar. Os dados de faturação ficam o tempo que a lei fiscal exige. As cópias de segurança, cifradas, guardam-se até 30 dias: quem pede a eliminação dos dados continua nelas até expirarem. São adotadas medidas organizativas e técnicas destinadas a reduzir o risco de acesso, alteração ou divulgação indevida.
             </p>
         ),
     },
@@ -47,7 +64,7 @@ const sections: LegalSection[] = [
         title: 'Os teus direitos',
         content: (
             <p>
-                Podes solicitar acesso, correção, limitação ou eliminação dos teus dados quando aplicável, bem como esclarecer dúvidas sobre o tratamento. Utiliza a página Informações e ajuda para encaminhar o pedido à organização.
+                Podes solicitar acesso, correção, limitação ou eliminação dos teus dados quando aplicável, bem como esclarecer dúvidas sobre o tratamento. Escreve para <a href="mailto:geral@eneiconf.pt">geral@eneiconf.pt</a> com o pedido. Também podes apresentar uma reclamação à Comissão Nacional de Proteção de Dados (cnpd.pt).
             </p>
         ),
     },
