@@ -61,6 +61,13 @@ groups:
         annotations:
           summary: "Há um pagamento à espera há {{ $value | humanizeDuration }} depois do prazo: nem o webhook nem a varredura o resolveram"
 
+      - alert: StudentProofsWaiting
+        expr: enei_student_proofs_oldest_waiting_seconds > 7200
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Há um comprovativo de estudante por decidir há {{ $value | humanizeDuration }}: rever com `python -m app.domains.students.review list`"
+
       - alert: EmailFailed
         expr: delta(enei_email_failed[1h]) > 0
         labels: { severity: warning }
