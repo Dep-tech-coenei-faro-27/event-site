@@ -50,7 +50,7 @@ class FakeGateway:
         self.status_error: Exception | None = None
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description
+        self, *, reference, amount_cents, phone, email, description, nif=None
     ) -> MBWayPayment:
         self.create_calls.append(
             {
@@ -59,6 +59,7 @@ class FakeGateway:
                 "phone": phone,
                 "email": email,
                 "description": description,
+                "nif": nif,
             }
         )
         if self.create_error is not None:
@@ -359,6 +360,28 @@ def test_initiate_stores_the_nif_as_nine_digits(
     )
     assert transaction is not None
     assert transaction.nif == stored
+
+
+def test_initiate_hands_the_nif_to_the_provider_only_when_given(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "501964843"})
+
+    assert gateway.create_calls[0]["nif"] == "501964843"
+
+
+def test_initiate_hands_the_provider_no_nif_when_none_was_given(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    auth_client.post(INITIATE_URL, json=INITIATE)
+
+    assert gateway.create_calls[0]["nif"] is None
 
 
 @pytest.mark.parametrize("nif", [None, "", "   "])

@@ -73,7 +73,7 @@ class Provider:
         self.latency = 0.0
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description
+        self, *, reference, amount_cents, phone, email, description, nif=None
     ) -> MBWayPayment:
         with self._lock:
             self.create_calls += 1
