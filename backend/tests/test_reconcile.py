@@ -229,7 +229,7 @@ def test_the_tier_is_named_and_the_nif_only_shows_when_asked():
     assert report.rows[0].site_tier == "geral"
     plain = [h for _, h in rec.columns_of("all", fees=False, with_nif=False)]
     with_nif = [h for _, h in rec.columns_of("all", fees=False, with_nif=True)]
-    assert "nif" not in plain and with_nif[-1] == "nif"
+    assert "nif" not in plain and with_nif[-2:] == ["nif", "address"]
     assert "nif" not in [
         h for _, h in rec.columns_of("stripe", fees=False, with_nif=True)
     ]
@@ -312,13 +312,17 @@ def test_the_command_lists_each_choice_and_exits_1_only_on_a_problem(
 def test_the_nif_is_in_the_listing_only_with_the_flag(monkeypatch, capsys):
     transaction = tx(1)
     transaction.nif = "504035266"
+    transaction.billing_street = "Rua das Tulipas, Lote 36"
+    transaction.billing_postal_code = "8000-123"
+    transaction.billing_city = "Faro"
     data = dict(intents=[intent(1)], transactions=[transaction])
 
     _, plain = _run(monkeypatch, capsys, "--list", "site", **data)
     _, asked = _run(monkeypatch, capsys, "--list", "site", "--with-nif", **data)
 
-    assert "504035266" not in plain
+    assert "504035266" not in plain and "Tulipas" not in plain
     assert "504035266" in asked
+    assert "Rua das Tulipas, Lote 36, 8000-123 Faro" in asked
 
 
 def test_a_payment_of_another_product_of_the_account_is_not_ours_to_compare():

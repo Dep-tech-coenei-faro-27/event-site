@@ -2,7 +2,14 @@ import re
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from app.domains.payments.models import TicketTier, TransactionStatus
 
@@ -51,6 +58,34 @@ def normalize_nif(value: str | None) -> str | None:
     return digits
 
 
+_POSTAL_CODE = re.compile(r"[0-9]{4}-?[0-9]{3}")
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _clean_text(
+    value: str | None, *, minimum: int, maximum: int, what: str
+) -> str | None:
+    """Trim an address line and collapse its spaces; ``None`` when it was left empty."""
+    if value is None:
+        return None
+    text = " ".join(_CONTROL_CHARS.sub(" ", value).split())
+    if not text:
+        return None
+    if not minimum <= len(text) <= maximum:
+        raise ValueError(f"{what} must have {minimum} to {maximum} characters")
+    return text
+
+
+def normalize_postal_code(value: str | None) -> str | None:
+    """Return a Portuguese postal code as ``NNNN-NNN``, or ``None`` when left empty."""
+    if value is None or not value.strip():
+        return None
+    code = value.strip()
+    if not _POSTAL_CODE.fullmatch(code):
+        raise ValueError("postal code must look like 8005-139")
+    return f"{code[:4]}-{code[-3:]}"
+
+
 class PaymentInitiateRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -59,6 +94,11 @@ class PaymentInitiateRequest(BaseModel):
     email: EmailStr | None = None
     # The longest accepted spelling is "PT 123 456 789"; the cap only bounds the work.
     nif: str | None = Field(default=None, max_length=32)
+    # The address for the invoice: required with a NIF (the invoice needs it), and
+    # dropped without one so no address is kept for nothing. Portugal only.
+    billing_street: str | None = Field(default=None, max_length=300)
+    billing_postal_code: str | None = Field(default=None, max_length=16)
+    billing_city: str | None = Field(default=None, max_length=200)
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
     # The price (cents) the buyer was shown for one ticket. When it is sent and the
@@ -76,6 +116,30 @@ class PaymentInitiateRequest(BaseModel):
     @classmethod
     def validate_nif(cls, value: str | None) -> str | None:
         return normalize_nif(value)
+
+    @field_validator("billing_street")
+    @classmethod
+    def validate_billing_street(cls, value: str | None) -> str | None:
+        return _clean_text(value, minimum=5, maximum=200, what="street")
+
+    @field_validator("billing_postal_code")
+    @classmethod
+    def validate_billing_postal_code(cls, value: str | None) -> str | None:
+        return normalize_postal_code(value)
+
+    @field_validator("billing_city")
+    @classmethod
+    def validate_billing_city(cls, value: str | None) -> str | None:
+        return _clean_text(value, minimum=2, maximum=100, what="city")
+
+    @model_validator(mode="after")
+    def address_goes_with_the_nif(self) -> "PaymentInitiateRequest":
+        address = (self.billing_street, self.billing_postal_code, self.billing_city)
+        if self.nif is None:
+            self.billing_street = self.billing_postal_code = self.billing_city = None
+        elif not all(address):
+            raise ValueError("billing address is required with a nif")
+        return self
 
 
 class TransactionRead(BaseModel):
