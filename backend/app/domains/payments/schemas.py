@@ -58,17 +58,22 @@ def normalize_nif(value: str | None) -> str | None:
     return digits
 
 
-_POSTAL_CODE = re.compile(r"[0-9]{4}-?[0-9]{3}")
+_POSTAL_CODE = re.compile(r"[0-9]{4}[- ]?[0-9]{3}")
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _clean_text(
     value: str | None, *, minimum: int, maximum: int, what: str
 ) -> str | None:
-    """Trim an address line and collapse its spaces; ``None`` when it was left empty."""
+    """Tidy an address line (spaces, control characters, a leading formula sign).
+
+    ``None`` when it was left empty.
+    """
     if value is None:
         return None
-    text = " ".join(_CONTROL_CHARS.sub(" ", value).split())
+    # A cell that starts with = + - or @ runs as a formula when the treasurer opens the
+    # export in a spreadsheet: no real street or city starts like that, so drop them.
+    text = " ".join(_CONTROL_CHARS.sub(" ", value).split()).lstrip("=+-@ ")
     if not text:
         return None
     if not minimum <= len(text) <= maximum:
@@ -77,7 +82,7 @@ def _clean_text(
 
 
 def normalize_postal_code(value: str | None) -> str | None:
-    """Return a Portuguese postal code as ``NNNN-NNN``, or ``None`` when left empty."""
+    """Return a Portuguese postal code as ``NNNN-NNN`` (``8000 123`` is fine too)."""
     if value is None or not value.strip():
         return None
     code = value.strip()

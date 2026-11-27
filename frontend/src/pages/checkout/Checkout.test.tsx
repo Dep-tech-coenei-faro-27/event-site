@@ -286,6 +286,16 @@ describe("checkout", () => {
     expect(pay).toBeEnabled();
   });
 
+  it("aceita o código postal com espaço e manda-o com hífen", async () => {
+    mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+    renderAt();
+    fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "123456789" } });
+    fillAddress({ postalCode: "8000 123" });
+    await fillAndSubmit();
+    await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+    expect(mocks.initiatePayment.mock.calls[0][0]).toMatchObject({ billing_postal_code: "8000-123" });
+  });
+
   it("sem NIF a morada que ficou escrita não vai no pedido", async () => {
     mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
     renderAt();

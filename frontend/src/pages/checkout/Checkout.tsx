@@ -419,7 +419,7 @@ function CheckoutForm() {
                       autoComplete="postal-code"
                       inputMode="numeric"
                       placeholder="0000-000"
-                      maxLength={8}
+                      maxLength={9}
                       required
                       aria-describedby="postal-help"
                       aria-invalid={addressTouched && Boolean(addressMessages.postalCode)}

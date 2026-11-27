@@ -24,7 +24,7 @@ export function nifError(value: string): string | null {
 /** Código postal português com o hífen (aceita-se sem ele). */
 export const cleanPostalCode = (value: string) => {
   const code = value.trim();
-  return /^\d{4}-?\d{3}$/.test(code) ? `${code.slice(0, 4)}-${code.slice(-3)}` : null;
+  return /^\d{4}[- ]?\d{3}$/.test(code) ? `${code.slice(0, 4)}-${code.slice(-3)}` : null;
 };
 
 const squash = (value: string) => value.trim().replace(/\s+/g, ' ');
