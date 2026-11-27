@@ -60,8 +60,18 @@ export type InitiateRequest = {
   billing_street?: string;
   billing_postal_code?: string;
   billing_city?: string;
+  /** Código de desconto (opcional). O servidor valida-o e calcula o preço: com ele, `expected_price_cents` é o preço já com desconto. */
+  discount_code?: string;
   /** O preço (cêntimos) que a pessoa viu para um bilhete. Se entretanto mudou (acabou o Early Bird), o servidor recusa com 409 em vez de cobrar outro valor. */
   expected_price_cents?: number;
+};
+
+/** Resposta de POST /payment/discount: o preço que o servidor vai cobrar com o código. */
+export type DiscountQuote = {
+  code: string;
+  percent: number;
+  price_cents: number;
+  currency: string;
 };
 
 export type AccountTicket = {

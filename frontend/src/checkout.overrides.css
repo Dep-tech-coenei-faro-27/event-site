@@ -92,3 +92,45 @@ html body[data-page="checkout"][data-page] main .checkout-address input[aria-inv
 html body[data-page="checkout"][data-page] main .checkout-address input[aria-invalid="true"] + small {
   color: #f6d2cd;
 }
+
+/* Código de desconto (opcional, só nas modalidades que não são de estudante). */
+html body[data-page="checkout"][data-page] main .checkout-code {
+  margin-top: 18px;
+}
+html body[data-page="checkout"][data-page] main .checkout-code__row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+html body[data-page="checkout"][data-page] main .checkout-code__row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-transform: uppercase;
+}
+html body[data-page="checkout"][data-page] main .checkout-code__button {
+  flex: 0 0 auto;
+  padding: 0 16px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+html body[data-page="checkout"][data-page] main .checkout-code__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+html body[data-page="checkout"][data-page] main .checkout-code > small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+html body[data-page="checkout"][data-page] main .checkout-code input[aria-invalid="true"] {
+  border-color: #ee9185;
+}
+html body[data-page="checkout"][data-page] main .checkout-code > small[role="alert"] {
+  color: #f6d2cd;
+}

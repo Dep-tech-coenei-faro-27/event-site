@@ -44,6 +44,24 @@ def intent(status, *, code=None, reference=REFERENCE, **extra):
     return {**data, **extra}
 
 
+def test_the_discount_code_goes_in_the_metadata_only_when_used():
+    used, calls_used = build_gateway(intent("requires_action"))
+    unused, calls_unused = build_gateway(intent("requires_action"))
+    args = dict(
+        reference=REFERENCE,
+        amount_cents=2250,
+        phone="912345678",
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+    )
+
+    used.create_payment(**args, discount_code="ALGARVEEVOLUTION")
+    unused.create_payment(**args)
+
+    assert calls_used[0][2]["metadata[discount_code]"] == "ALGARVEEVOLUTION"
+    assert "metadata[discount_code]" not in calls_unused[0][2]
+
+
 def test_the_tax_number_goes_to_stripe_only_when_the_buyer_gave_one():
     with_nif, calls_with = build_gateway(intent("requires_action"))
     without, calls_without = build_gateway(intent("requires_action"))

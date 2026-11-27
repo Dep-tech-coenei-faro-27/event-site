@@ -56,19 +56,34 @@ O estado de estudante é decidido **pelo backend**, a partir do domínio do emai
 
 Não se mostra quantos lugares restam. A ordem é fixa (acesso, refeições, completo, geral) e a lista pode crescer: a Frontend não deve assumir que são quatro.
 
+### `POST /api/payment/discount`
+
+Mostra o preço que um código dá a uma modalidade, para o checkout o apresentar. Precisa de sessão com email verificado. Não reserva nem guarda nada; o pagamento volta a validar o código.
+
+| | |
+| --- | --- |
+| Corpo | `ticket_tier`, `code` |
+| `200` | `{ "code": "ALGARVEEVOLUTION", "percent": 10, "price_cents": 4135, "currency": "EUR" }`: `price_cents` é o que se vai cobrar e é o valor a mandar em `expected_price_cents` |
+| `422` | o código não existe ou a modalidade é de estudante (`detail` como em `/initiate`) |
+| `429` | pedidos a mais (`RATE_LIMIT_PAYMENT_DISCOUNT_PER_MINUTE`, 30 por pessoa e por minuto) |
+| `503` | a modalidade ainda não tem preço (bilheteira fechada) |
+
+Os códigos estão em `backend/app/domains/payments/discounts.py` (hoje só `ALGARVEEVOLUTION`, 10%, sem limite de usos nem de tempo, decidido com a organização). Acrescentar ou tirar um é uma mudança nesse ficheiro.
+
 ### `POST /api/payment/initiate`
 
 Inicia um pagamento MB WAY e devolve a referência a mostrar ao utilizador. **O lugar fica reservado enquanto o pagamento espera**, como numa loja: a pessoa tem alguns minutos para aprovar (por omissão 4, `MBWAY_PAYMENT_TIMEOUT_SECONDS`, que é o `expires_at`), mas o lugar só se liberta quando o MB WAY diz que o pagamento terminou (pago, recusado ou expirado), não quando o prazo passa. Para a pessoa seguinte, os lugares reservados contam como ocupados: com 2 bilhetes e 2 pessoas no checkout, a terceira recebe `409` «esgotado». Quando uma modalidade parece esgotada, o backend pergunta primeiro ao MB WAY pelos pagamentos com o prazo já ultrapassado (os abandonados) e liberta os que já terminaram. Se a pessoa já tem um pagamento anterior à espera, o novo pedido pergunta ao MB WAY por ele antes de decidir.
 
 | | |
 | --- | --- |
-| Corpo | `ticket_tier`, `phone`, `email` (opcional), `nif` (opcional), `billing_street`, `billing_postal_code`, `billing_city` (obrigatórios com `nif`), `expected_price_cents` (opcional), `quantity` (opcional, tem de ser `1`) |
+| Corpo | `ticket_tier`, `phone`, `email` (opcional), `nif` (opcional), `billing_street`, `billing_postal_code`, `billing_city` (obrigatórios com `nif`), `discount_code` (opcional), `expected_price_cents` (opcional), `quantity` (opcional, tem de ser `1`) |
 | `ticket_tier` | um de `acesso`, `refeicoes`, `completo`, `geral`, `geral_refeicoes` |
 | `phone` | telemóvel português. Aceita espaços e o indicativo (`912 345 678`, `+351 912345678`, `00351912345678`); é normalizado e guardado como `912345678` |
 | `email` | se faltar, usa o email da conta |
 | `billing_street`, `billing_postal_code`, `billing_city` | a morada da fatura, **obrigatória quando há `nif`** (falta de qualquer um dos três: `422`, sem lugar reservado) e **ignorada (não se guarda) sem `nif`**. Rua: 5 a 200 caracteres, espaços e caracteres de controlo normalizados; código postal português `NNNN-NNN` (aceita-se sem hífen e guarda-se com ele); localidade: 2 a 100. Guardam-se em `transactions` (`billing_street`, `billing_postal_code`, `billing_city`), como o NIF, e **nunca são devolvidos pela API**. Vão para o Stripe com o NIF (ver `deploy.md`) |
 | `nif` | opcional, para a fatura. Aceita espaços, pontos, hífenes e o prefixo `PT` (`123 456 789`, `PT123456789`); vazio ou em falta é aceite e fica sem NIF. Se vier preenchido tem de ter 9 algarismos (só `0-9`), um primeiro algarismo que exista (sem `0`, e o `4` só como `45`), no máximo 32 caracteres no total e o algarismo de controlo certo (módulo 11), senão `422` **e nenhum lugar fica reservado**. Guarda-se na transação (`transactions.nif`, 9 algarismos), **vive e morre com a transação, como o telemóvel** (não se apaga quando o pagamento falha ou expira; sai quando o registo da compra é removido) e **nunca é devolvido pela API**: nem em `/payment/initiate`, nem em `/payment/transactions/{reference}`. Quando vem preenchido, **vai também para o Stripe**, nos metadados do pagamento (`nif`); sem NIF não se envia nada (ver `deploy.md`, «O NIF no Stripe») |
 | `quantity` | fixo em `1`: um bilhete por pessoa |
+| `discount_code` | opcional: um código de desconto (maiúsculas e espaços não contam). **O servidor calcula o preço**: 10% sobre o preço em vigor (Early Bird incluído), arredondado ao cêntimo. Código que não existe: `422` «Discount code is not valid»; modalidade de estudante: `422` «Discount code is not valid for student tickets»; em ambos nada fica reservado. Guarda-se em `transactions.discount_code` (o valor da transação já é o do preço com desconto) e vai para o Stripe em `metadata[discount_code]`. Um código em branco conta como sem código |
 | `expected_price_cents` | opcional: o preço (em cêntimos) de um bilhete **que a pessoa viu no ecrã**. Se vier e o preço em vigor for outro (acabou o Early Bird entretanto, por data ou pelos 300 bilhetes), o pedido é recusado com `409` «The price of this ticket changed», **nada fica reservado nem é cobrado**, e o ecrã volta a ler `/payment/tiers` e mostra o valor novo. Sem este campo cobra-se o preço em vigor. Tem de ser maior que zero (`422` caso contrário). O checkout envia-o sempre |
 | `201` | ver o exemplo abaixo |
 | `401` | sem sessão |
@@ -277,6 +292,7 @@ Não há stock por modalidade: os bilhetes à venda são um número só para tod
 | `RATE_LIMIT_PAYMENT_PER_MINUTE` | `10` | pedidos de `/initiate` por minuto por utilizador |
 | `RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE` | `120` | consultas de `/transactions/{reference}` por minuto por utilizador (o frontend faz *polling*) |
 | `RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE` | `1500` | consultas de `GET /tiers` por minuto por IP |
+| `RATE_LIMIT_PAYMENT_DISCOUNT_PER_MINUTE` | `30` | verificações de código de desconto por minuto por pessoa |
 
 Os preços ficam guardados na tabela `ticket_tiers` e são alterados em runtime com o comando `set_price` (ver "Abrir a bilheteira"). A migração cria as quatro modalidades com `price_cents` a `NULL`, ou seja, de bilheteira fechada.
 

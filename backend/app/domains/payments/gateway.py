@@ -62,6 +62,7 @@ class MBWayGateway(Protocol):
         billing_street: str | None = None,
         billing_postal_code: str | None = None,
         billing_city: str | None = None,
+        discount_code: str | None = None,
     ) -> MBWayPayment: ...
 
     def get_status(
@@ -225,6 +226,7 @@ class IfThenPayMBWayGateway:
         billing_street: str | None = None,
         billing_postal_code: str | None = None,
         billing_city: str | None = None,
+        discount_code: str | None = None,
     ) -> MBWayPayment:
         payload = {
             "mbWayKey": self.mbway_key,
@@ -411,6 +413,7 @@ class StripeMBWayGateway:
         billing_street: str | None = None,
         billing_postal_code: str | None = None,
         billing_city: str | None = None,
+        discount_code: str | None = None,
     ) -> MBWayPayment:
         form = {
             "amount": str(amount_cents),
@@ -442,6 +445,9 @@ class StripeMBWayGateway:
             form["metadata[address]"] = (
                 f"{billing_street}, {billing_postal_code} {billing_city}"
             )
+        if discount_code:
+            # Where the discount came from, next to the payment in the dashboard.
+            form["metadata[discount_code]"] = discount_code
         # The same reference always means the same PaymentIntent: a repeated request
         # (a timeout we retried, a double click) cannot create a second charge.
         headers = self._headers({"Idempotency-Key": f"enei-{reference}"})
@@ -671,6 +677,7 @@ class SimulatedMBWayGateway:
         billing_street: str | None = None,
         billing_postal_code: str | None = None,
         billing_city: str | None = None,
+        discount_code: str | None = None,
     ) -> MBWayPayment:
         self._wait_for_provider()
         # The creation instant travels inside the provider reference so the gateway

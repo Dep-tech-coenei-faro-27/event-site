@@ -20,6 +20,8 @@ from app.domains.payments.gateway import (
     get_mbway_gateway,
 )
 from app.domains.payments.schemas import (
+    DiscountCheckRead,
+    DiscountCheckRequest,
     PaymentInitiateRequest,
     TicketTierRead,
     TransactionRead,
@@ -31,6 +33,7 @@ from app.domains.payments.service import (
     handle_stripe_event,
     initiate_payment,
     list_ticket_tiers,
+    quote_discount,
     to_read,
 )
 from app.domains.payments.stream import authorize, event_stream
@@ -72,6 +75,33 @@ def read_tiers(
     enforce_rate_limit(db, (rule,), client_ip(request))
     response.headers["Cache-Control"] = "no-store"
     return list_ticket_tiers(db)
+
+
+@router.post(
+    "/discount",
+    response_model=DiscountCheckRead,
+    status_code=status.HTTP_200_OK,
+)
+def check_discount(
+    payload: DiscountCheckRequest,
+    response: Response,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db),
+) -> DiscountCheckRead:
+    """The price a discount code gives a modality now, for the checkout to show.
+
+    Nothing is reserved or saved; the payment checks the code again. 422 when the
+    code does not exist or does not apply to that modality (students).
+    """
+    rule = RateLimit(
+        "payment_discount", settings.RATE_LIMIT_PAYMENT_DISCOUNT_PER_MINUTE, 60
+    )
+    enforce_rate_limit(db, (rule,), str(current_user.id))
+    response.headers["Cache-Control"] = "no-store"
+    try:
+        return quote_discount(db, payload.ticket_tier, payload.code)
+    except PaymentError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
 
 @router.post(

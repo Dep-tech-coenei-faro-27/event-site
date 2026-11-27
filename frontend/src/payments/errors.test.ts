@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError, NetworkError } from "../utils/http";
-import { describeInitiateError, retryAfterSeconds } from "./errors";
+import { describeDiscountError, describeInitiateError, retryAfterSeconds } from "./errors";
 
 const api = (status: number, detail: unknown, retryAfter: string | null = null) =>
   new ApiError(status, typeof detail === "string" ? detail : `HTTP ${status}`, detail, retryAfter);
@@ -148,5 +148,23 @@ describe("morada da fatura recusada pelo servidor", () => {
       expect(f).toMatchObject({ kind: "invalid-input", field: "billing_address", action: "fix-field" });
       expect(f.message).toMatch(/morada da fatura/i);
     }
+  });
+});
+
+describe("código de desconto", () => {
+  it("422 do pagamento com o código recusado: erro no campo do código, com o motivo", () => {
+    const unknown = describeInitiateError(api(422, "Discount code is not valid"));
+    const student = describeInitiateError(api(422, "Discount code is not valid for student tickets"));
+    expect(unknown).toMatchObject({ kind: "invalid-input", field: "discount_code", action: "fix-field" });
+    expect(unknown.message).toMatch(/não é válido/i);
+    expect(student.message).toMatch(/estudante/i);
+  });
+
+  it("o texto de quem verifica o código: inválido, estudante, ritmo, sem ligação e outro erro", () => {
+    expect(describeDiscountError(api(422, "Discount code is not valid"))).toMatch(/não é válido/i);
+    expect(describeDiscountError(api(422, "Discount code is not valid for student tickets"))).toMatch(/estudante/i);
+    expect(describeDiscountError(api(429, "x", "30"))).toMatch(/30/);
+    expect(describeDiscountError(new NetworkError())).toMatch(/ligação/i);
+    expect(describeDiscountError(api(500, "x"))).toMatch(/não foi possível/i);
   });
 });
