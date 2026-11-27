@@ -488,3 +488,14 @@ def test_without_fee_data_the_summary_says_so_instead_of_printing_zero(capsys):
     rec.print_summary(rec.reconcile([intent(1, fee=94)], [tx(1)]), fees=True)
     out = capsys.readouterr().out
     assert "fees 0.94 EUR, net 45.00 EUR" in out
+
+
+def test_an_address_that_would_run_as_a_formula_is_neutralised_in_the_listing():
+    transaction = tx(1)
+    transaction.billing_street = "=HYPERLINK(1)"
+    transaction.billing_postal_code = "8000-123"
+    transaction.billing_city = "Faro"
+
+    report = rec.reconcile([intent(1)], [transaction], TIERS)
+
+    assert report.rows[0].billing_address.startswith("'=")

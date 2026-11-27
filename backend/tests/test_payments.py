@@ -639,6 +639,56 @@ def test_an_address_without_a_nif_is_not_kept(
     assert gateway.create_calls[0]["billing_street"] is None
 
 
+@pytest.mark.parametrize(
+    ("typed", "stored"),
+    [
+        ('=HYPERLINK("http://x","clica")', 'HYPERLINK("http://x","clica")'),
+        ("+cmd|' /C calc'!A0", "cmd|' /C calc'!A0"),
+        ("@SUM(1+1)*cmd", "SUM(1+1)*cmd"),
+        ("-2+3 Rua do Sol", "2+3 Rua do Sol"),
+        ("  =  =Rua do Sol, 5", "Rua do Sol, 5"),
+    ],
+)
+def test_an_address_never_starts_as_a_spreadsheet_formula(
+    auth_client, email_sender, db_session, gateway, typed, stored
+):
+    """The treasurer opens exports in a spreadsheet: a street is not a formula."""
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={
+            **INITIATE,
+            **ADDRESS,
+            "nif": "123456789",
+            "billing_street": typed,
+            "billing_city": "=Faro",
+        },
+    )
+
+    assert response.status_code == 201
+    row = db_session.scalar(select(Transaction))
+    assert (row.billing_street, row.billing_city) == (stored, "Faro")
+    assert gateway.create_calls[0]["billing_street"] == stored
+
+
+@pytest.mark.parametrize("typed", ["8000 123", "8000-123", "8000123", " 8000 123 "])
+def test_the_postal_code_may_be_typed_with_a_space(
+    auth_client, email_sender, db_session, gateway, typed
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={**INITIATE, **ADDRESS, "nif": "123456789", "billing_postal_code": typed},
+    )
+
+    assert response.status_code == 201
+    assert db_session.scalar(select(Transaction)).billing_postal_code == "8000-123"
+
+
 def test_the_address_is_never_returned_by_the_api(
     auth_client, email_sender, db_session, gateway
 ):
