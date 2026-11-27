@@ -40,7 +40,7 @@ export type InitiateFailure = {
   /** Só em `rate-limited`: segundos até se poder tentar outra vez (0 se o servidor não disse). */
   retryAfterSeconds?: number;
   /** Só em `invalid-input`: o campo em falta ou inválido, quando se sabe. */
-  field?: "phone" | "nif" | "ticket_tier" | "billing_address";
+  field?: "phone" | "nif" | "ticket_tier" | "billing_address" | "discount_code";
 };
 
 const DETAIL = {
@@ -50,6 +50,8 @@ const DETAIL = {
   alreadyInProgress: "You already have a ticket or a payment in progress",
   priceChanged: "The price of this ticket changed",
   salesClosed: "Ticket sales are not open yet",
+  discountInvalid: "Discount code is not valid",
+  discountStudent: "Discount code is not valid for student tickets",
   paymentsOff: "Payments are currently disabled.",
 } as const;
 
@@ -104,6 +106,23 @@ function invalidInput(detail: unknown): InitiateFailure {
     action: "fix-field",
     message: "Os dados do pedido não são válidos. Confirma-os e tenta outra vez.",
   };
+}
+
+function discountMessage(detail: unknown): string {
+  return detail === DETAIL.discountStudent
+    ? "Este código não vale para as modalidades de estudante."
+    : "Este código não é válido.";
+}
+
+/** O texto para quem escreve um código que o servidor recusa (POST /payment/discount). */
+export function describeDiscountError(error: unknown): string {
+  if (error instanceof NetworkError) return "Sem ligação. Verifica a rede e tenta outra vez.";
+  if (error instanceof ApiError) {
+    if (error.status === 422) return discountMessage(error.detail);
+    if (error.status === 429) return retryAfterMessage(error.retryAfter);
+    if (error.status === 401) return "A tua sessão terminou. Entra outra vez para continuar.";
+  }
+  return "Não foi possível verificar o código. Tenta outra vez.";
 }
 
 const NO_CONNECTION: InitiateFailure = {
@@ -173,6 +192,14 @@ export function describeInitiateError(error: unknown): InitiateFailure {
       }
       break;
     case 422:
+      if (detail === DETAIL.discountInvalid || detail === DETAIL.discountStudent) {
+        return {
+          kind: "invalid-input",
+          field: "discount_code",
+          action: "fix-field",
+          message: discountMessage(detail),
+        };
+      }
       return invalidInput(detail);
     case 429:
       return {

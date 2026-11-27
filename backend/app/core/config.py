@@ -122,6 +122,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_TOKEN_PER_IP_PER_MINUTE: int = Field(default=20, gt=0)
     RATE_LIMIT_PAYMENT_PER_MINUTE: int = Field(default=10, gt=0)
     RATE_LIMIT_PAYMENT_STATUS_PER_MINUTE: int = Field(default=120, gt=0)
+    RATE_LIMIT_PAYMENT_DISCOUNT_PER_MINUTE: int = Field(default=30, gt=0)
     RATE_LIMIT_PAYMENT_CALLBACK_PER_IP_PER_MINUTE: int = Field(default=60, gt=0)
     # The shop page of that same campus; one read costs ~10 ms (scripts/loadtest).
     RATE_LIMIT_PAYMENT_TIERS_PER_IP_PER_MINUTE: int = Field(default=1500, gt=0)

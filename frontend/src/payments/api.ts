@@ -1,5 +1,5 @@
 import { http } from "../utils/http";
-import type { Account, InitiateRequest, Tier, Transaction } from "./types";
+import type { Account, DiscountQuote, InitiateRequest, Tier, Transaction } from "./types";
 
 type HttpOptions = Parameters<typeof http>[1];
 
@@ -13,6 +13,10 @@ export const getTiers = (options?: HttpOptions) => http<Tier[]>("/payment/tiers"
  */
 export const initiatePayment = (request: InitiateRequest, options?: HttpOptions) =>
   http<Transaction>("/payment/initiate", { ...options, method: "POST", body: request });
+
+/** O preço que um código de desconto dá a uma modalidade (precisa de sessão). 422 se o código não existe ou a modalidade é de estudante. */
+export const checkDiscount = (request: { ticket_tier: string; code: string }, options?: HttpOptions) =>
+  http<DiscountQuote>("/payment/discount", { ...options, method: "POST", body: request });
 
 /** Estado de um pagamento. Só o dono o vê (para os outros a referência não existe: 404). */
 export const getTransaction = (reference: string, options?: HttpOptions) =>

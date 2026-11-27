@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import mbwayLogo from "../../assets/mbway-logo.svg";
-import { getAccount, getTiers, initiatePayment } from "../../payments/api";
-import { describeInitiateError, type InitiateFailure } from "../../payments/errors";
+import { checkDiscount, getAccount, getTiers, initiatePayment } from "../../payments/api";
+import { describeDiscountError, describeInitiateError, type InitiateFailure } from "../../payments/errors";
 import { saveReference } from "../../payments/reference";
-import type { Account, Tier } from "../../payments/types";
+import type { Account, DiscountQuote, Tier } from "../../payments/types";
 import { useAuth } from "../../utils/useAuth";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
@@ -79,6 +79,11 @@ function CheckoutForm() {
   const [addressTouched, setAddressTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<InitiateFailure | null>(null);
+  // Código de desconto: o preço com ele é sempre o que o servidor devolve (nunca calculado aqui).
+  const [codeInput, setCodeInput] = useState("");
+  const [discount, setDiscount] = useState<(DiscountQuote & { tier: string }) | null>(null);
+  const [codeMessage, setCodeMessage] = useState<string | null>(null);
+  const [codeChecking, setCodeChecking] = useState(false);
 
   // As modalidades e a conta (para retomar uma compra que já existe).
   useEffect(() => {
@@ -151,6 +156,9 @@ function CheckoutForm() {
   }, [tiers, wanted, verifiedStudent]);
 
   const current = tiers?.find((tier) => tier.tier === (selected ?? initial)) ?? null;
+  // O desconto só conta para a modalidade para a qual foi pedido.
+  const discounted = discount && current && discount.tier === current.tier ? discount : null;
+  const price = discounted ? discounted.price_cents : (current?.price_cents ?? null);
   const phoneValid = isPortuguesePhone(phone);
   const nifMessage = nifError(nif);
   // Com NIF a fatura precisa da morada: os três campos só aparecem (e só contam) nesse caso.
@@ -162,6 +170,27 @@ function CheckoutForm() {
     current && isOpen(current) && phoneValid && !nifMessage && (!wantsInvoice || addressValid) && accepted && !submitting,
   );
 
+  // Mudou a modalidade com um código aplicado: pede-se o preço desta (ou tira-se o código, se é de estudante).
+  const appliedCode = discount?.code ?? null;
+  const appliedTier = discount?.tier ?? null;
+  const currentTier = current?.tier ?? null;
+  useEffect(() => {
+    if (!appliedCode || !currentTier || appliedTier === currentTier) return;
+    let cancelled = false;
+    checkDiscount({ ticket_tier: currentTier, code: appliedCode })
+      .then((quote) => {
+        if (!cancelled) setDiscount({ ...quote, tier: currentTier });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setDiscount(null);
+        setCodeMessage(describeDiscountError(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedCode, appliedTier, currentTier]);
+
   if (account?.ticket) return <Navigate to="/perfil" replace />;
   if (account?.pending_payment) {
     saveReference(account.pending_payment.reference);
@@ -171,6 +200,34 @@ function CheckoutForm() {
   // Enquanto não se sabe se a pessoa já tem bilhete ou um pagamento à espera não se mostra o formulário: senão aparecia
   // durante um instante e logo a seguir a página saltava para o perfil ou para a espera (parecia um erro do site).
   if (!account && loadError === null) return <CheckoutLoading />;
+
+  async function applyCode() {
+    if (!current) return;
+    // Tal como foi escrito: o servidor compara o texto exato (sem cortar espaços nem ignorar maiúsculas).
+    const code = codeInput;
+    if (!code) {
+      setCodeMessage("Escreve o código.");
+      return;
+    }
+    setCodeChecking(true);
+    setCodeMessage(null);
+    try {
+      const quote = await checkDiscount({ ticket_tier: current.tier, code });
+      setDiscount({ ...quote, tier: current.tier });
+      setCodeInput(quote.code);
+    } catch (error) {
+      setDiscount(null);
+      setCodeMessage(describeDiscountError(error));
+    } finally {
+      setCodeChecking(false);
+    }
+  }
+
+  function removeCode() {
+    setDiscount(null);
+    setCodeInput("");
+    setCodeMessage(null);
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -185,24 +242,42 @@ function CheckoutForm() {
         ticket_tier: current.tier,
         phone: normalizePhone(phone),
         ...(cleanNif(nif) ? { nif: cleanNif(nif), ...cleanAddress(address) } : {}),
+        ...(discounted ? { discount_code: discounted.code } : {}),
         // O preço que está no ecrã: se mudou entretanto, o servidor recusa em vez de cobrar outro valor.
-        ...(current.price_cents !== null ? { expected_price_cents: current.price_cents } : {}),
+        ...(price !== null ? { expected_price_cents: price } : {}),
       });
       saveReference(transaction.reference);
       navigate("/bilhetes/checkout/aguardar");
     } catch (error) {
       const described = describeInitiateError(error);
       setFailure(described);
+      // O servidor recusou o código (por exemplo, a modalidade é de estudante): sai do resumo e diz porquê junto ao campo.
+      if (described.field === "discount_code") {
+        setDiscount(null);
+        setCodeMessage(described.message);
+        setFailure(null);
+      }
       // O preço mudou (acabou o Early Bird): mostra o valor novo e deixa a pessoa decidir. Nada foi cobrado.
       if (described.kind === "price-changed") {
         try {
           const fresh = await getTiers();
           setTiers(fresh);
           const now = fresh.find((tier) => tier.tier === current.tier);
-          if (now && now.price_cents !== null) {
+          let nowPrice = now?.price_cents ?? null;
+          if (discounted && now) {
+            // Com código, o valor novo é o que o servidor dá com ele.
+            try {
+              const quote = await checkDiscount({ ticket_tier: current.tier, code: discounted.code });
+              setDiscount({ ...quote, tier: current.tier });
+              nowPrice = quote.price_cents;
+            } catch {
+              setDiscount(null);
+            }
+          }
+          if (now && nowPrice !== null) {
             setFailure({
               ...described,
-              message: `O preço deste bilhete mudou: agora é ${formatPrice(now.price_cents, now.currency)}. Confirma o novo valor e volta a pagar.`,
+              message: `O preço deste bilhete mudou: agora é ${formatPrice(nowPrice, now.currency)}. Confirma o novo valor e volta a pagar.`,
             });
           }
         } catch {
@@ -368,6 +443,53 @@ function CheckoutForm() {
                 </small>
               </label>
 
+              {current && !current.is_student && (
+                <div className="auth-field checkout-code">
+                  <span id="discount-code-label">Código de desconto (opcional)</span>
+                  <div className="checkout-code__row">
+                    <input
+                      id="discount-code"
+                      aria-labelledby="discount-code-label"
+                      type="text"
+                      name="discount_code"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      maxLength={64}
+                      aria-describedby="code-help"
+                      aria-invalid={Boolean(codeMessage)}
+                      disabled={Boolean(discounted)}
+                      value={codeInput}
+                      onChange={(event) => {
+                        setCodeInput(event.target.value);
+                        setCodeMessage(null);
+                      }}
+                      onKeyDown={(event) => {
+                        // Enter aqui aplica o código; não paga (o formulário só se envia com o botão).
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          if (!discounted && !codeChecking) void applyCode();
+                        }
+                      }}
+                    />
+                    {discounted ? (
+                      <button type="button" className="checkout-code__button" onClick={removeCode}>
+                        Remover
+                      </button>
+                    ) : (
+                      <button type="button" className="checkout-code__button" disabled={codeChecking} onClick={() => void applyCode()}>
+                        {codeChecking ? "A verificar…" : "Aplicar"}
+                      </button>
+                    )}
+                  </div>
+                  <small id="code-help" role={codeMessage ? "alert" : undefined}>
+                    {discounted
+                      ? `Código ${discounted.code} aplicado: ${discounted.percent}% de desconto.`
+                      : (codeMessage ?? "Só para as modalidades que não são de estudante.")}
+                  </small>
+                </div>
+              )}
+
               <label className="auth-field checkout-nif">
                 <span>NIF (opcional)</span>
                 <input
@@ -511,6 +633,12 @@ function CheckoutForm() {
                 <dt>Subtotal</dt>
                 <dd>{current ? formatPrice(current.price_cents, current.currency) : "—"}</dd>
               </div>
+              {discounted && current && current.price_cents !== null && (
+                <div>
+                  <dt>Desconto ({discounted.code})</dt>
+                  <dd>−{formatPrice(current.price_cents - discounted.price_cents, current.currency)}</dd>
+                </div>
+              )}
               <div>
                 <dt>Taxas</dt>
                 <dd>Incluídas</dd>
@@ -518,7 +646,7 @@ function CheckoutForm() {
             </dl>
             <div className="checkout-summary__total">
               <span>Total</span>
-              <strong>{current ? formatPrice(current.price_cents, current.currency) : "—"}</strong>
+              <strong>{current ? formatPrice(price, current.currency) : "—"}</strong>
             </div>
             {isEarlyBird(current ?? undefined) && (
               <p className="checkout-early-note">

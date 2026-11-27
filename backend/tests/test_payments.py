@@ -68,6 +68,7 @@ class FakeGateway:
         billing_street=None,
         billing_postal_code=None,
         billing_city=None,
+        discount_code=None,
     ) -> MBWayPayment:
         self.create_calls.append(
             {
@@ -81,6 +82,7 @@ class FakeGateway:
                 "billing_street": billing_street,
                 "billing_postal_code": billing_postal_code,
                 "billing_city": billing_city,
+                "discount_code": discount_code,
             }
         )
         if self.create_error is not None:
@@ -1492,3 +1494,217 @@ def test_other_people_are_not_blocked_by_someone_elses_payment(
     authenticate(auth_client, email_sender, db_session, email="rui@example.com")
 
     assert _initiate(auth_client).status_code == 201
+
+
+# --- Discount code -------------------------------------------------------------------
+
+CODE = "ALGARVEEVOLUTION"
+DISCOUNT_URL = INITIATE_URL.replace("/initiate", "/discount")
+GENERAL_MEALS = TicketTier.GERAL_REFEICOES.value
+
+
+def test_the_discount_code_lowers_the_price_the_server_charges(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={
+            "ticket_tier": GENERAL_MEALS,
+            "phone": "912345678",
+            "discount_code": CODE,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["amount_cents"] == 5850  # 6500 - 10%
+    assert gateway.create_calls[0]["amount_cents"] == 5850
+    assert gateway.create_calls[0]["discount_code"] == CODE
+    db_session.expire_all()
+    assert db_session.scalar(select(Transaction.discount_code)) == CODE
+
+
+def test_the_price_the_buyer_saw_must_be_the_discounted_one(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    base = {"ticket_tier": GENERAL_MEALS, "phone": "912345678", "discount_code": CODE}
+
+    stale = auth_client.post(INITIATE_URL, json={**base, "expected_price_cents": 6500})
+    assert stale.status_code == 409
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+
+    fresh = auth_client.post(INITIATE_URL, json={**base, "expected_price_cents": 5850})
+    assert fresh.status_code == 201
+
+
+def test_the_discount_takes_ten_percent_off_the_early_bird_price(
+    auth_client, email_sender, db_session, gateway
+):
+    """It stacks: the early-bird price is the price in force, and the code takes 10%
+    off that one (the regular price only matters once the early bird is over)."""
+    authenticate(auth_client, email_sender, db_session)
+    tickets = seed_ticket_tiers(db_session)
+    tickets[TicketTier.GERAL_REFEICOES].normal_price_cents = 7600
+    db_session.commit()
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={
+            "ticket_tier": GENERAL_MEALS,
+            "phone": "912345678",
+            "discount_code": CODE,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["amount_cents"] == 5850
+
+
+def test_a_student_modality_never_takes_the_discount_code(
+    auth_client, email_sender, db_session, gateway, monkeypatch
+):
+    monkeypatch.setattr(settings, "STUDENT_EMAIL_DOMAINS", ["student.ualg.pt"])
+    authenticate(auth_client, email_sender, db_session, email="ana@student.ualg.pt")
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL,
+        json={
+            "ticket_tier": TicketTier.ACESSO.value,
+            "phone": "912345678",
+            "discount_code": CODE,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Discount code is not valid for student tickets"
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+
+
+def test_an_unknown_code_is_refused_and_nothing_is_reserved(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL, json={**INITIATE, "discount_code": "NOPE10"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Discount code is not valid"
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+    # The refusal released the lock: the buyer can pay without the code right after.
+    assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
+
+
+@pytest.mark.parametrize("empty", [None, ""])
+def test_no_code_means_the_full_price_and_nothing_extra_for_the_provider(
+    auth_client, email_sender, db_session, gateway, empty
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, "discount_code": empty})
+
+    assert response.status_code == 201
+    assert gateway.create_calls[0]["discount_code"] is None
+    db_session.expire_all()
+    assert db_session.scalar(select(Transaction.discount_code)) is None
+
+
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "algarveevolution",
+        " ALGARVEEVOLUTION",
+        "ALGARVEEVOLUTION ",
+        "ALGARVE EVOLUTION",
+        "   ",
+    ],
+)
+def test_only_the_exact_code_works_on_payment_and_quote(
+    auth_client, email_sender, db_session, gateway, variant
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    paid = auth_client.post(INITIATE_URL, json={**INITIATE, "discount_code": variant})
+    quote = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": variant}
+    )
+
+    assert paid.status_code == 422
+    assert quote.status_code == 422
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+
+
+def test_the_code_quote_shows_the_price_the_payment_will_charge(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": CODE}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "code": CODE,
+        "percent": 10,
+        "price_cents": 5850,
+        "currency": "EUR",
+    }
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+
+
+def test_the_code_quote_refuses_what_the_payment_would_refuse(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    unknown = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": "NOPE10"}
+    )
+    student = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": TicketTier.ACESSO.value, "code": CODE}
+    )
+    empty = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": "  "}
+    )
+
+    assert unknown.status_code == 422
+    assert student.status_code == 422
+    assert empty.status_code == 422
+
+
+def test_the_code_quote_needs_a_logged_in_verified_user(auth_client, db_session):
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": CODE}
+    )
+
+    assert response.status_code == 401
+
+
+def test_the_code_quote_is_rate_limited(
+    auth_client, email_sender, db_session, gateway, monkeypatch
+):
+    monkeypatch.setattr(settings, "RATE_LIMIT_PAYMENT_DISCOUNT_PER_MINUTE", 2)
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    body = {"ticket_tier": GENERAL_MEALS, "code": "GUESS"}
+
+    codes = [auth_client.post(DISCOUNT_URL, json=body).status_code for _ in range(3)]
+
+    assert codes == [422, 422, 429]
