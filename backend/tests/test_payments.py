@@ -1514,7 +1514,7 @@ def test_the_discount_code_lowers_the_price_the_server_charges(
         json={
             "ticket_tier": GENERAL_MEALS,
             "phone": "912345678",
-            "discount_code": f"  {CODE.lower()} ",
+            "discount_code": CODE,
         },
     )
 
@@ -1604,7 +1604,7 @@ def test_an_unknown_code_is_refused_and_nothing_is_reserved(
     assert auth_client.post(INITIATE_URL, json=INITIATE).status_code == 201
 
 
-@pytest.mark.parametrize("empty", [None, "", "   "])
+@pytest.mark.parametrize("empty", [None, ""])
 def test_no_code_means_the_full_price_and_nothing_extra_for_the_provider(
     auth_client, email_sender, db_session, gateway, empty
 ):
@@ -1619,6 +1619,33 @@ def test_no_code_means_the_full_price_and_nothing_extra_for_the_provider(
     assert db_session.scalar(select(Transaction.discount_code)) is None
 
 
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "algarveevolution",
+        " ALGARVEEVOLUTION",
+        "ALGARVEEVOLUTION ",
+        "ALGARVE EVOLUTION",
+        "   ",
+    ],
+)
+def test_only_the_exact_code_works_on_payment_and_quote(
+    auth_client, email_sender, db_session, gateway, variant
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    paid = auth_client.post(INITIATE_URL, json={**INITIATE, "discount_code": variant})
+    quote = auth_client.post(
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": variant}
+    )
+
+    assert paid.status_code == 422
+    assert quote.status_code == 422
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+
+
 def test_the_code_quote_shows_the_price_the_payment_will_charge(
     auth_client, email_sender, db_session, gateway
 ):
@@ -1626,7 +1653,7 @@ def test_the_code_quote_shows_the_price_the_payment_will_charge(
     seed_ticket_tiers(db_session)
 
     response = auth_client.post(
-        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": "algarveevolution"}
+        DISCOUNT_URL, json={"ticket_tier": GENERAL_MEALS, "code": CODE}
     )
 
     assert response.status_code == 200

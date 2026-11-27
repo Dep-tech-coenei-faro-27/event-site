@@ -22,10 +22,30 @@ def test_ten_percent_off_rounds_the_discount_to_the_cent(price, expected):
     assert price_with_discount(price, 10) == expected
 
 
-def test_the_code_is_compared_without_case_or_spaces():
-    assert normalize_discount_code(" algarve evolution ") == "ALGARVEEVOLUTION"
-    assert normalize_discount_code("   ") is None
+def test_the_code_is_sent_through_exactly_as_typed():
+    assert normalize_discount_code("ALGARVEEVOLUTION") == "ALGARVEEVOLUTION"
+    assert normalize_discount_code("algarveevolution") == "algarveevolution"
+    assert normalize_discount_code(" ALGARVEEVOLUTION ") == " ALGARVEEVOLUTION "
+    assert normalize_discount_code("") is None
     assert normalize_discount_code(None) is None
+
+
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "algarveevolution",  # lower case
+        "Algarveevolution",  # mixed case
+        " ALGARVEEVOLUTION",  # leading space
+        "ALGARVEEVOLUTION ",  # trailing space
+        "ALGARVE EVOLUTION",  # space inside
+        "ALGARVEEVOLUTION\n",  # new line
+        "ALGARVEEVOLUTION\t",  # tab
+        "ALGARVE-EVOLUTION",
+        " ",
+    ],
+)
+def test_only_the_exact_code_is_accepted(variant):
+    assert discount_percent(normalize_discount_code(variant) or "") is None
 
 
 @pytest.mark.parametrize(

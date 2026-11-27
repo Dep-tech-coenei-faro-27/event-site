@@ -502,7 +502,7 @@ describe("checkout", () => {
 
   describe("código de desconto", () => {
     const QUOTE = { code: "ALGARVEEVOLUTION", percent: 10, price_cents: 4500, currency: "EUR" };
-    const applyCode = async (value = "algarveevolution") => {
+    const applyCode = async (value = "ALGARVEEVOLUTION") => {
       fireEvent.change(await screen.findByLabelText(/código de desconto/i), { target: { value } });
       fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
     };
@@ -522,7 +522,7 @@ describe("checkout", () => {
       renderAt();
       await applyCode();
       expect(await screen.findByText(/código ALGARVEEVOLUTION aplicado: 10% de desconto/i)).toBeInTheDocument();
-      expect(mocks.checkDiscount).toHaveBeenCalledWith({ ticket_tier: "geral", code: "algarveevolution" });
+      expect(mocks.checkDiscount).toHaveBeenCalledWith({ ticket_tier: "geral", code: "ALGARVEEVOLUTION" });
       const summary = screen.getByRole("complementary");
       expect(within(summary).getByText(/−\s*5,00/)).toBeInTheDocument();
       expect(within(summary).getAllByText(/45,00/).length).toBeGreaterThan(0);
