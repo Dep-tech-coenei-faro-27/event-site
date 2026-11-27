@@ -18,3 +18,32 @@ export function nifError(value: string): string | null {
   if (!/^\d{9}$/.test(cleanNif(value))) return 'O NIF tem de ter 9 algarismos.';
   return isValidNif(value) ? null : 'Este NIF não é válido. Confirma os algarismos.';
 }
+
+// Morada da fatura (pedida só com o NIF): rua, código postal «NNNN-NNN» e localidade.
+
+/** Código postal português com o hífen (aceita-se sem ele). */
+export const cleanPostalCode = (value: string) => {
+  const code = value.trim();
+  return /^\d{4}[- ]?\d{3}$/.test(code) ? `${code.slice(0, 4)}-${code.slice(-3)}` : null;
+};
+
+const squash = (value: string) => value.trim().replace(/\s+/g, ' ');
+
+export type BillingAddressFields = { street: string; postalCode: string; city: string };
+
+/** Mensagem de erro de cada campo da morada, ou `null` se estiver certo. */
+export function addressErrors({ street, postalCode, city }: BillingAddressFields) {
+  return {
+    street: squash(street).length < 5 ? 'Indica a rua e o número da porta.' : null,
+    postalCode: cleanPostalCode(postalCode) ? null : 'Indica o código postal com 7 algarismos, por exemplo 8000-123.',
+    city: squash(city).length < 2 ? 'Indica a localidade.' : null,
+  };
+}
+
+export function cleanAddress({ street, postalCode, city }: BillingAddressFields) {
+  return {
+    billing_street: squash(street),
+    billing_postal_code: cleanPostalCode(postalCode) ?? '',
+    billing_city: squash(city),
+  };
+}

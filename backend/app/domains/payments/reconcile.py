@@ -125,7 +125,8 @@ ALL_COLUMNS = [
     ("result", "result"),
     ("note", "note"),
 ]
-NIF_COLUMN = [("nif", "nif")]
+_FORMULA_SIGNS = ("=", "+", "-", "@")
+NIF_COLUMN = [("nif", "nif"), ("billing_address", "address")]
 
 
 @dataclass
@@ -148,6 +149,7 @@ class Row:
     site_created: str = ""
     site_confirmed_at: str = ""
     nif: str = ""
+    billing_address: str = ""
     # Not a sale on either side: a checkout someone left (Stripe) or a payment that
     # never reached Stripe (site). Kept for the listings, left out of the comparison.
     unfinished: bool = False
@@ -253,6 +255,18 @@ def _site_side(row: Row, site: Transaction, tiers: dict[int, str]) -> None:
     row.site_created = _stamp(site.created_at)
     row.site_confirmed_at = _stamp(site.confirmed_at)
     row.nif = site.nif or ""
+    # Free text from the buyer, written to a CSV: never let a cell start as a formula.
+    address = ", ".join(
+        part
+        for part in (
+            site.billing_street,
+            " ".join(p for p in (site.billing_postal_code, site.billing_city) if p),
+        )
+        if part
+    )
+    row.billing_address = (
+        f"'{address}" if address.startswith(_FORMULA_SIGNS) else address
+    )
 
 
 def _judge(row: Row, site: Transaction | None) -> None:

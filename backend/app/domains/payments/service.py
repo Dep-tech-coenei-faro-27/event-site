@@ -442,6 +442,9 @@ def initiate_payment(
         status=TransactionStatus.PENDING,
         phone=payload.phone,
         nif=payload.nif,
+        billing_street=payload.billing_street,
+        billing_postal_code=payload.billing_postal_code,
+        billing_city=payload.billing_city,
         provider=gateway.name,
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )
@@ -467,8 +470,21 @@ def initiate_payment(
             phone=payload.phone,
             email=payload.email or user.email,
             description=payment_description(payload.ticket_tier),
-            # Only when the buyer gave one: the provider is never sent an empty NIF.
-            **({"nif": transaction.nif} if transaction.nif else {}),
+            # The name and email the invoice goes to, always: the treasurer finds
+            # them next to the payment in the provider's dashboard.
+            name=user.name,
+            # Only when the buyer gave a NIF (and so its address): the provider is
+            # never sent an empty one.
+            **(
+                {
+                    "nif": transaction.nif,
+                    "billing_street": transaction.billing_street,
+                    "billing_postal_code": transaction.billing_postal_code,
+                    "billing_city": transaction.billing_city,
+                }
+                if transaction.nif
+                else {}
+            ),
         )
     except PaymentGatewayError:
         _settle_pending(db, transaction, TransactionStatus.FAILED)

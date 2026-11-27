@@ -57,7 +57,11 @@ class MBWayGateway(Protocol):
         phone: str,
         email: str,
         description: str,
+        name: str | None = None,
         nif: str | None = None,
+        billing_street: str | None = None,
+        billing_postal_code: str | None = None,
+        billing_city: str | None = None,
     ) -> MBWayPayment: ...
 
     def get_status(
@@ -216,7 +220,11 @@ class IfThenPayMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        name: str | None = None,
         nif: str | None = None,
+        billing_street: str | None = None,
+        billing_postal_code: str | None = None,
+        billing_city: str | None = None,
     ) -> MBWayPayment:
         payload = {
             "mbWayKey": self.mbway_key,
@@ -398,7 +406,11 @@ class StripeMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        name: str | None = None,
         nif: str | None = None,
+        billing_street: str | None = None,
+        billing_postal_code: str | None = None,
+        billing_city: str | None = None,
     ) -> MBWayPayment:
         form = {
             "amount": str(amount_cents),
@@ -406,14 +418,30 @@ class StripeMBWayGateway:
             "payment_method_types[]": "mb_way",
             "payment_method_data[type]": "mb_way",
             "payment_method_data[billing_details][phone]": f"+351{phone}",
+            "payment_method_data[billing_details][email]": email,
+            "metadata[email]": email,
             "confirm": "true",
             "description": description,
             "metadata[reference]": reference,
         }
+        if name:
+            form["payment_method_data[billing_details][name]"] = name
+            form["metadata[name]"] = name
         if nif:
             # The tax number the buyer gave for the invoice, so whoever issues it
             # finds it next to the payment in the dashboard and in its export.
             form["metadata[nif]"] = nif
+        if nif and billing_street and billing_postal_code and billing_city:
+            # Its address too, in the payment's billing details and (as the NIF) in
+            # the metadata, which is what the dashboard's CSV export carries.
+            prefix = "payment_method_data[billing_details][address]"
+            form[f"{prefix}[line1]"] = billing_street
+            form[f"{prefix}[postal_code]"] = billing_postal_code
+            form[f"{prefix}[city]"] = billing_city
+            form[f"{prefix}[country]"] = "PT"
+            form["metadata[address]"] = (
+                f"{billing_street}, {billing_postal_code} {billing_city}"
+            )
         # The same reference always means the same PaymentIntent: a repeated request
         # (a timeout we retried, a double click) cannot create a second charge.
         headers = self._headers({"Idempotency-Key": f"enei-{reference}"})
@@ -638,7 +666,11 @@ class SimulatedMBWayGateway:
         phone: str,
         email: str,
         description: str,
+        name: str | None = None,
         nif: str | None = None,
+        billing_street: str | None = None,
+        billing_postal_code: str | None = None,
+        billing_city: str | None = None,
     ) -> MBWayPayment:
         self._wait_for_provider()
         # The creation instant travels inside the provider reference so the gateway

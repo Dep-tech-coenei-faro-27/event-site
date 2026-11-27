@@ -62,6 +62,51 @@ def test_the_tax_number_goes_to_stripe_only_when_the_buyer_gave_one():
     assert "metadata[nif]" not in calls_without[0][2]
 
 
+def test_the_name_and_email_always_go_to_stripe_as_billing_details_and_metadata():
+    gateway, calls = build_gateway(intent("requires_action"))
+
+    gateway.create_payment(
+        reference=REFERENCE,
+        amount_cents=2500,
+        phone="912345678",
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+        name="Ana Silva",
+    )
+
+    form = calls[0][2]
+    assert form["payment_method_data[billing_details][name]"] == "Ana Silva"
+    assert form["payment_method_data[billing_details][email]"] == "ana@example.com"
+    assert form["metadata[name]"] == "Ana Silva"
+    assert form["metadata[email]"] == "ana@example.com"
+    assert not any("[address]" in key for key in form)
+
+
+def test_the_address_goes_to_stripe_with_the_nif_in_billing_details_and_metadata():
+    gateway, calls = build_gateway(intent("requires_action"))
+
+    gateway.create_payment(
+        reference=REFERENCE,
+        amount_cents=2500,
+        phone="912345678",
+        email="ana@example.com",
+        description="ENEI - Passe geral",
+        name="Ana Silva",
+        nif="504035266",
+        billing_street="Rua das Tulipas, Lote 36",
+        billing_postal_code="8000-123",
+        billing_city="Faro",
+    )
+
+    form = calls[0][2]
+    address = "payment_method_data[billing_details][address]"
+    assert form[f"{address}[line1]"] == "Rua das Tulipas, Lote 36"
+    assert form[f"{address}[postal_code]"] == "8000-123"
+    assert form[f"{address}[city]"] == "Faro"
+    assert form[f"{address}[country]"] == "PT"
+    assert form["metadata[address]"] == "Rua das Tulipas, Lote 36, 8000-123 Faro"
+
+
 def test_create_confirms_a_mb_way_payment_intent_with_the_phone_from_our_form():
     gateway, calls = build_gateway(intent("requires_action"))
 
@@ -83,12 +128,12 @@ def test_create_confirms_a_mb_way_payment_intent_with_the_phone_from_our_form():
         "payment_method_types[]": "mb_way",
         "payment_method_data[type]": "mb_way",
         "payment_method_data[billing_details][phone]": "+351912345678",
+        "payment_method_data[billing_details][email]": "ana@example.com",
         "confirm": "true",
         "description": "ENEI - Passe geral",
         "metadata[reference]": REFERENCE,
+        "metadata[email]": "ana@example.com",
     }
-    # The person's email stays with us: Stripe only needs the phone.
-    assert "ana@example.com" not in json.dumps(form)
 
 
 def test_create_is_idempotent_per_payment_and_pins_the_api_version():

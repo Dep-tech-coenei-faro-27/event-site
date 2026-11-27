@@ -11,7 +11,7 @@ import { usePageMeta } from "../../utils/usePageMeta";
 import CheckoutAccountGate from "./CheckoutAccountGate";
 import PageStatus from "../../components/PageStatus";
 import { loadErrorMessage } from "../../utils/loadError";
-import { cleanNif, nifError } from "../../utils/nif";
+import { addressErrors, cleanAddress, cleanNif, nifError } from "../../utils/nif";
 import { ORGANIZATION_EMAIL, studentStatus, type StudentStatus } from "../../utils/studentProof";
 import { isEarlyBird } from "../bilhetes/earlyBird";
 import "../../checkout.early-bird.css";
@@ -73,6 +73,10 @@ function CheckoutForm() {
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [nif, setNif] = useState("");
   const [nifTouched, setNifTouched] = useState(false);
+  const [street, setStreet] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+  const [addressTouched, setAddressTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<InitiateFailure | null>(null);
 
@@ -149,7 +153,14 @@ function CheckoutForm() {
   const current = tiers?.find((tier) => tier.tier === (selected ?? initial)) ?? null;
   const phoneValid = isPortuguesePhone(phone);
   const nifMessage = nifError(nif);
-  const canSubmit = Boolean(current && isOpen(current) && phoneValid && !nifMessage && accepted && !submitting);
+  // Com NIF a fatura precisa da morada: os três campos só aparecem (e só contam) nesse caso.
+  const wantsInvoice = Boolean(cleanNif(nif)) && !nifMessage;
+  const address = { street, postalCode, city };
+  const addressMessages = addressErrors(address);
+  const addressValid = !addressMessages.street && !addressMessages.postalCode && !addressMessages.city;
+  const canSubmit = Boolean(
+    current && isOpen(current) && phoneValid && !nifMessage && (!wantsInvoice || addressValid) && accepted && !submitting,
+  );
 
   if (account?.ticket) return <Navigate to="/perfil" replace />;
   if (account?.pending_payment) {
@@ -165,6 +176,7 @@ function CheckoutForm() {
     event.preventDefault();
     setPhoneTouched(true);
     setNifTouched(true);
+    setAddressTouched(true);
     if (!current || !canSubmit) return;
     setFailure(null);
     setSubmitting(true);
@@ -172,7 +184,7 @@ function CheckoutForm() {
       const transaction = await initiatePayment({
         ticket_tier: current.tier,
         phone: normalizePhone(phone),
-        ...(cleanNif(nif) ? { nif: cleanNif(nif) } : {}),
+        ...(cleanNif(nif) ? { nif: cleanNif(nif), ...cleanAddress(address) } : {}),
         // O preço que está no ecrã: se mudou entretanto, o servidor recusa em vez de cobrar outro valor.
         ...(current.price_cents !== null ? { expected_price_cents: current.price_cents } : {}),
       });
@@ -374,9 +386,71 @@ function CheckoutForm() {
                 <small id="nif-help" role={nifTouched && nifMessage ? "alert" : undefined}>
                   {nifTouched && nifMessage
                     ? nifMessage
-                    : "Preenche só se quiseres a fatura com o teu número de contribuinte. A fatura é emitida manualmente e enviada por email até 20 dias úteis após a compra."}
+                    : "Preenche só se quiseres a fatura com o teu número de contribuinte (a morada é pedida a seguir). A fatura é emitida manualmente e enviada por email até 20 dias úteis após a compra."}
                 </small>
               </label>
+
+              {wantsInvoice && (
+                <fieldset className="checkout-address">
+                  <legend>Morada da fatura</legend>
+                  <label className="auth-field">
+                    <span>Rua e número</span>
+                    <input
+                      type="text"
+                      name="billing_street"
+                      autoComplete="street-address"
+                      maxLength={200}
+                      required
+                      aria-describedby="street-help"
+                      aria-invalid={addressTouched && Boolean(addressMessages.street)}
+                      value={street}
+                      onChange={(event) => setStreet(event.target.value)}
+                      onBlur={() => setAddressTouched(true)}
+                    />
+                    <small id="street-help" role={addressTouched && addressMessages.street ? "alert" : undefined}>
+                      {addressTouched && addressMessages.street ? addressMessages.street : "Por exemplo: Rua das Tulipas, Lote 36."}
+                    </small>
+                  </label>
+                  <label className="auth-field">
+                    <span>Código postal</span>
+                    <input
+                      type="text"
+                      name="billing_postal_code"
+                      autoComplete="postal-code"
+                      inputMode="numeric"
+                      placeholder="0000-000"
+                      maxLength={9}
+                      required
+                      aria-describedby="postal-help"
+                      aria-invalid={addressTouched && Boolean(addressMessages.postalCode)}
+                      value={postalCode}
+                      onChange={(event) => setPostalCode(event.target.value)}
+                      onBlur={() => setAddressTouched(true)}
+                    />
+                    <small id="postal-help" role={addressTouched && addressMessages.postalCode ? "alert" : undefined}>
+                      {addressTouched && addressMessages.postalCode ? addressMessages.postalCode : "Com os 7 algarismos."}
+                    </small>
+                  </label>
+                  <label className="auth-field">
+                    <span>Localidade</span>
+                    <input
+                      type="text"
+                      name="billing_city"
+                      autoComplete="address-level2"
+                      maxLength={100}
+                      required
+                      aria-describedby="city-help"
+                      aria-invalid={addressTouched && Boolean(addressMessages.city)}
+                      value={city}
+                      onChange={(event) => setCity(event.target.value)}
+                      onBlur={() => setAddressTouched(true)}
+                    />
+                    <small id="city-help" role={addressTouched && addressMessages.city ? "alert" : undefined}>
+                      {addressTouched && addressMessages.city ? addressMessages.city : "Morada em Portugal."}
+                    </small>
+                  </label>
+                </fieldset>
+              )}
 
               <label className="auth-check checkout-consent">
                 <input
