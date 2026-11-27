@@ -105,8 +105,8 @@ class PaymentInitiateRequest(BaseModel):
     billing_street: str | None = Field(default=None, max_length=300)
     billing_postal_code: str | None = Field(default=None, max_length=16)
     billing_city: str | None = Field(default=None, max_length=200)
-    # A discount code (checked on the server; unknown or student -> 422). Only the
-    # spelling is cleaned here.
+    # A discount code (checked on the server; unknown or student -> 422). It is
+    # compared exactly as sent: no trimming and no case folding.
     discount_code: str | None = Field(default=None, max_length=64)
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
@@ -197,7 +197,7 @@ class DiscountCheckRequest(BaseModel):
     @field_validator("code")
     @classmethod
     def validate_code(cls, value: str) -> str:
-        return normalize_discount_code(value) or ""
+        return value
 
 
 class DiscountCheckRead(BaseModel):

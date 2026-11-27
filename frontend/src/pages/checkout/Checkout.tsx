@@ -203,7 +203,8 @@ function CheckoutForm() {
 
   async function applyCode() {
     if (!current) return;
-    const code = codeInput.trim();
+    // Tal como foi escrito: o servidor compara o texto exato (sem cortar espaços nem ignorar maiúsculas).
+    const code = codeInput;
     if (!code) {
       setCodeMessage("Escreve o código.");
       return;
