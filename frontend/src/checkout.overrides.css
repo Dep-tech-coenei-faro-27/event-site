@@ -66,3 +66,29 @@ html body[data-page="checkout"][data-page] main .checkout-refund-note {
   line-height: 1.5;
   color: var(--muted, inherit);
 }
+
+/* Morada da fatura: só aparece com NIF; os campos seguem o mesmo desenho do NIF. */
+html body[data-page="checkout"][data-page] main .checkout-address {
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+html body[data-page="checkout"][data-page] main .checkout-address > legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+html body[data-page="checkout"][data-page] main .checkout-address .auth-field {
+  margin-top: 12px;
+}
+html body[data-page="checkout"][data-page] main .checkout-address .auth-field > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+html body[data-page="checkout"][data-page] main .checkout-address input[aria-invalid="true"] {
+  border-color: #ee9185;
+}
+html body[data-page="checkout"][data-page] main .checkout-address input[aria-invalid="true"] + small {
+  color: #f6d2cd;
+}

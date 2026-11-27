@@ -44,7 +44,7 @@ const sections: LegalSection[] = [
                     Os dados só são disponibilizados a prestadores que apoiam o encontro, na medida do necessário e sujeitos às obrigações aplicáveis. Não são vendidos dados pessoais. Os prestadores são:
                 </p>
                 <ul>
-                    <li><strong>Stripe</strong>, para processar o pagamento (recebe o valor, o telefone do MB WAY, a modalidade comprada, a referência da compra e, se o indicares, o NIF para a fatura);</li>
+                    <li><strong>Stripe</strong>, para processar o pagamento (recebe o valor, o teu nome e email, o telefone do MB WAY, a modalidade comprada, a referência da compra e, se indicares o NIF, também ele e a morada da fatura);</li>
                     <li><strong>Brevo</strong> e <strong>Resend</strong>, para enviar os emails da conta e do bilhete;</li>
                     <li><strong>Cloudflare</strong>, para proteger e entregar o site e para guardar as cópias de segurança, que são cifradas;</li>
                     <li><strong>OVH</strong>, que aloja o servidor onde os dados ficam guardados.</li>

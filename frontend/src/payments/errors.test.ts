@@ -135,3 +135,18 @@ describe("retryAfterSeconds", () => {
     expect(retryAfterSeconds(inTenSeconds)).toBeGreaterThanOrEqual(9);
   });
 });
+
+describe("morada da fatura recusada pelo servidor", () => {
+  it("avisa da morada, esteja o erro num campo ou na regra «morada com NIF»", () => {
+    const field = describeInitiateError(
+      new ApiError(422, "x", [{ type: "value_error", loc: ["body", "billing_postal_code"], msg: "postal code must look like 8005-139" }]),
+    );
+    const rule = describeInitiateError(
+      new ApiError(422, "x", [{ type: "value_error", loc: ["body"], msg: "Value error, billing address is required with a nif" }]),
+    );
+    for (const f of [field, rule]) {
+      expect(f).toMatchObject({ kind: "invalid-input", field: "billing_address", action: "fix-field" });
+      expect(f.message).toMatch(/morada da fatura/i);
+    }
+  });
+});

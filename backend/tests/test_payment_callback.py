@@ -36,7 +36,7 @@ class FakeGateway:
         self.provider_reference = "TX-1"
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description, nif=None
+        self, *, reference, amount_cents, phone, email, description, nif=None, **_
     ) -> MBWayPayment:
         return MBWayPayment(provider_reference=self.provider_reference)
 

@@ -40,7 +40,7 @@ export type InitiateFailure = {
   /** Só em `rate-limited`: segundos até se poder tentar outra vez (0 se o servidor não disse). */
   retryAfterSeconds?: number;
   /** Só em `invalid-input`: o campo em falta ou inválido, quando se sabe. */
-  field?: "phone" | "nif" | "ticket_tier";
+  field?: "phone" | "nif" | "ticket_tier" | "billing_address";
 };
 
 const DETAIL = {
@@ -81,6 +81,14 @@ function invalidInput(detail: unknown): InitiateFailure {
       field: "nif",
       action: "fix-field",
       message: "Este NIF não é válido. Confirma os algarismos ou deixa o campo em branco.",
+    };
+  }
+  if (fields.some((field) => field.startsWith("billing_")) || items.some((item) => /billing address/i.test(String((item as { msg?: string }).msg ?? "")))) {
+    return {
+      kind: "invalid-input",
+      field: "billing_address",
+      action: "fix-field",
+      message: "Confirma a morada da fatura: rua, código postal com 7 algarismos e localidade.",
     };
   }
   if (fields.includes("ticket_tier")) {

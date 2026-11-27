@@ -70,6 +70,12 @@ const fillAndSubmit = async (phone = "912 345 678") => {
   fireEvent.click(screen.getByRole("button", { name: /pagar com mb way/i }));
 };
 
+const fillAddress = (values: { street?: string; postalCode?: string; city?: string } = {}) => {
+  fireEvent.change(screen.getByLabelText(/rua e número/i), { target: { value: values.street ?? "Rua das Tulipas, Lote 36" } });
+  fireEvent.change(screen.getByLabelText(/código postal/i), { target: { value: values.postalCode ?? "8000-123" } });
+  fireEvent.change(screen.getByLabelText(/localidade/i), { target: { value: values.city ?? "Faro" } });
+};
+
 describe("checkout", () => {
   it("sem sessão pede para criar conta ou entrar, e não mostra o formulário", () => {
     mocks.user.current = null;
@@ -237,14 +243,59 @@ describe("checkout", () => {
     mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
     renderAt();
     fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "PT 123 456 789" } });
+    fillAddress();
     await fillAndSubmit();
     await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
     expect(mocks.initiatePayment).toHaveBeenCalledWith({
       ticket_tier: "geral",
       phone: "912345678",
       nif: "123456789",
+      billing_street: "Rua das Tulipas, Lote 36",
+      billing_postal_code: "8000-123",
+      billing_city: "Faro",
       expected_price_cents: 5000,
     });
+  });
+
+  it("a morada só se pede com NIF", async () => {
+    renderAt();
+    const nif = await screen.findByLabelText(/^NIF/i);
+    expect(screen.queryByLabelText(/rua e número/i)).toBeNull();
+    fireEvent.change(nif, { target: { value: "123456789" } });
+    expect(screen.getByLabelText(/rua e número/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/código postal/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/localidade/i)).toBeInTheDocument();
+    fireEvent.change(nif, { target: { value: "" } });
+    expect(screen.queryByLabelText(/rua e número/i)).toBeNull();
+  });
+
+  it("com NIF a morada é obrigatória: sem ela (ou com o código postal mal) não deixa pagar nem faz pedido", async () => {
+    renderAt();
+    fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "123456789" } });
+    fireEvent.change(screen.getByLabelText(/número de telemóvel/i), { target: { value: "912 345 678" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    const pay = screen.getByRole("button", { name: /pagar com mb way/i });
+    expect(pay).toBeDisabled();
+    fillAddress({ postalCode: "8000" });
+    fireEvent.blur(screen.getByLabelText(/código postal/i));
+    expect(await screen.findByText(/código postal com 7 algarismos/i)).toBeInTheDocument();
+    expect(pay).toBeDisabled();
+    fireEvent.click(pay);
+    expect(mocks.initiatePayment).not.toHaveBeenCalled();
+    fillAddress();
+    expect(pay).toBeEnabled();
+  });
+
+  it("sem NIF a morada que ficou escrita não vai no pedido", async () => {
+    mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+    renderAt();
+    const nif = await screen.findByLabelText(/^NIF/i);
+    fireEvent.change(nif, { target: { value: "123456789" } });
+    fillAddress();
+    fireEvent.change(nif, { target: { value: "" } });
+    await fillAndSubmit();
+    await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+    expect(mocks.initiatePayment.mock.calls[0][0]).toEqual({ ticket_tier: "geral", phone: "912345678", expected_price_cents: 5000 });
   });
 
   it("um NIF inválido avisa junto ao campo e não deixa pagar nem faz pedido", async () => {
@@ -269,6 +320,7 @@ describe("checkout", () => {
     );
     renderAt();
     fireEvent.change(await screen.findByLabelText(/^NIF/i), { target: { value: "000000000" } });
+    fillAddress();
     await fillAndSubmit();
     expect(await screen.findByRole("alert")).toHaveTextContent(/NIF não é válido/i);
     expect(screen.queryByTestId("where")).toBeNull();

@@ -36,6 +36,12 @@ from tests.helpers import (
 )
 
 INITIATE = {"ticket_tier": TicketTier.GERAL.value, "phone": "912345678"}
+# The invoice address that goes with a NIF.
+ADDRESS = {
+    "billing_street": "Rua das Tulipas, Lote 36",
+    "billing_postal_code": "8000-123",
+    "billing_city": "Faro",
+}
 
 
 class FakeGateway:
@@ -50,7 +56,18 @@ class FakeGateway:
         self.status_error: Exception | None = None
 
     def create_payment(
-        self, *, reference, amount_cents, phone, email, description, nif=None
+        self,
+        *,
+        reference,
+        amount_cents,
+        phone,
+        email,
+        description,
+        name=None,
+        nif=None,
+        billing_street=None,
+        billing_postal_code=None,
+        billing_city=None,
     ) -> MBWayPayment:
         self.create_calls.append(
             {
@@ -59,7 +76,11 @@ class FakeGateway:
                 "phone": phone,
                 "email": email,
                 "description": description,
+                "name": name,
                 "nif": nif,
+                "billing_street": billing_street,
+                "billing_postal_code": billing_postal_code,
+                "billing_city": billing_city,
             }
         )
         if self.create_error is not None:
@@ -352,7 +373,9 @@ def test_initiate_stores_the_nif_as_nine_digits(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": typed})
+    response = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": typed}
+    )
 
     assert response.status_code == 201
     transaction = db_session.scalar(
@@ -368,7 +391,7 @@ def test_initiate_hands_the_nif_to_the_provider_only_when_given(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "501964843"})
+    auth_client.post(INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "501964843"})
 
     assert gateway.create_calls[0]["nif"] == "501964843"
 
@@ -391,7 +414,7 @@ def test_initiate_does_not_need_a_nif(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    body = {**INITIATE} if nif is None else {**INITIATE, "nif": nif}
+    body = {**INITIATE} if nif is None else {**INITIATE, **ADDRESS, "nif": nif}
     response = auth_client.post(INITIATE_URL, json=body)
 
     assert response.status_code == 201
@@ -428,7 +451,7 @@ def test_initiate_rejects_an_invalid_nif_without_reserving_a_seat(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": nif})
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": nif})
 
     assert response.status_code == 422
     assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
@@ -451,7 +474,7 @@ def test_the_nif_lives_with_the_transaction_like_the_phone(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
     reference = auth_client.post(
-        INITIATE_URL, json={**INITIATE, "nif": "123456789"}
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789"}
     ).json()["reference"]
 
     gateway.status = ended
@@ -472,7 +495,9 @@ def test_the_nif_is_kept_when_the_provider_refuses_to_start_the_payment(
     seed_ticket_tiers(db_session)
     gateway.create_error = PaymentGatewayError("provider down")
 
-    response = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "123456789"})
+    response = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789"}
+    )
 
     assert response.status_code == 502
     stored = db_session.scalar(select(Transaction))
@@ -486,7 +511,7 @@ def test_the_nif_is_kept_while_the_payment_waits_and_once_it_is_paid(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
     reference = auth_client.post(
-        INITIATE_URL, json={**INITIATE, "nif": "123456789"}
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789"}
     ).json()["reference"]
 
     auth_client.get(transaction_url(reference))  # still pending at the provider
@@ -504,13 +529,129 @@ def test_the_nif_is_never_returned_by_the_api(
     authenticate(auth_client, email_sender, db_session)
     seed_ticket_tiers(db_session)
 
-    created = auth_client.post(INITIATE_URL, json={**INITIATE, "nif": "123456789"})
+    created = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789"}
+    )
     reference = created.json()["reference"]
     read = auth_client.get(transaction_url(reference))
 
     assert "nif" not in created.json()
     assert "nif" not in read.json()
     assert "123456789" not in created.text + read.text
+
+
+def test_initiate_hands_the_provider_the_buyers_name_and_email(
+    auth_client, email_sender, db_session, gateway
+):
+    user = authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    auth_client.post(INITIATE_URL, json=INITIATE)
+
+    call = gateway.create_calls[0]
+    assert call["name"] == user.name
+    assert call["email"] == user.email
+
+
+def test_initiate_stores_and_hands_over_the_address_that_comes_with_the_nif(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    address = {
+        "billing_street": "  Rua   das Tulipas,  Lote 36 ",
+        "billing_postal_code": "8000123",
+        "billing_city": " Faro ",
+    }
+
+    response = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **address, "nif": "123456789"}
+    )
+
+    assert response.status_code == 201
+    stored = db_session.scalar(select(Transaction))
+    assert (stored.billing_street, stored.billing_postal_code, stored.billing_city) == (
+        "Rua das Tulipas, Lote 36",
+        "8000-123",
+        "Faro",
+    )
+    call = gateway.create_calls[0]
+    assert call["billing_street"] == "Rua das Tulipas, Lote 36"
+    assert call["billing_postal_code"] == "8000-123"
+    assert call["billing_city"] == "Faro"
+
+
+@pytest.mark.parametrize(
+    "missing", ["billing_street", "billing_postal_code", "billing_city"]
+)
+def test_initiate_with_a_nif_needs_the_whole_address(
+    auth_client, email_sender, db_session, gateway, missing
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+    body = {**INITIATE, **ADDRESS, "nif": "123456789"}
+    body[missing] = "  "
+
+    response = auth_client.post(INITIATE_URL, json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalar(select(func.count()).select_from(Transaction)) == 0
+    assert gateway.create_calls == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("billing_postal_code", "8000"),
+        ("billing_postal_code", "80001-23"),
+        ("billing_postal_code", "abcd-efg"),
+        ("billing_street", "Rua"),
+        ("billing_street", "x" * 201),
+        ("billing_city", "F"),
+    ],
+)
+def test_initiate_rejects_a_bad_address(
+    auth_client, email_sender, db_session, gateway, field, value
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789", field: value}
+    )
+
+    assert response.status_code == 422
+    assert gateway.create_calls == []
+
+
+def test_an_address_without_a_nif_is_not_kept(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    response = auth_client.post(INITIATE_URL, json={**INITIATE, **ADDRESS})
+
+    assert response.status_code == 201
+    stored = db_session.scalar(select(Transaction))
+    assert stored.billing_street is stored.billing_postal_code is None
+    assert stored.billing_city is None
+    assert gateway.create_calls[0]["billing_street"] is None
+
+
+def test_the_address_is_never_returned_by_the_api(
+    auth_client, email_sender, db_session, gateway
+):
+    authenticate(auth_client, email_sender, db_session)
+    seed_ticket_tiers(db_session)
+
+    created = auth_client.post(
+        INITIATE_URL, json={**INITIATE, **ADDRESS, "nif": "123456789"}
+    )
+    read = auth_client.get(transaction_url(created.json()["reference"]))
+
+    assert "Tulipas" not in created.text + read.text
+    assert not any(key.startswith("billing") for key in created.json() | read.json())
 
 
 def test_initiate_normalizes_phone_number(

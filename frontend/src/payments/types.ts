@@ -56,6 +56,10 @@ export type InitiateRequest = {
   phone: string;
   /** NIF para a fatura (opcional): 9 algarismos com o de controlo certo; o backend recusa os inválidos com 422. */
   nif?: string;
+  /** Morada da fatura: obrigatória com NIF (o servidor recusa com 422 se faltar) e ignorada sem ele. */
+  billing_street?: string;
+  billing_postal_code?: string;
+  billing_city?: string;
   /** O preço (cêntimos) que a pessoa viu para um bilhete. Se entretanto mudou (acabou o Early Bird), o servidor recusa com 409 em vez de cobrar outro valor. */
   expected_price_cents?: number;
 };
