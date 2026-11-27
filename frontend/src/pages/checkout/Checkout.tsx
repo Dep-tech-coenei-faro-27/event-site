@@ -444,12 +444,11 @@ function CheckoutForm() {
 
               {current && !current.is_student && (
                 <div className="auth-field checkout-code">
-                  <label htmlFor="discount-code">
-                    <span>Código de desconto (opcional)</span>
-                  </label>
+                  <span id="discount-code-label">Código de desconto (opcional)</span>
                   <div className="checkout-code__row">
                     <input
                       id="discount-code"
+                      aria-labelledby="discount-code-label"
                       type="text"
                       name="discount_code"
                       autoComplete="off"

@@ -28,6 +28,20 @@ def test_the_code_is_compared_without_case_or_spaces():
     assert normalize_discount_code(None) is None
 
 
+@pytest.mark.parametrize(
+    "lookalike",
+    [
+        "ALGARVEEVOLUTıON",  # dotless i
+        "ALGARVEEVOLUTİON",  # dotted capital I
+        "ſlgarveevolution",  # long s
+        "ＡＬＧＡＲＶＥＥＶＯＬＵＴＩＯＮ",  # full-width letters
+        "ALGARVE\u200bEVOLUTION",  # zero-width space
+    ],
+)
+def test_a_lookalike_spelling_is_not_the_code(lookalike):
+    assert discount_percent(normalize_discount_code(lookalike) or "") is None
+
+
 def test_the_only_code_is_ten_percent():
     assert DISCOUNT_CODES == {"ALGARVEEVOLUTION": 10}
     assert discount_percent("ALGARVEEVOLUTION") == 10

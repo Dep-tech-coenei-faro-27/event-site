@@ -110,12 +110,14 @@ html body[data-page="checkout"][data-page] main .checkout-code__row input {
 html body[data-page="checkout"][data-page] main .checkout-code__button {
   flex: 0 0 auto;
   padding: 0 16px;
-  border: 1px solid currentColor;
-  border-radius: 8px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
+  color: #d7e3f4;
+  font:
+    600 12px Montserrat,
+    sans-serif;
   cursor: pointer;
 }
 html body[data-page="checkout"][data-page] main .checkout-code__button:disabled {

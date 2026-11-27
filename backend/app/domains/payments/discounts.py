@@ -14,8 +14,13 @@ def normalize_discount_code(value: str | None) -> str | None:
     """The code as compared: no spaces, upper case; ``None`` if nothing is left."""
     if value is None:
         return None
-    cleaned = "".join(value.split()).upper()
-    return cleaned or None
+    cleaned = "".join(value.split())
+    if not cleaned:
+        return None
+    # Only plain ASCII is folded to upper case: ``str.upper`` also turns letters like
+    # the dotless i or the long s into I and S, which would make a code that is not
+    # the one we gave match. Anything else is kept as typed and never matches.
+    return cleaned.upper() if cleaned.isascii() else cleaned
 
 
 def discount_percent(code: str) -> int | None:
