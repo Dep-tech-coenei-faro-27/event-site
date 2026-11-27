@@ -19,6 +19,7 @@ from app.core.email.templates import (
     build_ticket_email,
 )
 from app.core.qr import render_qr_png
+from app.domains.payments.discounts import discount_percent, price_with_discount
 from app.domains.payments.events import notify
 from app.domains.payments.gateway import (
     AlreadyRefundedError,
@@ -38,6 +39,7 @@ from app.domains.payments.models import (
     TransactionStatus,
 )
 from app.domains.payments.schemas import (
+    DiscountCheckRead,
     PaymentInitiateRequest,
     TicketTierRead,
     TransactionRead,
@@ -79,6 +81,12 @@ class PriceChangedError(PaymentError):
 
 class StudentVerificationRequiredError(PaymentError):
     status_code = 403
+
+
+class DiscountCodeError(PaymentError):
+    """The code does not exist, or does not apply to this modality (422)."""
+
+    status_code = 422
 
 
 class AlreadyHasTicketError(PaymentError):
@@ -361,6 +369,30 @@ def price_in_force(
     return row.price_cents, row.normal_price_cents
 
 
+def _discounted_price(code: str, is_student: bool, price_cents: int) -> int:
+    """The price after the code; the same rules for the quote and for the payment."""
+    percent = discount_percent(code)
+    if percent is None:
+        raise DiscountCodeError("Discount code is not valid")
+    if is_student:
+        raise DiscountCodeError("Discount code is not valid for student tickets")
+    return price_with_discount(price_cents, percent)
+
+
+def quote_discount(db: Session, tier: TicketTier, code: str) -> DiscountCheckRead:
+    """What this code would make a modality cost now. Read-only; nothing is reserved."""
+    row = db.scalar(select(TicketTierPrice).where(TicketTierPrice.tier == tier))
+    if row is None or row.price_cents is None:
+        raise TicketOfficeClosedError("Ticket sales are not open yet")
+    price_cents, _ = price_in_force(row, early_bird_is_over(db))
+    discounted = _discounted_price(code, row.is_student, price_cents)
+    return DiscountCheckRead(
+        code=code,
+        percent=discount_percent(code) or 0,
+        price_cents=discounted,
+    )
+
+
 def initiate_payment(
     db: Session,
     user: User,
@@ -407,6 +439,14 @@ def initiate_payment(
     # same transaction), so this purchase is priced from the stored prices.
     _end_early_bird_for_good(db, rows)
     unit_price_cents, _ = price_in_force(tier, early_bird_is_over(db))
+    if payload.discount_code is not None:
+        try:
+            unit_price_cents = _discounted_price(
+                payload.discount_code, tier.is_student, unit_price_cents
+            )
+        except DiscountCodeError:
+            db.rollback()
+            raise
 
     if tier.is_student and (
         user.student_verification_status is not StudentVerificationStatus.VERIFIED
@@ -445,6 +485,7 @@ def initiate_payment(
         billing_street=payload.billing_street,
         billing_postal_code=payload.billing_postal_code,
         billing_city=payload.billing_city,
+        discount_code=payload.discount_code,
         provider=gateway.name,
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )
@@ -483,6 +524,11 @@ def initiate_payment(
                     "billing_city": transaction.billing_city,
                 }
                 if transaction.nif
+                else {}
+            ),
+            **(
+                {"discount_code": transaction.discount_code}
+                if transaction.discount_code
                 else {}
             ),
         )

@@ -143,6 +143,9 @@ class Transaction(Base):
     billing_street: Mapped[str | None] = mapped_column(String(200), nullable=True)
     billing_postal_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
     billing_city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # The discount code the buyer used, if any (amount_cents is already the price
+    # after the discount). Not personal data; kept to know where a discount came from.
+    discount_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     provider: Mapped[str] = mapped_column(String(30))
     provider_reference: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getTiers: vi.fn(),
   getAccount: vi.fn(),
   initiatePayment: vi.fn(),
+  checkDiscount: vi.fn(),
   user: { current: null as null | { name: string; email: string } },
 }));
 
@@ -16,6 +17,7 @@ vi.mock("../../payments/api", () => ({
   getTiers: mocks.getTiers,
   getAccount: mocks.getAccount,
   initiatePayment: mocks.initiatePayment,
+  checkDiscount: mocks.checkDiscount,
 }));
 vi.mock("../../utils/useAuth", () => ({
   useAuth: () => ({ user: mocks.user.current, loading: false }),
@@ -57,6 +59,7 @@ beforeEach(() => {
   mocks.getTiers.mockResolvedValue(TIERS);
   mocks.getAccount.mockResolvedValue(account());
   mocks.initiatePayment.mockReset();
+  mocks.checkDiscount.mockReset();
   sessionStorage.clear();
 });
 afterEach(() => {
@@ -495,5 +498,74 @@ describe("checkout", () => {
     renderAt();
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/bilhetes/checkout/aguardar"));
     expect(sessionStorage.getItem("enei.payment.reference")).toBe("ENEI-WAIT");
+  });
+
+  describe("código de desconto", () => {
+    const QUOTE = { code: "ALGARVEEVOLUTION", percent: 10, price_cents: 4500, currency: "EUR" };
+    const applyCode = async (value = "algarveevolution") => {
+      fireEvent.change(await screen.findByLabelText(/código de desconto/i), { target: { value } });
+      fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
+    };
+
+    it("o campo aparece nas modalidades que não são de estudante e não nas de estudante", async () => {
+      mocks.getAccount.mockResolvedValue(account({ student_verification_status: "verified" }));
+      renderAt("/bilhetes/checkout?bilhete=acesso");
+      await waitFor(() => expect(screen.getByRole("radio", { name: /apenas acesso/i })).toBeChecked());
+      expect(screen.queryByLabelText(/código de desconto/i)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("radio", { name: /passe geral/i }));
+      expect(await screen.findByLabelText(/código de desconto/i)).toBeInTheDocument();
+    });
+
+    it("aplica o código: o resumo mostra o desconto e o total que o servidor deu, e paga esse preço", async () => {
+      mocks.checkDiscount.mockResolvedValue(QUOTE);
+      mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+      renderAt();
+      await applyCode();
+      expect(await screen.findByText(/código ALGARVEEVOLUTION aplicado: 10% de desconto/i)).toBeInTheDocument();
+      expect(mocks.checkDiscount).toHaveBeenCalledWith({ ticket_tier: "geral", code: "algarveevolution" });
+      const summary = screen.getByRole("complementary");
+      expect(within(summary).getByText(/−\s*5,00/)).toBeInTheDocument();
+      expect(within(summary).getAllByText(/45,00/).length).toBeGreaterThan(0);
+      await fillAndSubmit();
+      await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+      expect(mocks.initiatePayment).toHaveBeenCalledWith({
+        ticket_tier: "geral",
+        phone: "912345678",
+        discount_code: "ALGARVEEVOLUTION",
+        expected_price_cents: 4500,
+      });
+    });
+
+    it("um código inválido diz porquê e o preço fica como estava", async () => {
+      mocks.checkDiscount.mockRejectedValue(new ApiError(422, "x", "Discount code is not valid"));
+      renderAt();
+      await applyCode("NOPE");
+      expect(await screen.findByText(/este código não é válido/i)).toBeInTheDocument();
+      expect(within(screen.getByRole("complementary")).queryByText(/desconto/i)).not.toBeInTheDocument();
+      mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-ABC" });
+      await fillAndSubmit();
+      await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+      expect(mocks.initiatePayment.mock.calls[0][0]).toEqual({ ticket_tier: "geral", phone: "912345678", expected_price_cents: 5000 });
+    });
+
+    it("remover o código volta ao preço sem desconto", async () => {
+      mocks.checkDiscount.mockResolvedValue(QUOTE);
+      renderAt();
+      await applyCode();
+      fireEvent.click(await screen.findByRole("button", { name: /remover/i }));
+      expect(screen.queryByText(/aplicado/i)).not.toBeInTheDocument();
+      expect(within(screen.getByRole("complementary")).queryByText(/desconto/i)).not.toBeInTheDocument();
+    });
+
+    it("se o servidor recusar o código ao pagar, sai do resumo e avisa junto ao campo", async () => {
+      mocks.checkDiscount.mockResolvedValue(QUOTE);
+      mocks.initiatePayment.mockRejectedValue(new ApiError(422, "x", "Discount code is not valid for student tickets"));
+      renderAt();
+      await applyCode();
+      await screen.findByText(/aplicado/i);
+      await fillAndSubmit();
+      expect(await screen.findByText(/não vale para as modalidades de estudante/i)).toBeInTheDocument();
+      expect(screen.queryByText(/código ALGARVEEVOLUTION aplicado/i)).not.toBeInTheDocument();
+    });
   });
 });

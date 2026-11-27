@@ -11,6 +11,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.domains.payments.discounts import normalize_discount_code
 from app.domains.payments.models import TicketTier, TransactionStatus
 
 _PORTUGUESE_MOBILE = re.compile(r"9\d{8}")
@@ -104,6 +105,9 @@ class PaymentInitiateRequest(BaseModel):
     billing_street: str | None = Field(default=None, max_length=300)
     billing_postal_code: str | None = Field(default=None, max_length=16)
     billing_city: str | None = Field(default=None, max_length=200)
+    # A discount code (checked on the server; unknown or student -> 422). Only the
+    # spelling is cleaned here.
+    discount_code: str | None = Field(default=None, max_length=64)
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
     # The price (cents) the buyer was shown for one ticket. When it is sent and the
@@ -121,6 +125,11 @@ class PaymentInitiateRequest(BaseModel):
     @classmethod
     def validate_nif(cls, value: str | None) -> str | None:
         return normalize_nif(value)
+
+    @field_validator("discount_code")
+    @classmethod
+    def validate_discount_code(cls, value: str | None) -> str | None:
+        return normalize_discount_code(value)
 
     @field_validator("billing_street")
     @classmethod
@@ -177,3 +186,24 @@ class TicketTierRead(BaseModel):
     available: bool
     # When the ticket office opens, only while it has not opened yet (SALES_OPEN_AT).
     opens_at: datetime | None = None
+
+
+class DiscountCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    ticket_tier: TicketTier
+    code: str = Field(max_length=64)
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, value: str) -> str:
+        return normalize_discount_code(value) or ""
+
+
+class DiscountCheckRead(BaseModel):
+    """What the checkout shows for a valid code: the price the server will charge."""
+
+    code: str
+    percent: int
+    price_cents: int
+    currency: str = "EUR"
