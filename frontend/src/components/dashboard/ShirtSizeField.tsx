@@ -59,7 +59,7 @@ export default function ShirtSizeField({ ticket, onSaved }: { ticket: AccountTic
               setChoice(event.target.value as ShirtSize | "");
               setMessage(null);
             }}
-            className={`border ${BORDER} bg-transparent px-3 py-2 text-[13px] font-bold text-white`}
+            className={`h-11 min-w-[120px] rounded-[2px] border ${BORDER} bg-transparent px-3 text-[13px] font-bold text-white`}
           >
             <option value="" disabled>
               Escolhe
@@ -74,7 +74,7 @@ export default function ShirtSizeField({ ticket, onSaved }: { ticket: AccountTic
             type="button"
             onClick={() => void save()}
             disabled={saving || choice === "" || choice === saved}
-            className="rounded-full bg-acento-principal px-5 py-2 text-[12px] font-bold uppercase tracking-wide text-[#02101c] disabled:opacity-50"
+            className={`h-11 rounded-[2px] border ${BORDER} bg-transparent px-4 text-[12px] font-semibold text-[#d7e3f4] transition-colors hover:bg-white/5 disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent`}
           >
             {saving ? "A guardar…" : "Guardar"}
           </button>
