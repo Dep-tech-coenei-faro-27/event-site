@@ -256,6 +256,41 @@ describe("Profile (/users/me)", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  describe("camisola", () => {
+    const STUDENT = {
+      ...TICKET, tier: "acesso", tier_name: "Apenas acesso", shirt_applies: true, shirt_size: null,
+      shirt_can_change: true, shirt_change_until: "2027-04-01T00:00:00+01:00",
+    };
+
+    it("bilhete de estudante sem tamanho: aviso e seletor para escolher", async () => {
+      stubApi({ "/users/me": json(200, { ...WITH_TICKET, ticket: STUDENT }) });
+      open();
+      expect(await screen.findByRole("heading", { name: /camisola do enei/i })).toBeInTheDocument();
+      expect(screen.getByText(/ainda não escolheste o tamanho/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/tamanho \(unissexo\)/i)).toBeInTheDocument();
+    });
+
+    it("guardar o tamanho chama a API e volta a pedir o bilhete", async () => {
+      stubApi({
+        "/users/me/shirt-size": json(200, { ...STUDENT, shirt_size: "L" }),
+        "/users/me": [json(200, { ...WITH_TICKET, ticket: STUDENT }), json(200, { ...WITH_TICKET, ticket: { ...STUDENT, shirt_size: "L" } })],
+      });
+      open();
+      fireEvent.change(await screen.findByLabelText(/tamanho \(unissexo\)/i), { target: { value: "L" } });
+      fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+      expect(await screen.findByText("Tamanho guardado.")).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByText(/ainda não escolheste o tamanho/i)).toBeNull());
+      expect(screen.getByLabelText(/tamanho \(unissexo\)/i)).toHaveValue("L");
+    });
+
+    it("bilhete sem camisola (modalidade que não é de estudante): nada de camisola", async () => {
+      stubApi({ "/users/me": json(200, { ...WITH_TICKET, ticket: { ...TICKET, shirt_applies: false, shirt_size: null } }) });
+      open();
+      expect(await screen.findByText("ENEI-OK1")).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: /camisola do enei/i })).toBeNull();
+    });
+  });
+
   it("vazio (sem bilhete nem pagamento): «Ainda não tens uma inscrição»", async () => {
     stubApi({ "/users/me": json(200, BASE_USER) });
     open();

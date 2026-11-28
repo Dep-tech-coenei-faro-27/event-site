@@ -339,7 +339,11 @@ def test_student_tier_is_allowed_for_a_verified_student(
 
     response = auth_client.post(
         INITIATE_URL,
-        json={"ticket_tier": TicketTier.ACESSO.value, "phone": "912345678"},
+        json={
+            "ticket_tier": TicketTier.ACESSO.value,
+            "phone": "912345678",
+            "shirt_size": "M",
+        },
     )
 
     assert response.status_code == 201

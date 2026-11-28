@@ -9,6 +9,7 @@ VERIFICATION_EMAIL_SUBJECT = "Confirma o teu email"
 PASSWORD_RESET_SUBJECT = "Recuperação de Password"
 PASSWORD_CHANGED_SUBJECT = "A tua password foi alterada"
 TICKET_EMAIL_SUBJECT = "O teu bilhete para o ENEI 2027"
+SHIRT_SIZE_SUBJECT = "Qual é o tamanho da tua camisola?"
 TICKET_QR_CID = "ticket-qr"
 TICKET_PATH = "/perfil"
 FORGOT_PASSWORD_PATH = "/conta/recuperar"
@@ -23,6 +24,8 @@ _PASSWORD_RESET_HTML = Path(__file__).with_name("password_reset_email.html")
 _PASSWORD_RESET_TEXT = Path(__file__).with_name("password_reset_email.txt")
 _PASSWORD_CHANGED_HTML = Path(__file__).with_name("password_changed_email.html")
 _PASSWORD_CHANGED_TEXT = Path(__file__).with_name("password_changed_email.txt")
+_SHIRT_SIZE_HTML = Path(__file__).with_name("shirt_size_email.html")
+_SHIRT_SIZE_TEXT = Path(__file__).with_name("shirt_size_email.txt")
 
 
 def render_template(template: str, values: dict[str, str], *, html: bool = True) -> str:
@@ -120,4 +123,13 @@ def build_password_changed_email(name: str) -> tuple[str, str]:
         _PASSWORD_CHANGED_HTML,
         _PASSWORD_CHANGED_TEXT,
         {"FIRST_NAME": _first_name(name), "PASSWORD_RESET_REQUEST_URL": request_url},
+    )
+
+
+def build_shirt_size_email(name: str) -> tuple[str, str]:
+    """The email that asks a student for the shirt size, with a link to the account."""
+    return _render_pair(
+        _SHIRT_SIZE_HTML,
+        _SHIRT_SIZE_TEXT,
+        {"FIRST_NAME": _first_name(name), "TICKET_URL": ticket_url()},
     )

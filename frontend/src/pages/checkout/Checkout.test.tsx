@@ -447,9 +447,62 @@ describe("checkout", () => {
     renderAt("/bilhetes/checkout?bilhete=acesso");
     await waitFor(() => expect(screen.getByRole("radio", { name: /apenas acesso/i })).toBeChecked());
     expect(screen.queryByRole("link", { name: /comprovativo/i })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "M" }));
     await fillAndSubmit();
     await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/bilhetes/checkout/aguardar"));
-    expect(mocks.initiatePayment).toHaveBeenCalledWith({ ticket_tier: "acesso", phone: "912345678", expected_price_cents: 2500 });
+    expect(mocks.initiatePayment).toHaveBeenCalledWith({
+      ticket_tier: "acesso",
+      phone: "912345678",
+      shirt_size: "M",
+      expected_price_cents: 2500,
+    });
+  });
+
+  describe("tamanho da camisola", () => {
+    const openStudent = async () => {
+      mocks.getAccount.mockResolvedValue(account({ student_verification_status: "verified" }));
+      mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-EST" });
+      renderAt("/bilhetes/checkout?bilhete=acesso");
+      await waitFor(() => expect(screen.getByRole("radio", { name: /apenas acesso/i })).toBeChecked());
+    };
+
+    it("as modalidades de estudante pedem o tamanho, de XS a XXL, sem nenhum escolhido", async () => {
+      await openStudent();
+      const group = screen.getByRole("group", { name: /tamanho da camisola/i });
+      const sizes = within(group).getAllByRole("radio");
+      expect(sizes.map((size) => (size as HTMLInputElement).value)).toEqual(["XS", "S", "M", "L", "XL", "XXL"]);
+      expect(sizes.every((size) => !(size as HTMLInputElement).checked)).toBe(true);
+    });
+
+    it("sem tamanho não se paga, e o servidor não recebe o pedido", async () => {
+      await openStudent();
+      fireEvent.change(await screen.findByLabelText(/número de telemóvel/i), { target: { value: "912345678" } });
+      fireEvent.click(screen.getByRole("checkbox"));
+      expect(screen.getByRole("button", { name: /pagar com mb way/i })).toBeDisabled();
+      fireEvent.click(screen.getByRole("radio", { name: "XXL" }));
+      expect(screen.getByRole("button", { name: /pagar com mb way/i })).toBeEnabled();
+      expect(mocks.initiatePayment).not.toHaveBeenCalled();
+    });
+
+    it("as modalidades que não são de estudante não têm camisola e não a enviam", async () => {
+      mocks.initiatePayment.mockResolvedValue({ reference: "ENEI-GER" });
+      renderAt();
+      await screen.findByLabelText(/número de telemóvel/i);
+      expect(screen.queryByRole("group", { name: /tamanho da camisola/i })).toBeNull();
+      await fillAndSubmit();
+      await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+      expect(mocks.initiatePayment.mock.calls[0][0]).not.toHaveProperty("shirt_size");
+    });
+
+    it("trocar de estudante para geral tira o campo e o tamanho não segue no pedido", async () => {
+      await openStudent();
+      fireEvent.click(screen.getByRole("radio", { name: "S" }));
+      fireEvent.click(screen.getByRole("radio", { name: /passe geral/i }));
+      expect(screen.queryByRole("group", { name: /tamanho da camisola/i })).toBeNull();
+      await fillAndSubmit();
+      await waitFor(() => expect(mocks.initiatePayment).toHaveBeenCalledTimes(1));
+      expect(mocks.initiatePayment.mock.calls[0][0]).not.toHaveProperty("shirt_size");
+    });
   });
 
   it("falha de rede: avisa e não repete o pedido sozinho", async () => {

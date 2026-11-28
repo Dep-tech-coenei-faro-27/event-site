@@ -26,6 +26,28 @@ class TicketTier(StrEnum):
     GERAL_REFEICOES = "geral_refeicoes"
 
 
+class ShirtSize(StrEnum):
+    """The sizes of the event shirt (unisex), given by the students who get one."""
+
+    XS = "XS"
+    S = "S"
+    M = "M"
+    L = "L"
+    XL = "XL"
+    XXL = "XXL"
+
+
+def shirt_size_type(name: str) -> SAEnum:
+    return SAEnum(
+        ShirtSize,
+        name=name,
+        native_enum=False,
+        create_constraint=True,
+        values_callable=lambda enum: [member.value for member in enum],
+        length=3,
+    )
+
+
 class TransactionStatus(StrEnum):
     """Lifecycle of a payment. Pending ones expire after the MB WAY window.
 
@@ -146,6 +168,11 @@ class Transaction(Base):
     # The discount code the buyer used, if any (amount_cents is already the price
     # after the discount). Not personal data; kept to know where a discount came from.
     discount_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # The shirt size chosen at checkout; only the student modalities (they get a shirt).
+    # It passes to the ticket when the payment is confirmed.
+    shirt_size: Mapped[ShirtSize | None] = mapped_column(
+        shirt_size_type("ck_transactions_shirt_size"), nullable=True
+    )
     provider: Mapped[str] = mapped_column(String(30))
     provider_reference: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

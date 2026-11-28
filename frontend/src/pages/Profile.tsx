@@ -5,6 +5,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import SecondaryButton from "../components/SecundaryButton";
 import AccountLayout from "../components/dashboard/AccountLayout";
 import AccountPanel from "../components/dashboard/AccountPanel";
+import ShirtSizeField from "../components/dashboard/ShirtSizeField";
 import StudentProofSection from "../components/dashboard/StudentProofSection";
 import { BORDER, panelClass } from "../components/dashboard/AccountStyles";
 import { useAuth } from "../utils/useAuth";
@@ -145,6 +146,8 @@ export default function ProfilePage() {
                   </p>
                 </section>
               </div>
+
+              {ticket?.shirt_applies && <ShirtSizeField ticket={ticket} onSaved={revalidate} />}
 
               <footer
                 className={`flex flex-wrap items-center gap-x-6 gap-y-2 border-t ${BORDER} bg-white/[0.01] px-5 py-3 text-[12px] text-cinza-texto min-[621px]:px-6`}

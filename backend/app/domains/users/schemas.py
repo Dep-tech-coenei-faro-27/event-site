@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_password
 from app.core.validators import AsciiEmail, validate_name
+from app.domains.payments.models import ShirtSize
 from app.domains.users.enums import Role
 from app.domains.users.models import StudentVerificationStatus
 
@@ -69,6 +70,13 @@ class TicketSummaryRead(BaseModel):
     tier_name: str
     holder_name: str
     paid_at: datetime | None = None
+    # The shirt: only the student modalities get one (``shirt_applies``). The size is
+    # null until the person gives it; it can be changed while ``shirt_can_change``
+    # (until ``shirt_change_until``).
+    shirt_applies: bool = False
+    shirt_size: ShirtSize | None = None
+    shirt_can_change: bool = False
+    shirt_change_until: datetime | None = None
 
 
 class PendingPaymentRead(BaseModel):

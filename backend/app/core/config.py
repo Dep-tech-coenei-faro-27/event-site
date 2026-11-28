@@ -1,7 +1,7 @@
 import json
 import re
 import warnings
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -176,6 +176,13 @@ class Settings(BaseSettings):
     # unset: no opening date (sales open as soon as payments are on and the modality
     # has a price).
     SALES_OPEN_AT: datetime | None = None
+    # Until when a student may change the size of the shirt on the account page: an ISO
+    # 8601 date with a timezone. By default the start of the event, so the change is
+    # always open until it is set to the day the shirts are ordered. Empty or unset:
+    # the default. It never stops the choice at checkout, which is always required.
+    SHIRT_SIZE_CHANGE_UNTIL: datetime = datetime(
+        2027, 4, 1, tzinfo=timezone(timedelta(hours=1))
+    )
     # Stripe MB WAY (PaymentIntents API). A sandbox key starts with sk_test_, a real
     # one with sk_live_; a restricted key (rk_) works too.
     STRIPE_SECRET_KEY: str = ""
@@ -268,6 +275,23 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SALES_OPEN_AT must include a timezone, "
                 "for example 2026-11-02T09:00:00+00:00"
+            )
+        return value
+
+    @field_validator("SHIRT_SIZE_CHANGE_UNTIL", mode="before")
+    @classmethod
+    def empty_shirt_deadline_means_the_default(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return cls.model_fields["SHIRT_SIZE_CHANGE_UNTIL"].default
+        return value
+
+    @field_validator("SHIRT_SIZE_CHANGE_UNTIL")
+    @classmethod
+    def shirt_deadline_needs_a_timezone(cls, value: datetime):
+        if value.tzinfo is None:
+            raise ValueError(
+                "SHIRT_SIZE_CHANGE_UNTIL must include a timezone, "
+                "for example 2027-04-01T00:00:00+01:00"
             )
         return value
 

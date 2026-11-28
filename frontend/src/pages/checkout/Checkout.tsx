@@ -4,7 +4,7 @@ import mbwayLogo from "../../assets/mbway-logo.svg";
 import { checkDiscount, getAccount, getTiers, initiatePayment } from "../../payments/api";
 import { describeDiscountError, describeInitiateError, type InitiateFailure } from "../../payments/errors";
 import { saveReference } from "../../payments/reference";
-import type { Account, DiscountQuote, Tier } from "../../payments/types";
+import { SHIRT_SIZES, type Account, type DiscountQuote, type ShirtSize, type Tier } from "../../payments/types";
 import { useAuth } from "../../utils/useAuth";
 import { useBodyPage } from "../../utils/useBodyPage";
 import { usePageMeta } from "../../utils/usePageMeta";
@@ -84,6 +84,8 @@ function CheckoutForm() {
   const [discount, setDiscount] = useState<(DiscountQuote & { tier: string }) | null>(null);
   const [codeMessage, setCodeMessage] = useState<string | null>(null);
   const [codeChecking, setCodeChecking] = useState(false);
+  // Tamanho da camisola: só as modalidades de estudante levam camisola e nelas é obrigatório (sem valor por omissão).
+  const [shirtSize, setShirtSize] = useState<ShirtSize | "">("");
 
   // As modalidades e a conta (para retomar uma compra que já existe).
   useEffect(() => {
@@ -167,7 +169,14 @@ function CheckoutForm() {
   const addressMessages = addressErrors(address);
   const addressValid = !addressMessages.street && !addressMessages.postalCode && !addressMessages.city;
   const canSubmit = Boolean(
-    current && isOpen(current) && phoneValid && !nifMessage && (!wantsInvoice || addressValid) && accepted && !submitting,
+    current &&
+      isOpen(current) &&
+      phoneValid &&
+      !nifMessage &&
+      (!wantsInvoice || addressValid) &&
+      (!current.is_student || shirtSize !== "") &&
+      accepted &&
+      !submitting,
   );
 
   // Mudou a modalidade com um código aplicado: pede-se o preço desta (ou tira-se o código, se é de estudante).
@@ -243,6 +252,8 @@ function CheckoutForm() {
         phone: normalizePhone(phone),
         ...(cleanNif(nif) ? { nif: cleanNif(nif), ...cleanAddress(address) } : {}),
         ...(discounted ? { discount_code: discounted.code } : {}),
+        // O tamanho só viaja nas modalidades de estudante: nas outras o servidor recusa-o.
+        ...(current.is_student && shirtSize !== "" ? { shirt_size: shirtSize } : {}),
         // O preço que está no ecrã: se mudou entretanto, o servidor recusa em vez de cobrar outro valor.
         ...(price !== null ? { expected_price_cents: price } : {}),
       });
@@ -396,6 +407,28 @@ function CheckoutForm() {
                 </fieldset>
               )}
               {tiers?.some((tier) => tier.is_student) && !verifiedStudent && <StudentHint status={student} />}
+
+              {current?.is_student && (
+                <fieldset className="checkout-shirt">
+                  <legend>Tamanho da camisola</legend>
+                  <div className="checkout-shirt__options">
+                    {SHIRT_SIZES.map((size) => (
+                      <label key={size} className={`checkout-shirt__option${shirtSize === size ? " is-selected" : ""}`}>
+                        <input
+                          type="radio"
+                          name="shirt_size"
+                          value={size}
+                          checked={shirtSize === size}
+                          required
+                          onChange={() => setShirtSize(size)}
+                        />
+                        <span>{size}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <small>A modalidade de estudante inclui uma camisola unissexo. Podes mudar o tamanho depois, na tua área pessoal.</small>
+                </fieldset>
+              )}
             </section>
 
             <section className="checkout-panel" aria-labelledby="payment-heading">

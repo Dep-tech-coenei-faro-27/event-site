@@ -40,7 +40,7 @@ export type InitiateFailure = {
   /** Só em `rate-limited`: segundos até se poder tentar outra vez (0 se o servidor não disse). */
   retryAfterSeconds?: number;
   /** Só em `invalid-input`: o campo em falta ou inválido, quando se sabe. */
-  field?: "phone" | "nif" | "ticket_tier" | "billing_address" | "discount_code";
+  field?: "phone" | "nif" | "ticket_tier" | "billing_address" | "discount_code" | "shirt_size";
 };
 
 const DETAIL = {
@@ -52,6 +52,8 @@ const DETAIL = {
   salesClosed: "Ticket sales are not open yet",
   discountInvalid: "Discount code is not valid",
   discountStudent: "Discount code is not valid for student tickets",
+  shirtRequired: "Shirt size is required for student tickets",
+  shirtNotApplicable: "Shirt size only applies to student tickets",
   paymentsOff: "Payments are currently disabled.",
 } as const;
 
@@ -91,6 +93,14 @@ function invalidInput(detail: unknown): InitiateFailure {
       field: "billing_address",
       action: "fix-field",
       message: "Confirma a morada da fatura: rua, código postal com 7 algarismos e localidade.",
+    };
+  }
+  if (fields.includes("shirt_size")) {
+    return {
+      kind: "invalid-input",
+      field: "shirt_size",
+      action: "fix-field",
+      message: "Escolhe o tamanho da camisola.",
     };
   }
   if (fields.includes("ticket_tier")) {
@@ -198,6 +208,17 @@ export function describeInitiateError(error: unknown): InitiateFailure {
           field: "discount_code",
           action: "fix-field",
           message: discountMessage(detail),
+        };
+      }
+      if (detail === DETAIL.shirtRequired || detail === DETAIL.shirtNotApplicable) {
+        return {
+          kind: "invalid-input",
+          field: "shirt_size",
+          action: "fix-field",
+          message:
+            detail === DETAIL.shirtRequired
+              ? "Escolhe o tamanho da camisola."
+              : "Esta modalidade não inclui camisola. Escolhe outra vez a modalidade.",
         };
       }
       return invalidInput(detail);

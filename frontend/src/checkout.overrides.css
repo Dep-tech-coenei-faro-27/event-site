@@ -136,3 +136,64 @@ html body[data-page="checkout"][data-page] main .checkout-code input[aria-invali
 html body[data-page="checkout"][data-page] main .checkout-code > small[role="alert"] {
   color: #f6d2cd;
 }
+
+/* Tamanho da camisola (modalidades de estudante) */
+html body[data-page="checkout"][data-page] main .checkout-shirt {
+  margin: 18px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: #d7e3f4;
+  font:
+    600 13px Montserrat,
+    sans-serif;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__option {
+  position: relative;
+  display: inline-flex;
+  min-width: 56px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: #d7e3f4;
+  font:
+    700 13px Montserrat,
+    sans-serif;
+  cursor: pointer;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__option:hover {
+  border-color: #d7e3f4;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__option.is-selected {
+  border-color: #23caff;
+  background: rgba(35, 202, 255, 0.12);
+  color: #ffffff;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt__option:has(input:focus-visible) {
+  outline: 2px solid #23caff;
+  outline-offset: 2px;
+}
+html body[data-page="checkout"][data-page] main .checkout-shirt > small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}

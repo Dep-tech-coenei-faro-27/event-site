@@ -14,7 +14,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.domains.payments.models import TicketTier
+from app.domains.payments.models import ShirtSize, TicketTier, shirt_size_type
 
 
 class PaymentStatus(StrEnum):
@@ -73,6 +73,11 @@ class Ticket(Base):
         nullable=False,
         default=PaymentStatus.PENDING,
         server_default=PaymentStatus.PENDING.value,
+    )
+    # The shirt size (student modalities only). Asked at checkout; the person can
+    # change it on the account page until SHIRT_SIZE_CHANGE_UNTIL.
+    shirt_size: Mapped[ShirtSize | None] = mapped_column(
+        shirt_size_type("ck_tickets_shirt_size"), nullable=True
     )
     qr_payload: Mapped[str | None] = mapped_column(
         String(255), unique=True, index=True, nullable=True
