@@ -61,6 +61,7 @@ from app.domains.users.models import User
 BASE_URL = os.environ.get("E2E_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 MAX_SECONDS = 120
 PHONE = "912345678"
+SHIRT_SIZE = "M"
 PRICES = {
     TicketTier.ACESSO: 2000,
     TicketTier.REFEICOES: 3000,
@@ -151,9 +152,10 @@ class Person:
         return call("POST", path, body, cookie=self.cookie)
 
     def buy(self, tier: TicketTier, phone: str = PHONE) -> Response:
-        return self.post(
-            "/api/payment/initiate", {"ticket_tier": tier.value, "phone": phone}
-        )
+        body = {"ticket_tier": tier.value, "phone": phone}
+        if tier in STUDENT_TIERS:
+            body["shirt_size"] = SHIRT_SIZE  # the student modalities get a shirt
+        return self.post("/api/payment/initiate", body)
 
 
 # --- database: read what the server queued, and make time pass ------------------
@@ -353,6 +355,11 @@ def sign_up(person: Person) -> None:
 
 
 def pay(person: Person, tier: TicketTier) -> str:
+    if tier in STUDENT_TIERS:
+        without_size = person.post(
+            "/api/payment/initiate", {"ticket_tier": tier.value, "phone": PHONE}
+        )
+        expect(without_size, 422, f"the shirt size is required ({tier.value})")
     started = expect(person.buy(tier), 201, f"start the payment ({tier.value})").body
     check(started["status"] == "pending", "a new payment waits", started["status"])
     check(started["amount_cents"] == PRICES[tier], "price", started["amount_cents"])
@@ -389,6 +396,13 @@ def check_ticket(person: Person, tier: TicketTier, reference: str) -> None:
         "the QR is signed for this ticket",
     )
     check(me["ticket"]["tier"] == tier.value, "the ticket's modality", me["ticket"])
+    student = tier in STUDENT_TIERS
+    check(me["ticket"]["shirt_applies"] is student, "only students get a shirt")
+    check(
+        me["ticket"]["shirt_size"] == (SHIRT_SIZE if student else None),
+        "the shirt size reached the ticket",
+        me["ticket"],
+    )
     check(me["pending_payment"] is None, "nothing waits any more")
 
     emails = queued_emails(person.email, TICKET_EMAIL_SUBJECT)
