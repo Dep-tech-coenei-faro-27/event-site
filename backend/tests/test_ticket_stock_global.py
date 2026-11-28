@@ -202,7 +202,11 @@ def test_simultaneous_buyers_of_different_modalities_never_oversell(
         with Session(bind=test_engine) as session:
             try:
                 barrier.wait(timeout=10)
-                payload = PaymentInitiateRequest(ticket_tier=tier, phone="912345678")
+                payload = PaymentInitiateRequest(
+                    ticket_tier=tier,
+                    phone="912345678",
+                    shirt_size=ShirtSize.M if tier in (COMPLETO, ACESSO) else None,
+                )
                 initiate_payment(
                     session,
                     session.get(User, user_id),
