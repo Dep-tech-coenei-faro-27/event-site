@@ -36,6 +36,10 @@ EMAILS = {
         "FIRST_NAME",
         "PASSWORD_RESET_REQUEST_URL",
     },
+    "enei-shirt-size-email": {
+        "FIRST_NAME",
+        "TICKET_URL",
+    },
 }
 
 MARKER = re.compile(r"\[([A-Z][A-Z_]+)\]")

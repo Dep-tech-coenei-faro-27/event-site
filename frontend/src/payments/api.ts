@@ -1,5 +1,5 @@
 import { http } from "../utils/http";
-import type { Account, DiscountQuote, InitiateRequest, Tier, Transaction } from "./types";
+import type { Account, AccountTicket, DiscountQuote, InitiateRequest, ShirtSize, Tier, Transaction } from "./types";
 
 type HttpOptions = Parameters<typeof http>[1];
 
@@ -17,6 +17,10 @@ export const initiatePayment = (request: InitiateRequest, options?: HttpOptions)
 /** O preço que um código de desconto dá a uma modalidade (precisa de sessão). 422 se o código não existe ou a modalidade é de estudante. */
 export const checkDiscount = (request: { ticket_tier: string; code: string }, options?: HttpOptions) =>
   http<DiscountQuote>("/payment/discount", { ...options, method: "POST", body: request });
+
+/** Dá ou muda o tamanho da camisola do bilhete (só modalidades de estudante, até à data limite). Devolve o bilhete. */
+export const setShirtSize = (shirtSize: ShirtSize, options?: HttpOptions) =>
+  http<AccountTicket>("/users/me/shirt-size", { ...options, method: "PUT", body: { shirt_size: shirtSize } });
 
 /** Estado de um pagamento. Só o dono o vê (para os outros a referência não existe: 404). */
 export const getTransaction = (reference: string, options?: HttpOptions) =>

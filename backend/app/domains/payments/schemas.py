@@ -12,7 +12,7 @@ from pydantic import (
 )
 
 from app.domains.payments.discounts import normalize_discount_code
-from app.domains.payments.models import TicketTier, TransactionStatus
+from app.domains.payments.models import ShirtSize, TicketTier, TransactionStatus
 
 _PORTUGUESE_MOBILE = re.compile(r"9\d{8}")
 
@@ -108,6 +108,9 @@ class PaymentInitiateRequest(BaseModel):
     # A discount code (checked on the server; unknown or student -> 422). It is
     # compared exactly as sent: no trimming and no case folding.
     discount_code: str | None = Field(default=None, max_length=64)
+    # The shirt size, required for the student modalities (they get a shirt) and
+    # refused for the others. XS, S, M, L, XL or XXL, exactly as written.
+    shirt_size: ShirtSize | None = None
     # One ticket per person: the field stays for compatibility but only accepts 1.
     quantity: Literal[1] = 1
     # The price (cents) the buyer was shown for one ticket. When it is sent and the
@@ -207,3 +210,11 @@ class DiscountCheckRead(BaseModel):
     percent: int
     price_cents: int
     currency: str = "EUR"
+
+
+class ShirtSizeUpdate(BaseModel):
+    """The new size of the shirt, from the account page."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    shirt_size: ShirtSize

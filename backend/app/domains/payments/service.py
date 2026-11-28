@@ -33,6 +33,7 @@ from app.domains.payments.gateway import (
     stripe_status,
 )
 from app.domains.payments.models import (
+    ShirtSize,
     TicketTier,
     TicketTierPrice,
     Transaction,
@@ -87,6 +88,24 @@ class DiscountCodeError(PaymentError):
     """The code does not exist, or does not apply to this modality (422)."""
 
     status_code = 422
+
+
+class ShirtSizeError(PaymentError):
+    """The shirt size is missing for a student modality, or given for another (422)."""
+
+    status_code = 422
+
+
+class NoShirtTicketError(PaymentError):
+    """The person has no paid ticket of a student modality, so no shirt (404)."""
+
+    status_code = 404
+
+
+class ShirtChangeClosedError(PaymentError):
+    """The date until which the size can be changed has passed (409)."""
+
+    status_code = 409
 
 
 class AlreadyHasTicketError(PaymentError):
@@ -456,6 +475,13 @@ def initiate_payment(
             "Student verification is required to buy this ticket"
         )
 
+    if tier.is_student and payload.shirt_size is None:
+        db.rollback()
+        raise ShirtSizeError("Shirt size is required for student tickets")
+    if not tier.is_student and payload.shirt_size is not None:
+        db.rollback()
+        raise ShirtSizeError("Shirt size only applies to student tickets")
+
     now = datetime.now(UTC)
     if _seats_left(db) < payload.quantity:
         db.rollback()
@@ -486,6 +512,7 @@ def initiate_payment(
         billing_postal_code=payload.billing_postal_code,
         billing_city=payload.billing_city,
         discount_code=payload.discount_code,
+        shirt_size=payload.shirt_size,
         provider=gateway.name,
         expires_at=now + timedelta(seconds=settings.MBWAY_PAYMENT_TIMEOUT_SECONDS),
     )
@@ -630,6 +657,7 @@ def confirm_transaction(db: Session, transaction: Transaction) -> Transaction:
             user_id=transaction.user_id,
             transaction_reference=transaction.reference,
             ticket_tier=ticket_tier_of(db, transaction),
+            shirt_size=transaction.shirt_size,
         )
     except IntegrityError:
         # Lost a race: either the same payment was confirmed by someone else in
@@ -1425,6 +1453,42 @@ def get_transaction(
     return transaction
 
 
+def shirt_changes_open(now: datetime | None = None) -> bool:
+    """True while the size of the shirt can still be changed on the account page."""
+    return (now or datetime.now(UTC)) < settings.SHIRT_SIZE_CHANGE_UNTIL
+
+
+def set_shirt_size(db: Session, user: User, size: ShirtSize) -> Ticket:
+    """Set the shirt size on the person's active ticket of a student modality.
+
+    404 when there is no such ticket (a cancelled one does not count, and neither does
+    a modality without a shirt); 409 once ``SHIRT_SIZE_CHANGE_UNTIL`` has passed.
+    """
+    row = db.execute(
+        select(Ticket, TicketTierPrice)
+        .join(Transaction, Transaction.reference == Ticket.transaction_reference)
+        .join(TicketTierPrice, TicketTierPrice.id == Transaction.ticket_tier_id)
+        .where(
+            Ticket.user_id == user.id,
+            Ticket.payment_status == PaymentStatus.PAID,
+        )
+        .order_by(Ticket.id.desc())
+        .limit(1)
+        .with_for_update(of=Ticket)
+    ).first()
+    if row is None or not row[1].is_student:
+        db.rollback()
+        raise NoShirtTicketError("No ticket with a shirt")
+    if not shirt_changes_open():
+        db.rollback()
+        raise ShirtChangeClosedError("The shirt size can no longer be changed")
+    ticket = row[0]
+    ticket.shirt_size = size
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
 def account_payment_overview(db: Session, user: User) -> dict:
     """What the account page needs to know about the person's purchase.
 
@@ -1470,6 +1534,12 @@ def account_payment_overview(db: Session, user: User) -> dict:
             "tier_name": ticket[1].name,
             "holder_name": user.name,
             "paid_at": ticket[0].paid_at,
+            "shirt_applies": ticket[1].is_student,
+            "shirt_size": ticket[0].shirt_size if ticket[1].is_student else None,
+            "shirt_can_change": ticket[1].is_student and shirt_changes_open(),
+            "shirt_change_until": (
+                settings.SHIRT_SIZE_CHANGE_UNTIL if ticket[1].is_student else None
+            ),
         },
         "pending_payment": None
         if waiting is None

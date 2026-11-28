@@ -11,7 +11,12 @@ from app.core.config import Settings, settings
 from app.core.security import hash_password
 from app.domains.payments import set_price as set_price_cli
 from app.domains.payments.gateway import SimulatedMBWayGateway
-from app.domains.payments.models import TicketTier, Transaction, TransactionStatus
+from app.domains.payments.models import (
+    ShirtSize,
+    TicketTier,
+    Transaction,
+    TransactionStatus,
+)
 from app.domains.payments.schemas import PaymentInitiateRequest
 from app.domains.payments.service import (
     TicketSoldOutError,
@@ -48,7 +53,11 @@ def make_user(db_session: Session, n: int) -> User:
 
 
 def buy(db_session: Session, user: User, tier: TicketTier) -> Transaction:
-    payload = PaymentInitiateRequest(ticket_tier=tier, phone="912345678")
+    # The student modalities get a shirt, and its size is required to buy them.
+    shirt = ShirtSize.M if tier in (COMPLETO, ACESSO) else None
+    payload = PaymentInitiateRequest(
+        ticket_tier=tier, phone="912345678", shirt_size=shirt
+    )
     transaction, _ = initiate_payment(
         db_session, user, payload, SimulatedMBWayGateway()
     )

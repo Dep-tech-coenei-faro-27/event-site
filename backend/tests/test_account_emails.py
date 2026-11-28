@@ -33,6 +33,7 @@ COPIES = [
     ("verification_email", "enei-verification-email"),
     ("password_reset_email", "enei-password-reset-email"),
     ("password_changed_email", "enei-password-changed-email"),
+    ("shirt_size_email", "enei-shirt-size-email"),
 ]
 
 

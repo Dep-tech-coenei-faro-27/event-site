@@ -21,6 +21,10 @@ export const FINAL_STATUSES: readonly TransactionStatus[] = [
   "refunded",
 ];
 
+/** Tamanhos da camisola (unissexo): só as modalidades de estudante levam camisola. */
+export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+export type ShirtSize = (typeof SHIRT_SIZES)[number];
+
 export type Tier = {
   tier: string;
   name: string;
@@ -62,6 +66,8 @@ export type InitiateRequest = {
   billing_city?: string;
   /** Código de desconto (opcional). O servidor valida-o e calcula o preço: com ele, `expected_price_cents` é o preço já com desconto. */
   discount_code?: string;
+  /** Tamanho da camisola: obrigatório nas modalidades de estudante e recusado nas outras (422). */
+  shirt_size?: ShirtSize;
   /** O preço (cêntimos) que a pessoa viu para um bilhete. Se entretanto mudou (acabou o Early Bird), o servidor recusa com 409 em vez de cobrar outro valor. */
   expected_price_cents?: number;
 };
@@ -80,6 +86,13 @@ export type AccountTicket = {
   tier_name: string;
   holder_name: string;
   paid_at: string | null;
+  /** Só as modalidades de estudante levam camisola. */
+  shirt_applies?: boolean;
+  /** `null` enquanto a pessoa não disse o tamanho (quem comprou antes de ele ser pedido). */
+  shirt_size?: ShirtSize | null;
+  /** Ainda se pode mudar (a data limite não passou). */
+  shirt_can_change?: boolean;
+  shirt_change_until?: string | null;
 };
 
 export type AccountPendingPayment = {

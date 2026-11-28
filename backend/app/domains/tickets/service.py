@@ -4,7 +4,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.core.qr import generate_qr_payload
-from app.domains.payments.models import TicketTier
+from app.domains.payments.models import ShirtSize, TicketTier
 from app.domains.tickets.models import PaymentStatus, Ticket
 
 
@@ -60,7 +60,12 @@ def confirm_ticket_payment_and_issue_qr(db: Session, ticket_id: int) -> Ticket:
 
 
 def issue_ticket_for_paid_transaction(
-    db: Session, *, user_id: int, transaction_reference: str, ticket_tier: TicketTier
+    db: Session,
+    *,
+    user_id: int,
+    transaction_reference: str,
+    ticket_tier: TicketTier,
+    shirt_size: ShirtSize | None = None,
 ) -> Ticket:
     """Issue the ticket for a paid transaction and sign its unique QR payload.
 
@@ -79,6 +84,7 @@ def issue_ticket_for_paid_transaction(
             user_id=user_id,
             transaction_reference=transaction_reference,
             ticket_tier=ticket_tier,
+            shirt_size=shirt_size,
             payment_status=PaymentStatus.PAID,
             paid_at=datetime.now(UTC),
         )
@@ -90,6 +96,7 @@ def issue_ticket_for_paid_transaction(
         return ticket
 
     ticket.ticket_tier = ticket.ticket_tier or ticket_tier
+    ticket.shirt_size = ticket.shirt_size or shirt_size
     ticket.payment_status = PaymentStatus.PAID
     ticket.paid_at = ticket.paid_at or datetime.now(UTC)
     ticket.qr_payload = generate_qr_payload(ticket.id)

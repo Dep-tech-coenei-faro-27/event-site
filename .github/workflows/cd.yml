@@ -121,6 +121,11 @@ jobs:
             if [ -n "${{ vars.SALES_OPEN_AT }}" ]; then
               echo "SALES_OPEN_AT=${{ vars.SALES_OPEN_AT }}" >> .env
             fi
+            # Até quando os estudantes mudam o tamanho da camisola na área pessoal: data ISO 8601 com fuso.
+            # Só entra quando a Variable existe (sem ela vale o início do evento, 2027-04-01T00:00:00+01:00).
+            if [ -n "${{ vars.SHIRT_SIZE_CHANGE_UNTIL }}" ]; then
+              echo "SHIRT_SIZE_CHANGE_UNTIL=${{ vars.SHIRT_SIZE_CHANGE_UNTIL }}" >> .env
+            fi
             # Gateway real (stripe ou ifthenpay); só entra quando a Variable existe: o código tem "stripe" por omissão.
             if [ -n "${{ vars.PAYMENTS_PROVIDER }}" ]; then
               echo "PAYMENTS_PROVIDER=${{ vars.PAYMENTS_PROVIDER }}" >> .env

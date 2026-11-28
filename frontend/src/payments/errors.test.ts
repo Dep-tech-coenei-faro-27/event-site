@@ -168,3 +168,22 @@ describe("código de desconto", () => {
     expect(describeDiscountError(api(500, "x"))).toMatch(/não foi possível/i);
   });
 });
+
+describe("tamanho da camisola no pedido de pagamento", () => {
+  it("422 sem tamanho numa modalidade de estudante: pede para escolher o tamanho, junto ao campo", () => {
+    const f = describeInitiateError(api(422, "Shirt size is required for student tickets"));
+    expect(f).toMatchObject({ kind: "invalid-input", field: "shirt_size", action: "fix-field" });
+    expect(f.message).toMatch(/escolhe o tamanho/i);
+  });
+
+  it("422 com tamanho numa modalidade sem camisola: manda escolher outra vez a modalidade", () => {
+    const f = describeInitiateError(api(422, "Shirt size only applies to student tickets"));
+    expect(f).toMatchObject({ kind: "invalid-input", field: "shirt_size" });
+    expect(f.message).toMatch(/não inclui camisola/i);
+  });
+
+  it("422 de validação do campo (tamanho fora da lista) também cai no campo do tamanho", () => {
+    const f = describeInitiateError(api(422, [{ loc: ["body", "shirt_size"], msg: "Input should be 'XS'..." }]));
+    expect(f).toMatchObject({ kind: "invalid-input", field: "shirt_size" });
+  });
+});

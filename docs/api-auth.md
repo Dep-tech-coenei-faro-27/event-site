@@ -101,7 +101,7 @@ Os três campos novos descrevem a compra da pessoa e são `null` quando não se 
 
 | Campo | Conteúdo |
 | --- | --- |
-| `ticket` | o bilhete ativo: `reference`, `tier`, `tier_name` (a modalidade comprada, tal como estava no pagamento), `holder_name`, `paid_at`. Nunca um bilhete cancelado |
+| `ticket` | o bilhete ativo: `reference`, `tier`, `tier_name` (a modalidade comprada, tal como estava no pagamento), `holder_name`, `paid_at` e a camisola: `shirt_applies` (só as modalidades de estudante levam), `shirt_size` (`XS` a `XXL`, ou `null` enquanto a pessoa não o disser), `shirt_can_change` (a data ainda não passou) e `shirt_change_until` (`null` sem camisola). Nunca um bilhete cancelado |
 | `pending_payment` | o pagamento à espera (ainda não terminado pelo MB WAY, mesmo depois do prazo): `reference`, `tier`, `tier_name`, `amount_cents`, `expires_at`. Serve para **retomar** o ecrã de espera depois de um refresh ou de uma sessão nova, sem guardar a referência no browser |
 | `refund_due` | um pagamento recebido a que não se pôde dar bilhete e que vai ser reembolsado: `reference`, `amount_cents` |
 
@@ -135,6 +135,20 @@ documento, ano letivo atual (`2026/2027`, `2026/27`, `2026-2027`) e o mesmo fich
 Imagens, PDFs sem selo qualificado (por exemplo, instituições com código de validação e captcha) e NIPC novos vão
 sempre para revisão manual (`python -m app.domains.students.review`, ver o README do backend). O ficheiro é apagado
 logo que há decisão; fica só o hash.
+
+### `PUT /api/users/me/shirt-size`
+
+Precisa de sessão. Dá ou muda o tamanho da camisola do bilhete **ativo e pago** de uma modalidade de estudante.
+
+|       |       |
+|-------|-------|
+| Corpo | `{"shirt_size": "XS" \| "S" \| "M" \| "L" \| "XL" \| "XXL"}`, tal e qual; mais nenhum campo |
+| `200` | o bilhete, como em `ticket` de `GET /api/users/me` |
+| `401` | sem sessão válida |
+| `403` | email por verificar |
+| `404` | sem bilhete pago com camisola (sem bilhete, pagamento ainda à espera, bilhete cancelado ou modalidade que não é de estudante) |
+| `409` | passou a data `SHIRT_SIZE_CHANGE_UNTIL` |
+| `422` | tamanho inválido ou em falta |
 
 ### `PUT /api/users/me`
 

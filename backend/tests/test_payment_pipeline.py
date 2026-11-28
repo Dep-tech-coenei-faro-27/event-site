@@ -154,6 +154,9 @@ class World:
     # --- routes ---------------------------------------------------------------
     @staticmethod
     def buy(client: TestClient, tier: str = "geral", phone: str = "912345678", **extra):
+        # The student modalities get a shirt, and its size is required to buy them.
+        if tier in ("acesso", "refeicoes", "completo"):
+            extra.setdefault("shirt_size", "M")
         return client.post(
             INITIATE_URL, json={"ticket_tier": tier, "phone": phone, **extra}
         )
@@ -1077,3 +1080,225 @@ def test_a_provider_that_cannot_say_does_not_hold_the_seat_for_ever(world):
     assert world.buy(rui).status_code == 201
     assert world.status(stuck) is TransactionStatus.EXPIRED
     world.invariants(limit=1)
+
+
+# --- shirt size (student modalities get a shirt)
+
+SHIRT_URL = "/api/users/me/shirt-size"
+
+
+def pay(world, client, reference):
+    """The payment is confirmed for exactly the amount that was asked."""
+    amount = f"{world.tx(reference).amount_cents / 100:.2f}"
+    return world.pays(client, reference, amount=amount)
+
+
+@pytest.mark.parametrize("size", ["XS", "S", "M", "L", "XL", "XXL"])
+def test_a_student_gives_the_shirt_size_at_checkout_and_it_reaches_the_ticket(
+    world, size
+):
+    world.seed()
+    ana = world.user("ana", student=True)
+
+    reference = world.buy(ana, tier="acesso", shirt_size=size).json()["reference"]
+
+    assert world.tx(reference).shirt_size.value == size
+    assert pay(world, ana, reference).status_code == 200
+    assert world.tickets_of("ana@example.com")[0].shirt_size.value == size
+    ticket = ana.get(ME_URL).json()["ticket"]
+    assert ticket["shirt_applies"] is True
+    assert ticket["shirt_size"] == size
+    assert ticket["shirt_can_change"] is True
+    assert ticket["shirt_change_until"].startswith("2027-04-01T00:00:00")
+    world.invariants()
+
+
+@pytest.mark.parametrize("tier", ["acesso", "refeicoes", "completo"])
+def test_every_student_modality_needs_the_size(world, tier):
+    world.seed()
+    ana = world.user("ana", student=True)
+
+    response = ana.post(INITIATE_URL, json={"ticket_tier": tier, "phone": "912345678"})
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Shirt size is required for student tickets"
+    assert world.provider.create_calls == 0
+    # Nothing was reserved: the same person buys right after with a size.
+    assert world.buy(ana, tier=tier).status_code == 201
+
+
+@pytest.mark.parametrize("size", ["xl", "XXXL", "2XL", "", " M", "M ", "Medium", 5])
+def test_only_the_exact_sizes_are_accepted(world, size):
+    world.seed()
+    ana = world.user("ana", student=True)
+
+    response = world.buy(ana, tier="acesso", shirt_size=size)
+
+    assert response.status_code == 422
+    assert world.provider.create_calls == 0
+
+
+@pytest.mark.parametrize("tier", ["geral", "geral_refeicoes"])
+def test_the_other_modalities_have_no_shirt(world, tier):
+    world.seed()
+    ana = world.user("ana")
+
+    refused = world.buy(ana, tier=tier, shirt_size="M")
+    assert refused.status_code == 422
+    assert refused.json()["detail"] == "Shirt size only applies to student tickets"
+
+    reference = world.buy(ana, tier=tier).json()["reference"]
+    pay(world, ana, reference)
+    ticket = ana.get(ME_URL).json()["ticket"]
+    assert ticket["shirt_applies"] is False
+    assert ticket["shirt_size"] is None
+    assert ticket["shirt_can_change"] is False
+    assert ticket["shirt_change_until"] is None
+    assert world.tickets_of("ana@example.com")[0].shirt_size is None
+    assert ana.put(SHIRT_URL, json={"shirt_size": "M"}).status_code == 404
+
+
+def test_a_student_changes_the_size_on_the_account_page(world):
+    world.seed()
+    ana = world.user("ana", student=True)
+    reference = world.buy(ana, tier="completo", shirt_size="M").json()["reference"]
+    pay(world, ana, reference)
+
+    response = ana.put(SHIRT_URL, json={"shirt_size": "XL"})
+
+    assert response.status_code == 200
+    assert response.json()["shirt_size"] == "XL"
+    assert ana.get(ME_URL).json()["ticket"]["shirt_size"] == "XL"
+    assert world.tickets_of("ana@example.com")[0].shirt_size.value == "XL"
+    # The size asked for at checkout stays as it was given; only the ticket changes.
+    assert world.tx(reference).shirt_size.value == "M"
+
+
+def test_the_size_cannot_be_changed_after_the_date(world, monkeypatch):
+    world.seed()
+    ana = world.user("ana", student=True)
+    reference = world.buy(ana, tier="acesso", shirt_size="S").json()["reference"]
+    pay(world, ana, reference)
+    monkeypatch.setattr(
+        settings, "SHIRT_SIZE_CHANGE_UNTIL", datetime.now(UTC) - timedelta(minutes=1)
+    )
+
+    response = ana.put(SHIRT_URL, json={"shirt_size": "L"})
+
+    assert response.status_code == 409
+    assert world.tickets_of("ana@example.com")[0].shirt_size.value == "S"
+    assert ana.get(ME_URL).json()["ticket"]["shirt_can_change"] is False
+    # Buying is not stopped by the date: the size is still asked and required.
+    bruno = world.user("bruno", student=True)
+    assert world.buy(bruno, tier="acesso", shirt_size="M").status_code == 201
+
+
+def test_the_size_can_be_set_by_someone_who_bought_before_it_existed(world):
+    world.seed()
+    ana = world.user("ana", student=True)
+    reference = world.buy(ana, tier="acesso").json()["reference"]
+    pay(world, ana, reference)
+    with world.session() as db:  # a ticket issued before the column existed
+        ticket = db.scalar(select(Ticket))
+        ticket.shirt_size = None
+        db.commit()
+    assert ana.get(ME_URL).json()["ticket"]["shirt_size"] is None
+
+    assert ana.put(SHIRT_URL, json={"shirt_size": "XXL"}).status_code == 200
+    assert ana.get(ME_URL).json()["ticket"]["shirt_size"] == "XXL"
+
+
+def test_the_size_needs_a_paid_ticket_and_a_session(world):
+    world.seed()
+    ana = world.user("ana", student=True)
+    world.buy(ana, tier="acesso", shirt_size="M")  # still waiting for the payment
+
+    assert ana.put(SHIRT_URL, json={"shirt_size": "L"}).status_code == 404
+    assert world.anonymous().put(SHIRT_URL, json={"shirt_size": "L"}).status_code == 401
+    unverified = world.user("rui", verified=False, student=True)
+    assert unverified.put(SHIRT_URL, json={"shirt_size": "L"}).status_code in (401, 403)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"shirt_size": None}, {"shirt_size": "xl"}, {"shirt_size": "M", "x": 1}],
+)
+def test_a_wrong_size_body_is_refused(world, body):
+    world.seed()
+    ana = world.user("ana", student=True)
+    reference = world.buy(ana, tier="acesso", shirt_size="M").json()["reference"]
+    pay(world, ana, reference)
+
+    assert ana.put(SHIRT_URL, json=body).status_code == 422
+    assert world.tickets_of("ana@example.com")[0].shirt_size.value == "M"
+
+
+def test_a_cancelled_ticket_has_no_shirt_to_change(world):
+    world.seed()
+    ana = world.user("ana", student=True)
+    reference = world.buy(ana, tier="acesso", shirt_size="M").json()["reference"]
+    pay(world, ana, reference)
+    with world.session() as db:
+        ticket = db.scalar(select(Ticket))
+        ticket.payment_status = PaymentStatus.CANCELLED
+        db.commit()
+
+    assert ana.put(SHIRT_URL, json={"shirt_size": "L"}).status_code == 404
+
+
+def test_the_shirt_deadline_defaults_to_the_start_of_the_event_and_needs_a_zone():
+    from app.core.config import Settings
+
+    default = Settings.model_fields["SHIRT_SIZE_CHANGE_UNTIL"].default
+    assert default.isoformat() == "2027-04-01T00:00:00+01:00"
+    kwargs = {"JWT_SECRET_KEY": "x" * 40, "_env_file": None}
+    assert (
+        Settings(**kwargs, SHIRT_SIZE_CHANGE_UNTIL="").SHIRT_SIZE_CHANGE_UNTIL
+        == default
+    )
+    with pytest.raises(ValueError, match="timezone"):
+        Settings(**kwargs, SHIRT_SIZE_CHANGE_UNTIL="2027-03-01T00:00:00")
+
+
+# --- the email that asks the students who bought before for their size
+
+
+def test_the_shirt_email_goes_only_to_students_without_a_size_and_once(world):
+    from app.domains.payments.ask_shirt_size import (
+        queue_shirt_size_emails,
+        tickets_without_size,
+    )
+
+    world.seed()
+    old = world.user("old", student=True)  # bought before the size was asked
+    new = world.user("new", student=True)  # gave the size at checkout
+    plain = world.user("plain")  # a modality without a shirt
+    for client, tier in ((old, "acesso"), (new, "completo"), (plain, "geral")):
+        pay(world, client, world.buy(client, tier=tier).json()["reference"])
+    with world.session() as db:
+        old_ticket = db.scalar(
+            select(Ticket)
+            .join(User, User.id == Ticket.user_id)
+            .where(User.email == "old@example.com")
+        )
+        old_ticket.shirt_size = None
+        db.commit()
+
+    with world.session() as db:
+        waiting = [(user.email) for _, user in tickets_without_size(db)]
+        assert waiting == ["old@example.com"]
+        assert queue_shirt_size_emails(db) == 1
+        assert queue_shirt_size_emails(db) == 0  # already in the queue
+        mails = db.scalars(
+            select(EmailOutbox).where(EmailOutbox.dedupe_key.like("shirt:%"))
+        ).all()
+        assert [m.to_email for m in mails] == ["old@example.com"]
+        assert mails[0].subject == "Qual é o tamanho da tua camisola?"
+        assert "/perfil" in mails[0].html_body
+        assert "Old" in mails[0].html_body
+
+    # Once the person gives the size, nobody is left to ask.
+    assert old.put(SHIRT_URL, json={"shirt_size": "S"}).status_code == 200
+    with world.session() as db:
+        assert tickets_without_size(db) == []
+        assert queue_shirt_size_emails(db) == 0

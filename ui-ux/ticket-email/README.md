@@ -1,6 +1,6 @@
 # Emails do ENEI 2027
 
-Quatro emails, cada um em HTML e em texto simples, com marcadores `[ASSIM]` que o backend substitui ao enviar.
+Cinco emails, cada um em HTML e em texto simples, com marcadores `[ASSIM]` que o backend substitui ao enviar.
 
 | Email | HTML | Texto | Marcadores |
 | --- | --- | --- | --- |
@@ -8,6 +8,7 @@ Quatro emails, cada um em HTML e em texto simples, com marcadores `[ASSIM]` que 
 | Verificação | `enei-verification-email.html` | `.txt` | `[FIRST_NAME]` `[VERIFICATION_URL]` `[VERIFICATION_VALIDITY_MINUTES]` |
 | Recuperação | `enei-password-reset-email.html` | `.txt` | `[FIRST_NAME]` `[PASSWORD_RESET_URL]` `[RESET_VALIDITY_MINUTES]` |
 | Palavra-passe alterada | `enei-password-changed-email.html` | `.txt` | `[FIRST_NAME]` `[PASSWORD_RESET_REQUEST_URL]` |
+| Tamanho da camisola | `enei-shirt-size-email.html` | `.txt` | `[FIRST_NAME]` `[TICKET_URL]` |
 
 - O QR do bilhete é `<img src="cid:ticket-qr">` (240 px), anexado pelo backend (`TICKET_QR_CID`).
 - Os minutos de validade vêm da configuração (`JWT_EMAIL_VERIFICATION_EXPIRE_MINUTES`, `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES`); não escrever números fixos nos textos.

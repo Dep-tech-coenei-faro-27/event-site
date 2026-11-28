@@ -1,17 +1,25 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.domains.auth.dependencies import get_current_verified_user
 from app.domains.payments.gateway import MBWayGateway, get_mbway_gateway_or_none
+from app.domains.payments.schemas import ShirtSizeUpdate
 from app.domains.payments.service import (
+    PaymentError,
     account_payment_overview,
     refresh_users_pending_payment,
+    set_shirt_size,
 )
 from app.domains.tickets.models import PaymentStatus
 from app.domains.tickets.service import get_ticket_for_user
 from app.domains.users.models import User
-from app.domains.users.schemas import UserProfileRead, UserRead, UserUpdate
+from app.domains.users.schemas import (
+    TicketSummaryRead,
+    UserProfileRead,
+    UserRead,
+    UserUpdate,
+)
 from app.domains.users.service import update_user_profile
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -44,3 +52,24 @@ def update_current_user(
 ) -> UserRead:
     updated_user = update_user_profile(db, current_user, payload)
     return UserRead.model_validate(updated_user)
+
+
+@router.put(
+    "/me/shirt-size",
+    response_model=TicketSummaryRead,
+    status_code=status.HTTP_200_OK,
+)
+def update_shirt_size(
+    payload: ShirtSizeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_verified_user),
+) -> TicketSummaryRead:
+    """Set the shirt size of the person's ticket (student modalities only).
+
+    404 without a ticket that has a shirt; 409 after ``SHIRT_SIZE_CHANGE_UNTIL``.
+    """
+    try:
+        set_shirt_size(db, current_user, payload.shirt_size)
+    except PaymentError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    return TicketSummaryRead(**account_payment_overview(db, current_user)["ticket"])
